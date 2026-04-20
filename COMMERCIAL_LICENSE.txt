@@ -1,0 +1,39 @@
+BSM KARMA BUILDER — COMMERCIAL LICENSE
+======================================
+
+Copyright (c) 2026 Benoit (BSM) Saint-Moulin
+Web    : https://www.bsm3d.com
+GitHub : https://github.com/bsm3d/bsm-karma-builder
+
+BSM Karma Builder is distributed under the GNU General Public License v3 (GPL-3.0)
+for free, personal, educational, and open-source use.
+
+A COMMERCIAL LICENSE IS REQUIRED for any of the following:
+
+  - Use within a studio, company, or professional production pipeline
+  - Internal use by a team or organisation, even without redistribution
+  - Integration into a proprietary or closed-source pipeline or product
+  - Redistribution as part of a commercial product, tool, or service
+  - Use as part of a paid service or SaaS offering
+
+This includes, but is not limited to:
+  - Animation and VFX studios
+  - Game development studios
+  - Advertising and post-production companies
+  - Independent contractors billing clients where BSM Karma Builder is part of the workflow
+
+FREE USE IS PERMITTED for:
+  - Individual personal projects
+  - Educational use (students, teachers, academic institutions)
+  - Open-source projects published under a compatible open-source license
+  - Evaluation and testing (up to 30 days before commercial deployment)
+
+TO OBTAIN A COMMERCIAL LICENSE:
+  Email : bsm@bsm3d.com
+  Web   : https://www.bsm3d.com
+
+Pricing is negotiated based on studio size and usage.
+Single-seat, team, and site licenses are available.
+
+This file does not constitute a legally binding contract on its own.
+A formal license agreement will be issued upon request.

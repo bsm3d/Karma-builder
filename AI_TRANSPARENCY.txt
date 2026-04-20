@@ -1,0 +1,47 @@
+BSM KARMA BUILDER - AI TRANSPARENCY STATEMENT
+=============================================
+
+Author: Benoit Saint-Moulin
+Year: 2026
+Web: https://www.bsm3d.com
+
+BSM Karma Builder was developed as a Houdini procedural lighting and render setup tool from practical VFX production experience. This document explains clearly where AI tools were used
+and where they were not.
+
+
+WHAT WAS HUMAN-LED
+------------------
+
+- Product direction and feature priorities
+- Application architecture and module design
+- UI structure, dialogs, editor behavior, and workflow choices
+- Core implementation decisions and integration strategy
+- Final review and validation before acceptance
+
+
+HOW AI WAS USED
+---------------
+
+AI was used as an assistant for support tasks such as:
+
+- style harmonization and naming consistency
+- documentation cleanup and phrasing improvements
+- bug-tracing support and cross-checking edge cases
+
+Any AI-suggested output was reviewed and edited before inclusion.
+
+
+WHAT AI DID NOT DO
+------------------
+
+- AI did not independently define BSM Karma Builder's architecture.
+- AI did not autonomously build or ship the product.
+- AI did not make release decisions.
+- AI did not replace human testing and validation.
+
+
+SUMMARY
+-------
+
+BSM Karma Builder is a human-authored software project. AI has been used as a productivity
+assistant, not as an autonomous author.

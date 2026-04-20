@@ -1,0 +1,55 @@
+BSM Karma Builder — GNU General Public License v3
+
+Copyright (c) 2026 Benoit (BSM) Saint-Moulin
+Web    : https://www.bsm3d.com
+GitHub : https://github.com/bsm3d/bsm-karma-builder
+
+-------------------------------------------------------------------------------
+FREE & OPEN SOURCE USE — GNU GPL v3
+-------------------------------------------------------------------------------
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, version 3 of the License.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+details.
+
+Full license text: https://www.gnu.org/licenses/gpl-3.0.html
+
+Key conditions of GPL v3:
+  - You may use, copy, modify and distribute this software freely.
+  - If you distribute modified versions, you must release the source under
+    GPL v3.
+  - If you run a modified version or integrate it into a studio/production
+    pipeline, you must make your modifications available under GPL v3
+    — OR obtain a commercial license (see below).
+
+-------------------------------------------------------------------------------
+COMMERCIAL / STUDIO / PRODUCTION USE
+-------------------------------------------------------------------------------
+
+If you use BSM Karma Builder within a studio, company, or commercial production pipeline
+— including internal use without distribution — a commercial license is
+required unless you comply fully with GPL v3 (i.e. publish all your
+modifications under GPL v3).
+
+This applies to:
+  - In-house use within a studio or company
+  - Integration into a proprietary pipeline
+  - Redistribution as part of a commercial product or service
+  - Use as part of a paid service or SaaS offering
+
+Contact for commercial licensing:
+  Email : bsm@bsm3d.com
+  Web   : https://www.bsm3d.com
+
+-------------------------------------------------------------------------------
+ATTRIBUTION
+-------------------------------------------------------------------------------
+
+All copies or substantial portions of the Software must retain this copyright
+notice, the author's name, and a link to https://www.bsm3d.com.
+
