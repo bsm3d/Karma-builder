@@ -2,7 +2,7 @@
 
 BSM Karma Builder is a procedural Python tool for SideFX Houdini (Solaris/LOPs) that automates the creation of Karma render setups and lighting environments. It provides a clean PySide interface to generate node networks for various lighting scenarios, atmospheric effects, and render variables without manual wiring.
 
-## Philosophy & Motivation
+## Why ?
 
 This tool was created to reduce the repetitive reconstruction of node networks for Karma renders, which is frequent during testing and lookdev phases. The beauty of this tool lies in its ability to build and incrementally update the LOP node network without destroying your existing setups.
 
