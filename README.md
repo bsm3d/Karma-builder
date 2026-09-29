@@ -53,4 +53,4 @@ BSM
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE): free for personal, educational and any other noncommercial use. Studios and commercial use need a commercial license, see [Informations/COMMERCIAL_LICENSE.txt](Informations/COMMERCIAL_LICENSE.txt). Versions published before 30 September 2026 were released under GPL-3.0.
