@@ -5,8 +5,8 @@ Copyright (c) 2026 BSM
 Web    : 
 GitHub : https://github.com/bsm3d/bsm-karma-builder
 
-BSM Karma Builder is distributed under the GNU General Public License v3 (GPL-3.0)
-for free, personal, educational, and open-source use.
+BSM Karma Builder is distributed under the PolyForm Noncommercial License 1.0.0
+for free personal, educational and other noncommercial use.
 
 A COMMERCIAL LICENSE IS REQUIRED for any of the following:
 
@@ -25,7 +25,7 @@ This includes, but is not limited to:
 FREE USE IS PERMITTED for:
   - Individual personal projects
   - Educational use (students, teachers, academic institutions)
-  - Open-source projects published under a compatible open-source license
+  - Noncommercial open-source projects
   - Evaluation and testing (up to 30 days before commercial deployment)
 
 TO OBTAIN A COMMERCIAL LICENSE:
