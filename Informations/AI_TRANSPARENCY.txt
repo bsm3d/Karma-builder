@@ -3,7 +3,6 @@ BSM KARMA BUILDER - AI TRANSPARENCY STATEMENT
 
 Author: BSM
 Year: 2026
-Web: 
 
 BSM Karma Builder was developed as a Houdini procedural lighting and render setup tool from practical VFX production experience. This document explains clearly where AI tools were used
 and where they were not.

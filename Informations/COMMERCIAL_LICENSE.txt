@@ -2,7 +2,6 @@ BSM KARMA BUILDER — COMMERCIAL LICENSE
 ======================================
 
 Copyright (c) 2026 BSM
-Web    : 
 GitHub : https://github.com/bsm3d/bsm-karma-builder
 
 BSM Karma Builder is distributed under the PolyForm Noncommercial License 1.0.0
@@ -30,7 +29,6 @@ FREE USE IS PERMITTED for:
 
 TO OBTAIN A COMMERCIAL LICENSE:
   Email : bsm@bsm3d.com
-  Web   : 
 
 Pricing is negotiated based on studio size and usage.
 Single-seat, team, and site licenses are available.
