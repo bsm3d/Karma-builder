@@ -20,7 +20,7 @@ Please note that this is a first version. While it is not perfect, it represents
 
 ## Requirements
 
-* SideFX Houdini 22 (the parameter names it relies on come from Houdini 22).
+* SideFX Houdini 21 or 22. Houdini 22 parameter names are the reference and older names are tried as fallbacks; the log lists any parameter that a version does not have. Earlier versions are not supported.
 * Solaris (LOPs) context and Karma rendering engine.
 
 ## Installation
@@ -32,9 +32,9 @@ Install `bsm_karma_builder.hda` (Assets > Install Asset Library), drop a **BSM K
 ### Option B: the script
 
 1. Copy `bsm_karma.py` and `bsm_karma_presets.json` to your Houdini user preferences directory, typically:
-   * Windows: `C:\Users\%USERNAME%\Documents\houdini22.0\scripts\python\`
-   * Linux: `~/houdini22.0/scripts/python/`
-   * Mac: `~/Library/Preferences/houdini/22.0/scripts/python/`
+   * Windows: `C:\Users\%USERNAME%\Documents\houdini<version>\scripts\python\`
+   * Linux: `~/houdini<version>/scripts/python/`
+   * Mac: `~/Library/Preferences/houdini/<version>/scripts/python/`
 2. Create a new Shelf Tool in Houdini and add the following Python code to launch the interface:
 
 ```python
@@ -44,7 +44,7 @@ importlib.reload(bsm_karma)
 bsm_karma.main()
 ```
 
-*(Adjust the folder name to your Houdini version, and the import name if you renamed the file.)*
+*(Replace `<version>` with your Houdini version, for example `21.0` or `22.0`, and adjust the import name if you renamed the file.)*
 
 ## Usage
 
@@ -54,6 +54,10 @@ bsm_karma.main()
 4. Use the `Materials` tab to drag MaterialX materials onto the prims of a Geometry Source.
 5. Adjust the `Render` and `Passes` (AOV) tabs as needed.
 6. Click **Build Environment Only** to generate the LOP network, or use the render buttons to output directly to MPlay or Disk.
+
+## Documentation
+
+The full documentation (interface reference, what is built, presets, building the HDA, troubleshooting) is in [`docs/index.html`](docs/index.html). GitHub shows HTML files as source: download the repository and open the file in a browser, or serve the `docs` folder with GitHub Pages.
 
 ## Author
 

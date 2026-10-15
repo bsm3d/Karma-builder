@@ -120,7 +120,7 @@ def build(output):
     button.setHelp("Opens the BSM Karma Builder window.")
     ptg.append(button)
     ptg.append(hou.LabelParmTemplate("tool_version", "Version", column_labels=(version,)))
-    ptg.append(hou.LabelParmTemplate("requirements", "Requires", column_labels=("Houdini 22, Solaris and Karma",)))
+    ptg.append(hou.LabelParmTemplate("requirements", "Requires", column_labels=("Houdini 21 or 22, Solaris and Karma",)))
     definition.setParmTemplateGroup(ptg)
 
     definition.addSection("bsm_karma_py", read_text("bsm_karma.py"))
