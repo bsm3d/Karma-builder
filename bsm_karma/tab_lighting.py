@@ -11,7 +11,7 @@ from .debuglog import _guarded_slot
 from .gauges import FloatSlider, IntSlider
 from .previews import SunAltitudeWidget, SunCompassWidget
 from .util import _expand_plain_path, _private_temp_dir
-from .widgets import wrap_tab
+from .widgets import ColorSwatch, wrap_tab
 
 HDRI_PREVIEW_MAX_BYTES = 400 * 1024 * 1024
 
@@ -175,7 +175,24 @@ class LightingTab:
         lay_rgb_amb.addLayout(lay_amb_r)
         lay_rgb_amb.addLayout(lay_amb_g)
         lay_rgb_amb.addLayout(lay_amb_b)
-        form_sky.addRow("Ambient Tint:", lay_rgb_amb)
+
+        # the swatch sits right under the label and follows the three sliders
+        w_amb_label = QtWidgets.QWidget()
+        lay_amb_label = QtWidgets.QVBoxLayout(w_amb_label)
+        lay_amb_label.setContentsMargins(0, 0, 0, 0)
+        lay_amb_label.setSpacing(3)
+        lay_amb_label.addStretch(1)
+        lay_amb_label.addWidget(QtWidgets.QLabel("Ambient Tint:"))
+        self.swatch_amb = ColorSwatch()
+        lay_amb_label.addWidget(self.swatch_amb)
+        lay_amb_label.addStretch(1)
+        form_sky.addRow(w_amb_label, lay_rgb_amb)
+
+        def _update_amb_swatch(*_):
+            self.swatch_amb.set_rgb(self.sp_amb_r.value(), self.sp_amb_g.value(), self.sp_amb_b.value())
+        for slider in (self.sp_amb_r, self.sp_amb_g, self.sp_amb_b):
+            slider.valueChanged.connect(_update_amb_swatch)
+        _update_amb_swatch()
 
         self.sld_turbidity = FloatSlider(1.0, 10.0, 3.0)
         self.sld_sky_int = FloatSlider(0.0, 30.0, 1.0)

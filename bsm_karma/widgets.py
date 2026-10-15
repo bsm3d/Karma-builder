@@ -3,6 +3,7 @@
 
 import hou
 from hutil.Qt import QtWidgets, QtCore, QtGui
+from .util import _clamp
 
 
 # --------------------------------------------------------
@@ -13,6 +14,37 @@ class PopupRefreshComboBox(QtWidgets.QComboBox):
     def showPopup(self):
         self.popupAboutToShow.emit()
         super().showPopup()
+
+
+# --------------------------------------------------------
+# Small square showing an RGB value. Values above 1 (the sliders go up to 2) are clipped for display.
+class ColorSwatch(QtWidgets.QWidget):
+    EDGE = QtGui.QColor("#3f4246")
+
+    # ------------------------------------------------------------
+    def __init__(self, width=44, height=16, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(width, height)
+        self._rgb = (1.0, 1.0, 1.0)
+
+    # ------------------------------------------------------------
+    def set_rgb(self, r, g, b):
+        self._rgb = (float(r), float(g), float(b))
+        self.setToolTip("R {:.2f}  G {:.2f}  B {:.2f}{}".format(
+            *self._rgb, "  (above 1: shown clipped)" if max(self._rgb) > 1.0 else ""))
+        self.update()
+
+    # ------------------------------------------------------------
+    def shown_color(self):
+        return QtGui.QColor(*[int(round(_clamp(c, 0.0, 1.0) * 255)) for c in self._rgb])
+
+    # ------------------------------------------------------------
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setPen(QtGui.QPen(self.EDGE, 1))
+        painter.setBrush(self.shown_color())
+        painter.drawRoundedRect(QtCore.QRectF(0.5, 0.5, self.width() - 1, self.height() - 1), 3, 3)
+        painter.end()
 
 
 # ------------------------------------------------------------
