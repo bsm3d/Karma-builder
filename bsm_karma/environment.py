@@ -201,6 +201,11 @@ def _create_physical_sky(stage, prev, cfg, log_callback):
         _safe_connect(sky, prev)
 
         if cfg.get("sky_mode", 0) == 1:
+            # the atmosphere is lit by the sun alone: below the horizon there is no daylight to scatter
+            if float(cfg["sky_elev"]) < 0.0:
+                log_callback("[WARN] Volumetric Atmosphere with the sun at {:.1f} deg (below the horizon) is dark, that is night. "
+                             "Raise Solar Altitude above 0, or pick a daytime preset. It only renders in Karma.".format(
+                                 float(cfg["sky_elev"])))
             linker = _get_or_create_node(stage, "lightlinker", "sky_atmosphere_linker")
             _pset(linker, "num_links", 1, log_callback, quiet=True)
 

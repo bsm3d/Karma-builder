@@ -87,5 +87,10 @@ t.check("sun link uses USD prim paths",
         and val("sky_atmosphere_linker", "link_includes_1") == "/lights/physical_sky/atmosphere",
         (val("sky_atmosphere_linker", "link_prim_1"), val("sky_atmosphere_linker", "link_includes_1")))
 t.check("link type", val("sky_atmosphere_linker", "link_type_1") == "light")
+t.check("daytime volumetric atmosphere gives no night warning", not [l for l in logs if "below the horizon" in l], logs)
+build(engine="cpu", sky_mode=1, sky_elev=-10)
+t.check("volumetric atmosphere with the sun below the horizon says it is dark", any("below the horizon" in l for l in logs), logs)
+build(engine="cpu", sky_mode=0, sky_elev=-10)
+t.check("no such warning for the basic projection sky", not [l for l in logs if "below the horizon" in l], logs)
 
 t.done()
