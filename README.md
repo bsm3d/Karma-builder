@@ -31,7 +31,7 @@ Install `bsm_karma_builder.hda` (Assets > Install Asset Library), drop a **BSM K
 
 ### Option B: the script
 
-1. Copy `bsm_karma.py` and `bsm_karma_presets.json` to your Houdini user preferences directory, typically:
+1. Copy the whole `bsm_karma` folder (the Python package, presets included) to your Houdini user preferences directory, typically:
    * Windows: `C:\Users\%USERNAME%\Documents\houdini<version>\scripts\python\`
    * Linux: `~/houdini<version>/scripts/python/`
    * Mac: `~/Library/Preferences/houdini/<version>/scripts/python/`
@@ -44,7 +44,7 @@ importlib.reload(bsm_karma)
 bsm_karma.main()
 ```
 
-*(Replace `<version>` with your Houdini version, for example `21.0` or `22.0`, and adjust the import name if you renamed the file.)*
+*(Replace `<version>` with your Houdini version, for example `21.0` or `22.0`. The reload also re-reads every module of the package.)*
 
 ## Usage
 

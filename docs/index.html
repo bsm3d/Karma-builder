@@ -105,7 +105,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 <p>The tool is meant to be run many times. It finds the nodes it created earlier and updates them instead of recreating them, so a render setup can be refined from the same window without losing hand edits (see <a href="#incremental">Rebuilding safely</a>).</p>
 
 <figure>
-  <img src="../Screenshots/Screen_1.png" alt="The BSM Karma Builder window next to the /stage network it generated" loading="lazy">
+  <img src="screenshots/Screen_1.png" alt="The BSM Karma Builder window next to the /stage network it generated" loading="lazy">
   <figcaption>The window and the network it builds in <code>/stage</code>. This screenshot comes from an earlier version: the tab names have changed since (see <a href="#ui">Interface reference</a>).</figcaption>
 </figure>
 
@@ -126,7 +126,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 
 <h3 id="install-script">Option B: the script</h3>
 <ol>
-  <li>Copy <code>bsm_karma.py</code> and <code>bsm_karma_presets.json</code> to your Houdini user preferences directory, in <code>scripts/python</code>:
+  <li>Copy the whole <code>bsm_karma</code> folder (the Python package, presets included) to your Houdini user preferences directory, in <code>scripts/python</code>:
     <table>
       <tr><th>Windows</th><td><code>C:\Users\%USERNAME%\Documents\houdini&lt;version&gt;\scripts\python\</code></td></tr>
       <tr><th>Linux</th><td><code>~/houdini&lt;version&gt;/scripts/python/</code></td></tr>
@@ -198,7 +198,7 @@ bsm_karma.main()</code></pre></li>
   <li><strong>never touches your nodes</strong>: the tool recognizes its own nodes only by the mark it put on them. A node of yours is never deleted, rewired, moved or marked, even if it has the same name or the same type as one of the tool's nodes. If one has the name the tool needs, the build stops with an error that names it (<code>[ERROR] ... was not created by BSM Karma Builder</code>); rename it and build again.</li>
 </ul>
 <div class="callout warn"><strong>Clear All Tool Nodes</strong>Deletes the nodes the tool built in <code>/stage</code>, after a confirmation that lists them. Nodes you made are never in that list. A tool node that is wired to something outside the tool's own nodes is skipped and reported in the Log. The deletion is a single undo step.</div>
-<p>Each build, and each material assignment, is also one undo step: <em>BSM Karma &ndash; Build</em>.</p>
+<p>Each build, and each material assignment, is also one undo step: <em>BSM Karma - Build</em>.</p>
 
 <h2 id="ui">Interface reference</h2>
 <p>The window has one tab per topic and a <strong>Build Environment Only</strong> button that stays visible at the bottom. It opens compact (about 540 &times; 600 pixels) and can be narrowed to about 400 pixels without a horizontal scroll bar; each tab scrolls vertically when it does not fit. Drop-down lists are only as wide as the field they sit in, and their full text shows when opened.</p>
@@ -225,7 +225,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td>Look Through</td><td>Locks a Scene Viewer on <code>/stage</code> to the render camera. Builds first if the camera does not exist yet. If no viewer is on <code>/stage</code>, it opens the Karma viewport instead.</td></tr>
   <tr><td>New Camera</td><td>Focal length (5 to 400 mm) of the generated camera. <em>Match viewport</em> copies the position and rotation of the active viewport at each build; left off, the camera keeps the position it was given the first time. For ultra-wide formats (width/height above 2) the aperture is set to 41.42.</td></tr>
   <tr><td>Clear All Tool Nodes</td><td>See <a href="#incremental">Rebuilding safely</a>.</td></tr>
-  <tr><td>Live Update (<em>Rebuild on change</em>)</td><td>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: any change to a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma &ndash; Live Update</em>. Camera and material lists are refreshed by a normal Build.</td></tr>
+  <tr><td>Live Update (<em>Rebuild on change</em>)</td><td>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: any change to a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma - Live Update</em>. Camera and material lists are refreshed by a normal Build.</td></tr>
 </table>
 
 <h3 id="tab-lighting">Lighting</h3>
@@ -379,11 +379,11 @@ bsm_karma.main()</code></pre></li>
   <li>the node graph of <code>/stage</code> after each build, with the type of each node, its inputs, and whether it belongs to the tool;</li>
   <li>the traceback of any error raised by a button. The button's error also appears in the Log tab as <code>[ERROR]</code>, and the window keeps working.</li>
 </ul>
-<p><strong>Where the file is written:</strong> in the folder of <code>bsm_karma.py</code>. The HDA has no file on disk, so it writes to <code>bsm_karma</code> inside your Houdini user preferences folder; if that folder cannot be written, the system temp folder is used. The Log tab shows the exact path, and <strong>Open Folder</strong> shows the folder. When the file passes 1 MB it is renamed to <code>bsm_karma_debug.log.1</code> (one backup is kept) and a new one starts.</p>
+<p><strong>Where the file is written:</strong> in the <code>bsm_karma</code> package folder. The HDA has no file on disk, so it writes to <code>bsm_karma</code> inside your Houdini user preferences folder; if that folder cannot be written, the system temp folder is used. The Log tab shows the exact path, and <strong>Open Folder</strong> shows the folder. When the file passes 1 MB it is renamed to <code>bsm_karma_debug.log.1</code> (one backup is kept) and a new one starts.</p>
 <p>To start with the log off, set the environment variable <code>BSM_KARMA_DEBUG=0</code> before launching Houdini. The file only contains paths, node names and settings, but check it before sharing it if your scene paths are confidential.</p>
 
 <h2 id="presets">Presets</h2>
-<p>Presets are stored in <code>bsm_karma_presets.json</code> (embedded in the HDA). Editing the file adds or changes entries without touching the code; if the file is missing or broken, the tool falls back to one built-in entry of each kind (the Log reports a broken file).</p>
+<p>Presets are stored in <code>bsm_karma/presets.json</code> (embedded in the HDA). Editing the file adds or changes entries without touching the code; if the file is missing or broken, the tool falls back to one built-in entry of each kind (the Log reports a broken file).</p>
 <h3>Quality</h3>
 <table>
   <tr><th>Name</th><th>Resolution</th><th>Samples</th></tr>
@@ -403,7 +403,7 @@ bsm_karma.main()</code></pre></li>
 }</code></pre>
 
 <h2 id="build-hda">Building the HDA</h2>
-<p>The HDA is built from the sources with <code>hython</code>, Houdini's command-line Python. Rebuild it after every change to <code>bsm_karma.py</code>, because the asset holds a copy of the code, not a link to the file.</p>
+<p>The HDA is built from the sources with <code>hython</code>, Houdini's command-line Python. Rebuild it after every change to the <code>bsm_karma</code> package, because the asset holds a copy of the code, not a link to the files.</p>
 <ol>
   <li>Open a terminal with the Houdini environment: <em>Houdini Command Line Tools</em> on Windows, or <code>source houdini_setup</code> from the Houdini install folder on Linux and macOS.</li>
   <li>Go to the project folder and run:
@@ -412,8 +412,8 @@ bsm_karma.main()</code></pre></li>
 <pre><code>hython build_hda.py path/to/output.hda</code></pre></li>
   <li>The script prints <code>built &hellip; (tool version X, N KB)</code> when it succeeds. Install the file with <em>Assets &rarr; Install Asset Library&hellip;</em>.</li>
 </ol>
-<p>What the script does: it creates a subnet that passes its input through, adds an <em>Open Karma Builder</em> button, stores <code>bsm_karma.py</code>, the presets, the loader module, the license and a help page as sections of the asset, takes the version from <code>SCRIPT_VERSION</code>, and writes the file. If <code>Karma builder/icone_Bsm_Karma.png</code> exists it becomes the node icon.</p>
-<p>The loader runs the embedded code in its own module, <code>bsm_karma_hda</code>, so it never clashes with a <code>bsm_karma.py</code> on the Python path. A new version of the asset replaces the code of the old one, and the old window is closed first.</p>
+<p>What the script does: it creates a subnet that passes its input through, adds an <em>Open Karma Builder</em> button, stores every module of the <code>bsm_karma</code> package (one section each), the presets, the loader module, the license and a help page as sections of the asset, takes the version from <code>SCRIPT_VERSION</code> in <code>bsm_karma/config.py</code>, and writes the file. If <code>Karma builder/icone_Bsm_Karma.png</code> exists it becomes the node icon.</p>
+<p>The loader serves the embedded modules to Python's import system as the package <code>bsm_karma_hda</code>, so the relative imports of the tool work as on disk and nothing clashes with a <code>bsm_karma</code> package on the Python path. A new version of the asset replaces the code of the old one, and the old window is closed first.</p>
 <div class="callout"><strong>Which Houdini to build with</strong>The asset is built with the Houdini that runs <code>hython</code>. To use it in both Houdini 21 and 22, build it with the older one.</div>
 <p><code>ast_equiv.py</code> is a small helper for maintainers: it compares the code of the Python files with an earlier git revision (<code>python ast_equiv.py [REV]</code>), ignoring comments and docstrings, to prove that a formatting pass changed nothing.</p>
 
@@ -454,16 +454,37 @@ bsm_karma.main()</code></pre></li>
 
 <h2 id="files">Project files</h2>
 <table>
-  <tr><th>File</th><th>Role</th></tr>
-  <tr><td><code>bsm_karma.py</code></td><td>The tool: node logic and window. The single source of truth.</td></tr>
-  <tr><td><code>bsm_karma_presets.json</code></td><td>Quality, sky, fog and cloud presets.</td></tr>
+  <tr><th>Path</th><th>Role</th></tr>
+  <tr><td><code>bsm_karma/</code></td><td>The tool, a Python package (see the modules below). The single source of truth.</td></tr>
+  <tr><td><code>bsm_karma/presets.json</code></td><td>Quality, sky, fog and cloud presets.</td></tr>
   <tr><td><code>bsm_karma_builder.hda</code></td><td>The built asset.</td></tr>
   <tr><td><code>build_hda.py</code></td><td>Builds the HDA with <code>hython</code>.</td></tr>
-  <tr><td><code>hda_python_module.py</code></td><td>The PythonModule of the HDA: loads the embedded code and opens the window.</td></tr>
-  <tr><td><code>ast_equiv.py</code></td><td>Maintainer helper: proves that a style pass did not change the code.</td></tr>
-  <tr><td><code>bsm_karma_debug.log</code></td><td>Written by the tool next to <code>bsm_karma.py</code> (see <a href="#debug-log">Debug log file</a>). Ignored by git.</td></tr>
+  <tr><td><code>tools/hda_python_module.py</code></td><td>The PythonModule of the HDA: serves the embedded modules and opens the window.</td></tr>
+  <tr><td><code>tools/ast_equiv.py</code></td><td>Maintainer helper: proves that a style pass did not change the code.</td></tr>
+  <tr><td><code>tests/</code></td><td>Tests run with <code>hython</code> (<code>tests/run_tests.ps1</code>).</td></tr>
+  <tr><td><code>docs/</code></td><td>This documentation and its screenshots (<code>docs/screenshots</code>).</td></tr>
   <tr><td><code>Informations/</code></td><td>License texts and AI transparency notice.</td></tr>
-  <tr><td><code>Screenshots/</code></td><td>Images used in the documentation.</td></tr>
+  <tr><td><code>todo.txt</code></td><td>What is left to do, with file and line.</td></tr>
+  <tr><td><code>bsm_karma/bsm_karma_debug.log</code></td><td>Written by the tool (see <a href="#debug-log">Debug log file</a>). Ignored by git.</td></tr>
+</table>
+
+<h3>Modules of the package</h3>
+<p>Each module has one responsibility. The lower ones know nothing of the upper ones: <code>config</code>, <code>util</code> and <code>styles</code> import nothing from the package, the node modules never import the window.</p>
+<table>
+  <tr><th>Module</th><th>Role</th></tr>
+  <tr><td><code>__init__</code></td><td>Entry point: <code>main()</code>, the reload of the submodules, the single window kept open.</td></tr>
+  <tr><td><code>config</code></td><td>Constants: version, node names, the mark put on the tool's nodes.</td></tr>
+  <tr><td><code>util</code>, <code>styles</code></td><td>Small helpers (math, colors, paths, temp folder), colors and style sheets.</td></tr>
+  <tr><td><code>debuglog</code></td><td>The debug log file and the guard around the button handlers.</td></tr>
+  <tr><td><code>nodeutil</code></td><td>Create, mark and set nodes; ownership checks.</td></tr>
+  <tr><td><code>environment</code></td><td>Camera, lights, physical sky, fog and clouds.</td></tr>
+  <tr><td><code>rendering</code></td><td>Material library, AOVs, Karma Render Settings and the USD Render ROP.</td></tr>
+  <tr><td><code>linker</code>, <code>catalog</code></td><td>Material Linker rules; catalog drops, trust checks and stage prims.</td></tr>
+  <tr><td><code>build</code></td><td><code>setup_karma_environment</code>: the whole build, cleanup and geometry merge.</td></tr>
+  <tr><td><code>gauges</code>, <code>previews</code>, <code>widgets</code></td><td>Gauge fields and sliders; sun compass, altitude and atmosphere drawings; combo box and prim tree.</td></tr>
+  <tr><td><code>window</code></td><td>The dialog: it assembles the tabs, collects the settings and runs the build.</td></tr>
+  <tr><td><code>tab_scene</code>, <code>tab_lighting</code>, <code>tab_atmosphere</code>, <code>tab_materials</code>, <code>tab_render</code>, <code>tab_passes</code>, <code>tab_export</code>, <code>tab_log</code></td><td>One file per tab of the window: its layout and its handlers.</td></tr>
+  <tr><td><code>viewport</code>, <code>snapshots</code>, <code>live</code></td><td>Karma viewport and camera lock, A/B snapshots, live update.</td></tr>
 </table>
 
 <h2 id="license">License</h2>
