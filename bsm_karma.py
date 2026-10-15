@@ -1,6 +1,6 @@
 # ************************************************************
 # bsm_karma.py - BSM Karma Builder
-# Karma environment builder for Houdini 22 (LOPs): lights, sky, fog, clouds, AOVs, render settings,
+# Karma environment builder for Houdini 21 and 22 (LOPs): lights, sky, fog, clouds, AOVs, render settings,
 # plus a MaterialX browser with drag and drop assignment.
 # Version : 2026.10.10.5 | Revision : 10-10-2026 | Auteur : BSM
 # ************************************************************
@@ -1129,15 +1129,19 @@ def _create_physical_sky(stage, prev, cfg, log_callback):
         if "sky_mode" in cfg:
             _pset(sky, "skymode", int(cfg["sky_mode"]), log_callback, quiet=True)
             
-        _pset(sky, "solar_altitude", float(cfg["sky_elev"]), log_callback, quiet=True)
-        _pset(sky, "solar_azimuth",   float(cfg["sky_azim"]), log_callback, quiet=True)
-        _pset(sky, "sunelevation", float(cfg["sky_elev"]), log_callback, quiet=True)
-        _pset(sky, "sunazimuth",   float(cfg["sky_azim"]), log_callback, quiet=True)
-        
-        _pset(sky, "sun_intensity", float(cfg["sky_sun_int"]), log_callback, quiet=True)
-        _pset(sky, "angle",      float(cfg["sky_sun_size"]), log_callback, quiet=True)
-        _pset(sky, "sunintensity", float(cfg["sky_sun_int"]), log_callback, quiet=True)
-        _pset(sky, "sunsize",      float(cfg["sky_sun_size"]), log_callback, quiet=True)
+        # one name per Houdini generation: a parm that none of them matches is reported, not skipped silently
+        missing = []
+        for label, names, value in (
+            ("sun altitude", ("solar_altitude", "sunelevation"), float(cfg["sky_elev"])),
+            ("sun azimuth", ("solar_azimuth", "sunazimuth"), float(cfg["sky_azim"])),
+            ("sun intensity", ("sun_intensity", "sunintensity"), float(cfg["sky_sun_int"])),
+            ("sun size", ("angle", "sunsize"), float(cfg["sky_sun_size"])),
+        ):
+            if not _set_first_existing_parm(sky, names, value, log_callback):
+                missing.append(label)
+        if missing:
+            log_callback("[WARN] Physical Sky: no matching parameter for {} on {} (this Houdini version?).".format(
+                ", ".join(missing), sky.type().nameWithCategory()))
         
         sun_temp = float(cfg.get("sky_sun_temp", 5500.0))
         sun_color = _kelvin_to_rgb(sun_temp)
@@ -1150,8 +1154,9 @@ def _create_physical_sky(stage, prev, cfg, log_callback):
         if cfg.get("enable_fog") or cfg.get("enable_clouds"):
             sky_int *= 4.0
 
-        _pset(sky, "sky_intensity", sky_int, log_callback, quiet=True)
-        _pset(sky, "skyintensity", sky_int, log_callback, quiet=True)
+        if not _set_first_existing_parm(sky, ("sky_intensity", "skyintensity"), sky_int, log_callback):
+            log_callback("[WARN] Physical Sky: no matching parameter for sky intensity on {}.".format(
+                sky.type().nameWithCategory()))
         
         _set_first_existing_parm(sky, ("horizon_blur", "horizonblurfalloff"), float(cfg["sky_hz_blur"]), log_callback)
 
@@ -1710,19 +1715,26 @@ def _insert_material_linker_in_chain(stage, linker, log_callback):
 
 # ----------------------------------------
 # (index, dst_prim_path, file_path, file_prim_path) per reference.
+# The multiparm layout is read and written by name: another Houdini version may rename it.
+def _linker_set(linker, pattern, index, value):
+    parm = linker.parm(pattern.format(index))
+    if parm is None:
+        raise ValueError("the Material Linker of this Houdini has no '{}' parameter (found on {})".format(
+            pattern.format(index), linker.type().nameWithCategory()))
+    parm.set(value)
+
+
+# ----------------------------------------
 def _linker_references(linker):
     refs = []
     count = linker.parm("num_files").evalAsInt() if linker.parm("num_files") is not None else 0
     for i in range(1, count + 1):
         dst = linker.parm("primpath_{}".format(i))
-        if dst is None:
+        src = linker.parm("filepath_{}".format(i))
+        ref_prim = linker.parm("filerefprimpath_{}".format(i))
+        if dst is None or src is None or ref_prim is None:
             continue
-        refs.append((
-            i,
-            dst.evalAsString(),
-            linker.parm("filepath_{}".format(i)).evalAsString(),
-            linker.parm("filerefprimpath_{}".format(i)).evalAsString(),
-        ))
+        refs.append((i, dst.evalAsString(), src.evalAsString(), ref_prim.evalAsString()))
     return refs
 
 
@@ -1733,9 +1745,10 @@ def _linker_rules(linker):
     count = linker.parm("num_links").evalAsInt() if linker.parm("num_links") is not None else 0
     for i in range(1, count + 1):
         owner = linker.parm("link_prim_{}".format(i))
-        if owner is None:
+        includes_parm = linker.parm("link_includes_{}".format(i))
+        if owner is None or includes_parm is None:
             continue
-        includes = [p.strip() for p in linker.parm("link_includes_{}".format(i)).evalAsString().splitlines() if p.strip()]
+        includes = [p.strip() for p in includes_parm.evalAsString().splitlines() if p.strip()]
         rules.append((i, owner.evalAsString().strip(), includes))
     return rules
 
@@ -1778,13 +1791,15 @@ def _linker_add_reference(linker, file_path, file_prim_path, label):
     dst_path = _unique_material_path(linker, wanted)
 
     folder = linker.parm("num_files")
+    if folder is None:
+        raise ValueError("the Material Linker of this Houdini has no 'num_files' parameter")
     folder.insertMultiParmInstance(folder.evalAsInt())
     index = folder.evalAsInt()
-    linker.parm("enabled_{}".format(index)).set(1)
-    linker.parm("createprims_{}".format(index)).set(1)
-    linker.parm("filepath_{}".format(index)).set(file_path)
-    linker.parm("filerefprimpath_{}".format(index)).set(file_prim_path)
-    linker.parm("primpath_{}".format(index)).set(dst_path)
+    _linker_set(linker, "enabled_{}", index, 1)
+    _linker_set(linker, "createprims_{}", index, 1)
+    _linker_set(linker, "filepath_{}", index, file_path)
+    _linker_set(linker, "filerefprimpath_{}", index, file_prim_path)
+    _linker_set(linker, "primpath_{}", index, dst_path)
     return dst_path
 
 
@@ -1821,16 +1836,18 @@ def _linker_assign(linker, material_path, prim_paths):
             return len(prim_paths)
 
     folder = linker.parm("num_links")
+    if folder is None:
+        raise ValueError("the Material Linker of this Houdini has no 'num_links' parameter")
     folder.insertMultiParmInstance(folder.evalAsInt())
     index = folder.evalAsInt()
-    linker.parm("link_enabled_{}".format(index)).set(1)
-    linker.parm("link_id_{}".format(index)).set(str(uuid.uuid4()))
-    linker.parm("link_type_{}".format(index)).set(MATERIAL_LINK_TYPE)
-    linker.parm("link_prim_{}".format(index)).set(material_path)
-    linker.parm("link_includes_{}".format(index)).set("\n".join(prim_paths))
-    linker.parm("link_excludes_{}".format(index)).set("")
-    linker.parm("link_reversed_{}".format(index)).set(0)
-    linker.parm("link_ispathexpression_{}".format(index)).set(0)
+    _linker_set(linker, "link_enabled_{}", index, 1)
+    _linker_set(linker, "link_id_{}", index, str(uuid.uuid4()))
+    _linker_set(linker, "link_type_{}", index, MATERIAL_LINK_TYPE)
+    _linker_set(linker, "link_prim_{}", index, material_path)
+    _linker_set(linker, "link_includes_{}", index, "\n".join(prim_paths))
+    _linker_set(linker, "link_excludes_{}", index, "")
+    _linker_set(linker, "link_reversed_{}", index, 0)
+    _linker_set(linker, "link_ispathexpression_{}", index, 0)
     return len(prim_paths)
 
 AMD_LIBRARY_URL = "https://api.matlib.gpuopen.com/api"
@@ -2127,7 +2144,12 @@ def _merge_geometry_source(stage, env_tip, cfg, log_callback):
 
 # --------------------------------------------------------------------------------
 def setup_karma_environment(cfg, log_callback):
-    log_callback(f"--- Building: {cfg['scene_mode']} ---")
+    log_callback(f"--- Building: {cfg['scene_mode']} (Houdini {hou.applicationVersionString()}) ---")
+    try:
+        if hou.applicationVersion()[0] < 21:
+            log_callback("[WARN] Written for Houdini 21 and 22: some Karma parameters may be missing in this version.")
+    except (hou.Error, TypeError, IndexError):
+        pass
     stage = _get_or_create_stage()
     cam, cam_path = _resolve_render_camera(stage, cfg, log_callback)
 
@@ -2141,8 +2163,17 @@ def setup_karma_environment(cfg, log_callback):
         else:
             env_base = _create_dome_light(stage, cam, cfg["hdri_int"], cfg["hdri_path"], log_callback, name="env_hdri", hdri_opts=cfg)
             
-        fog = _create_fog_branch(stage, cam, cfg, log_callback) if cfg["enable_fog"] else None
-        cloud = _create_cloud_branch(stage, cam, cfg, log_callback) if cfg["enable_clouds"] else None
+        fog = cloud = None
+        if cfg["enable_fog"]:
+            try:
+                fog = _create_fog_branch(stage, cam, cfg, log_callback)
+            except hou.OperationFailed as exc:
+                log_callback("[WARN] Fog skipped: {}".format(exc))
+        if cfg["enable_clouds"]:
+            try:
+                cloud = _create_cloud_branch(stage, cam, cfg, log_callback)
+            except hou.OperationFailed as exc:
+                log_callback("[WARN] Clouds skipped (a node type may be missing in this Houdini): {}".format(exc))
         env_tip = _create_environment_merge(stage, env_base, fog, cloud)
         
     elif mode == "Studio":
@@ -3519,7 +3550,11 @@ class KarmaBuilderUI(QtWidgets.QDialog):
                 except ValueError as exc:
                     self.log_message("[WARN] Material not assigned: {}".format(exc))
                     continue
-                count = _linker_assign(linker, material_path, prim_paths)
+                try:
+                    count = _linker_assign(linker, material_path, prim_paths)
+                except ValueError as exc:
+                    self.log_message("[WARN] Material not assigned: {}".format(exc))
+                    continue
                 self.log_message("[OK] {} -> {} prim(s): {}".format(material_path, count, ", ".join(prim_paths[:3])
                                                                     + (" ..." if len(prim_paths) > 3 else "")))
         self.refresh_material_targets()
