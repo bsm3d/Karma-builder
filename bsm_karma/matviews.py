@@ -1,0 +1,297 @@
+# matviews.py - BSM Karma Builder - thumbnails, list and category views of the material catalog
+# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+
+from hutil.Qt import QtWidgets, QtCore
+from .config import MATERIAL_VIEW_LIMIT
+from .debuglog import _debug
+from .widgets import _asset_mime_type
+
+VIEW_MODES = ("Thumbnails", "List", "Categories")
+
+
+# ------------------------------------------------------------
+# The gallery is Houdini's widget: its item view is found by type, and everything below only goes through the
+# standard Qt model API (selection, mimeData), so no private Houdini call is needed here.
+def find_gallery_view(gallery):
+    if gallery is None:
+        return None
+    views = gallery.findChildren(QtWidgets.QAbstractItemView)
+    if isinstance(gallery, QtWidgets.QAbstractItemView):
+        views.insert(0, gallery)
+    for view in views:
+        if view.model() is not None:
+            return view
+    return None
+
+
+# ------------------------------------------------------------
+# The same text a drag from the gallery carries, so a button and a drop share one path.
+def payload_from_indexes(model, indexes):
+    mime_type = _asset_mime_type()
+    if model is None or not mime_type or not indexes:
+        return ""
+    try:
+        data = model.mimeData(indexes)
+        if data is None or not data.hasFormat(mime_type):
+            return ""
+        return bytes(data.data(mime_type)).decode("utf-8")
+    except (UnicodeDecodeError, TypeError, ValueError, RuntimeError):
+        return ""
+
+
+# ------------------------------------------------------------
+def selected_payload(view):
+    if view is None or view.selectionModel() is None:
+        return ""
+    rows = {}
+    for index in view.selectionModel().selectedIndexes():
+        rows.setdefault((index.parent(), index.row()), index.sibling(index.row(), 0))
+    return payload_from_indexes(view.model(), list(rows.values()))
+
+
+# ------------------------------------------------------------
+# Leaves of the gallery model with the folder names above them. Only rows already loaded are read: asking a
+# lazy model for more could start a download.
+def walk_model(model, limit=MATERIAL_VIEW_LIMIT):
+    found = []
+
+    def visit(parent, trail):
+        for row in range(model.rowCount(parent)):
+            if len(found) >= limit:
+                return
+            index = model.index(row, 0, parent)
+            text = str(index.data(QtCore.Qt.DisplayRole) or "")
+            if model.hasChildren(index) and model.rowCount(index) > 0:
+                visit(index, trail + [text])
+            else:
+                found.append((text, list(trail), QtCore.QPersistentModelIndex(index)))
+
+    visit(QtCore.QModelIndex(), [])
+    return found
+
+
+# --------------------------------------------------
+def _to_index(persistent):
+    if persistent is None or not persistent.isValid():
+        return None
+    return persistent.model().index(persistent.row(), persistent.column(), persistent.parent())
+
+
+# --------------------------------------------------
+# QTreeWidgetItem.data takes a column, QListWidgetItem.data does not
+def _item_persistent(item):
+    if isinstance(item, QtWidgets.QTreeWidgetItem):
+        return item.data(0, QtCore.Qt.UserRole)
+    return item.data(QtCore.Qt.UserRole)
+
+
+# --------------------------------------------------
+class _ModelItemsMixin:
+    # drags carry what the gallery would carry for the same rows
+    def _indexes(self, items):
+        indexes = [_to_index(_item_persistent(item)) for item in items]
+        return [index for index in indexes if index is not None]
+
+    def mimeData(self, items):
+        indexes = self._indexes(items)
+        data = self._source_model.mimeData(indexes) if indexes and self._source_model is not None else None
+        return data if data is not None else QtCore.QMimeData()
+
+    def selected_payload(self):
+        return payload_from_indexes(self._source_model, self._indexes(self.selectedItems()))
+
+
+class MaterialListWidget(_ModelItemsMixin, QtWidgets.QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._source_model = None
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setDragEnabled(True)
+        self.setAlternatingRowColors(True)
+        self.setUniformItemSizes(True)
+
+    def fill(self, model, rows):
+        self._source_model = model
+        self.setUpdatesEnabled(False)
+        self.clear()
+        for text, trail, persistent in sorted(rows, key=lambda row: (row[0].lower(), row[1])):
+            item = QtWidgets.QListWidgetItem(text)
+            item.setData(QtCore.Qt.UserRole, persistent)
+            if trail:
+                item.setToolTip(" / ".join(trail + [text]))
+            self.addItem(item)
+        self.setUpdatesEnabled(True)
+
+
+class MaterialCategoryTree(_ModelItemsMixin, QtWidgets.QTreeWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._source_model = None
+        self.setHeaderHidden(True)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setDragEnabled(True)
+        self.setAlternatingRowColors(True)
+
+    def fill(self, model, rows):
+        self._source_model = model
+        self.setUpdatesEnabled(False)
+        self.clear()
+        groups = {}
+        for text, trail, persistent in sorted(rows, key=lambda row: (row[1], row[0].lower())):
+            parent = None
+            key = ()
+            for name in trail or ["(uncategorized)"]:
+                key = key + (name,)
+                node = groups.get(key)
+                if node is None:
+                    node = QtWidgets.QTreeWidgetItem([name])
+                    node.setFlags(node.flags() & ~QtCore.Qt.ItemIsDragEnabled)
+                    node.setData(0, QtCore.Qt.UserRole, None)
+                    (parent.addChild if parent is not None else self.addTopLevelItem)(node)
+                    groups[key] = node
+                parent = node
+            leaf = QtWidgets.QTreeWidgetItem([text])
+            leaf.setData(0, QtCore.Qt.UserRole, persistent)
+            parent.addChild(leaf)
+        for key, node in groups.items():
+            node.setText(0, "{} ({})".format(key[-1], node.childCount()))
+        self.expandToDepth(0)
+        self.setUpdatesEnabled(True)
+
+
+# ------------------------------------------------------------
+# Switch between Houdini's thumbnails and two plain lists of the same materials. A right click on a material
+# emits contextRequested(global position) after selecting it, and a left press emits pressed (a drag may follow).
+class MaterialBrowser(QtWidgets.QWidget):
+    contextRequested = QtCore.Signal(QtCore.QPoint)
+    pressed = QtCore.Signal()
+
+    # ----------------------------------------------------------------------
+    def __init__(self, gallery, parent=None):
+        super().__init__(parent)
+        self._gallery = gallery
+        self._gallery_view = find_gallery_view(gallery)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+
+        row = QtWidgets.QHBoxLayout()
+        self.combo_view = QtWidgets.QComboBox()
+        self.combo_view.addItems(VIEW_MODES)
+        self.combo_view.setMinimumWidth(104)
+        self.combo_view.setToolTip("Thumbnails: Houdini's gallery. List and Categories: the same materials as text.")
+        self.combo_view.currentIndexChanged.connect(self._on_mode)
+        row.addWidget(QtWidgets.QLabel("View:"))
+        row.addWidget(self.combo_view)
+        row.addStretch(1)
+        layout.addLayout(row)
+
+        self.stack = QtWidgets.QStackedWidget()
+        self.list_view = MaterialListWidget()
+        self.tree_view = MaterialCategoryTree()
+        self.stack.addWidget(gallery)
+        self.stack.addWidget(self.list_view)
+        self.stack.addWidget(self.tree_view)
+        layout.addWidget(self.stack, 1)
+
+        self._events = _ViewEvents(self)
+        for view in (self._gallery_view, self.list_view, self.tree_view):
+            if view is not None:
+                view.viewport().installEventFilter(self._events)
+
+        # the text views read the gallery model: refill when it changes, with a short delay for bursts
+        self._refill = QtCore.QTimer(self)
+        self._refill.setSingleShot(True)
+        self._refill.setInterval(300)
+        self._refill.timeout.connect(self._fill_text_views)
+        model = self._gallery_view.model() if self._gallery_view is not None else None
+        if model is not None:
+            for signal in (model.modelReset, model.rowsInserted, model.rowsRemoved, model.layoutChanged):
+                signal.connect(self._refill_later)
+        else:
+            _debug("material browser: no item view found inside the gallery, only thumbnails are available")
+            self.combo_view.setEnabled(False)
+
+    # ------------------------------------------------------------
+    def _refill_later(self, *_):
+        if self.stack.currentIndex() != 0:
+            self._refill.start()
+
+    # ------------------------------------------------------------
+    def _on_mode(self, index):
+        self.stack.setCurrentIndex(index)
+        if index != 0:
+            self._fill_text_views()
+
+    # --------------------------------------------------
+    def _fill_text_views(self):
+        model = self._gallery_view.model() if self._gallery_view is not None else None
+        if model is None:
+            return
+        rows = walk_model(model)
+        if self.stack.currentIndex() == 1:
+            self.list_view.fill(model, rows)
+        elif self.stack.currentIndex() == 2:
+            self.tree_view.fill(model, rows)
+
+    # ------------------------------------------------------------
+    def refresh(self):
+        self._fill_text_views()
+
+    # ------------------------------------------------------------
+    def current_view(self):
+        return (self._gallery_view, self.list_view, self.tree_view)[self.stack.currentIndex()]
+
+    # ------------------------------------------------------------
+    def current_payload(self):
+        view = self.current_view()
+        if isinstance(view, _ModelItemsMixin):
+            return view.selected_payload()
+        return selected_payload(view)
+
+    # ------------------------------------------------------------
+    def _select_under(self, view, pos):
+        if isinstance(view, QtWidgets.QTreeWidget):
+            item = view.itemAt(pos)
+            if item is None or _item_persistent(item) is None:
+                return False
+            if not item.isSelected():
+                view.clearSelection()
+                item.setSelected(True)
+            return True
+        if isinstance(view, QtWidgets.QListWidget):
+            item = view.itemAt(pos)
+            if item is None:
+                return False
+            if not item.isSelected():
+                view.clearSelection()
+                item.setSelected(True)
+            return True
+        index = view.indexAt(pos)
+        if not index.isValid():
+            return False
+        if not view.selectionModel().isSelected(index):
+            view.selectionModel().select(index, QtCore.QItemSelectionModel.ClearAndSelect)
+        return True
+
+
+# ------------------------------------------------------------
+class _ViewEvents(QtCore.QObject):
+    def __init__(self, browser):
+        super().__init__(browser)
+        self._browser = browser
+
+    # --------------------------------------------------
+    def eventFilter(self, obj, event):
+        kind = event.type()
+        if kind == QtCore.QEvent.MouseButtonPress and event.button() == QtCore.Qt.LeftButton:
+            self._browser.pressed.emit()
+            return False
+        if kind == QtCore.QEvent.ContextMenu:
+            view = self._browser.current_view()
+            if view is None or obj is not view.viewport():
+                return False
+            if self._browser._select_under(view, event.pos()):
+                self._browser.contextRequested.emit(event.globalPos())
+                return True
+        return False

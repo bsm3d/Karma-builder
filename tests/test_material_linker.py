@@ -50,6 +50,32 @@ t.check("unassign reports the count", k._linker_unassign(linker, ["/my_cube"]) =
 t.check("empty rule deleted", len(k._linker_rules(linker)) == 1)
 t.check("cube unbound after removal", k._bound_material_name(linker.stage(), "/my_cube") == "")
 
+# --- Edit Material LOP after the linker (nodal view of a material) ---
+edit = k._get_or_create_material_edit(stage)
+t.check("edit node created and owned", k._material_edit_node(stage) == edit and edit.name() == "material_edit")
+k._insert_material_edit_in_chain(linker, edit)
+t.check("edit node sits between the linker and the AOVs", edit.input(0) == linker and stage.node("standard_aovs").input(0) == edit)
+problems = k._material_edit_load(edit, dst)
+print("INFO Edit Material parameters: {}".format(sorted(p.name() for p in edit.parms())[:40]))
+print("INFO Edit Material problems: {}".format(problems))
+user_node = stage.createNode("editmaterial", "user_edit")
+stage.node("material_edit").destroy()
+user_clash = stage.createNode("editmaterial", "material_edit")
+try:
+    k._get_or_create_material_edit(stage)
+    refused = False
+except hou.OperationFailed:
+    refused = True
+t.check("a user's node named material_edit is refused, not reused", refused and k._material_edit_node(stage) is None)
+user_clash.destroy()
+user_node.destroy()
+edit = k._get_or_create_material_edit(stage)
+k._insert_material_edit_in_chain(linker, edit)
+
+k.setup_karma_environment(cfg, logs.append)
+t.check("rebuild keeps the edit node wired", edit.input(0) == linker and stage.node("standard_aovs").input(0) == edit)
+edit.destroy()
+linker.setInput(0, stage.node("mtlx_materials"))
 k.setup_karma_environment(cfg, logs.append)
 t.check("rebuild keeps the linker wired", linker.input(0).name() == "mtlx_materials" and stage.node("standard_aovs").input(0) == linker)
 t.check("rebuild keeps the assignment", k._bound_material_name(stage.node("karma_settings").stage(), "/my_sphere") == "M_red")

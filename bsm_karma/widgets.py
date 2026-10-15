@@ -90,6 +90,19 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
     def selected_paths(self):
         return [item.data(0, self.PATH_ROLE) for item in self.selectedItems()]
 
+    # ------------------------------------------------------------
+    # Select the rows of these prims, return how many exist in the list.
+    def select_paths(self, paths):
+        self.clearSelection()
+        found = 0
+        for path in paths:
+            item = self._items.get(path)
+            if item is not None:
+                item.setSelected(True)
+                self.scrollToItem(item)
+                found += 1
+        return found
+
     # drag and drop
 
     # ----------------------------------------------------------------

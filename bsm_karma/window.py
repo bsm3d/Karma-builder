@@ -181,6 +181,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self._karma_scene_viewer = None
         self._parm_pane_tab = None
 
+        step("viewport drop", self._viewport_drop.disarm)
         step("catalog source", self._restore_material_source)
         step("snapshots", self._clear_snapshot_images)
         step("target list", lambda: self.tree_mat_targets.set_prims([], {}))

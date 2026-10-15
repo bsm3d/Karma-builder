@@ -16,8 +16,9 @@ from .catalog import (_amd_library_reachable, _bound_material_name, _catalog_sou
 from .debuglog import _debug_exception, debug_log_path
 from .config import AMD_LIBRARY_URL, AMD_SOURCE_ID, SCRIPT_VERSION, USD_CAMERA_PREFIX
 from .environment import _stage_camera_prims
-from .linker import (_get_or_create_material_linker, _insert_material_linker_in_chain, _linker_add_reference,
-                     _linker_assign, _linker_references, _linker_rules, _linker_unassign)
+from .linker import (_get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain,
+                     _insert_material_linker_in_chain, _linker_add_reference, _linker_assign, _linker_references, _linker_rules,
+                     _linker_unassign, _material_edit_load, _material_edit_node)
 from .nodeutil import _is_tool_node_candidate
 from .util import _private_temp_dir
 from .window import KarmaBuilderUI
@@ -29,6 +30,7 @@ __all__ = [
     "USD_CAMERA_PREFIX", "_amd_library_reachable", "_bound_material_name", "_catalog_source_problem",
     "_list_materials_in_file", "_material_catalog_file", "_parse_catalog_drop", "_stage_target_prims",
     "_stage_camera_prims", "_get_or_create_material_linker", "_insert_material_linker_in_chain",
+    "_get_or_create_material_edit", "_insert_material_edit_in_chain", "_material_edit_load", "_material_edit_node",
     "_linker_add_reference", "_linker_assign", "_linker_references", "_linker_rules", "_linker_unassign",
     "_is_tool_node_candidate", "_private_temp_dir", "bsm_karma_ui_dialog",
 ]

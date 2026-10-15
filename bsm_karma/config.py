@@ -30,6 +30,7 @@ TOOL_STAGE_NODE_TYPES = {
     "quickcloudmaterial": {"editmaterialproperties"},
     "env_merge": {"merge"},
     "mtlx_materials": {"materiallibrary"},
+    "material_edit": {"editmaterial"},
     "material_linker": {"materiallinker"},
     "geo_merge": {"merge"},
     "standard_aovs": {"karmastandardrendervars"},
@@ -42,6 +43,7 @@ TOOL_STAGE_DELETE_ORDER = [
     "render_to_disk",
     "karma_settings",
     "standard_aovs",
+    "material_edit",
     "material_linker",
     "mtlx_materials",
     "geo_merge",
@@ -98,6 +100,22 @@ AMD_SOURCE_ID = "AMD MaterialX Library"
 
 
 STAGE_TARGET_LIMIT = 5000
+
+
+# Edit Material LOP: edits an existing USD material as a VOP network. Its parameter names are not documented in
+# this repo, so they are looked up from these candidates and the node is left for the user when none matches.
+MATERIAL_EDIT_NODE = "material_edit"
+MATERIAL_EDIT_TYPE = "editmaterial"
+MATERIAL_EDIT_PATH_PARMS = ("materialpath", "matpath", "primpath", "material", "path")
+MATERIAL_EDIT_LOAD_PARMS = ("load", "loadmaterial", "loadnetwork", "reload")
+
+
+# list and category views of the catalog: rows read from the gallery model, never more than this
+MATERIAL_VIEW_LIMIT = 20000
+
+
+# viewport picking: Houdini pixel coordinates start at the lower left, Qt at the upper left
+VIEWPORT_PICK_FLIP_Y = True
 
 
 _PRIM_PATH_RE = re.compile(r"^/[A-Za-z0-9_/]*$")

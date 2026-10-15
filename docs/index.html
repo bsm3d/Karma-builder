@@ -164,6 +164,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>geo_merge</code></td><td>Merge</td><td>Merges your geometry LOP (the <em>Geometry Source</em>) with the environment, so materials can be bound to its prims.</td></tr>
   <tr><td><code>mtlx_materials</code></td><td>Material Library</td><td>Holds a default MaterialX material, <code>pbr_standard</code>, under <code>/World/Materials</code>.</td></tr>
   <tr><td><code>material_linker</code></td><td>Material Linker</td><td>Created the first time you assign a material from the Materials tab. Holds the references and the assignment rules.</td></tr>
+  <tr><td><code>material_edit</code></td><td>Edit Material</td><td>Created when you open a material as a node network (right click in the Materials tab). Sits right after <code>material_linker</code>; edits made inside it are part of the render.</td></tr>
   <tr><td><code>standard_aovs</code></td><td>Karma Standard Render Vars</td><td>The render passes chosen on the Passes tab. Removed when AOVs are disabled.</td></tr>
   <tr><td><code>karma_settings</code></td><td>Karma Render Settings</td><td>Engine, samples, resolution, denoiser, pixel filter, ray limits, output path. Camera is set to the USD prim path of the render camera.</td></tr>
   <tr><td><code>render_to_disk</code></td><td>USD Render ROP</td><td>Renders the chain, with the frame range and image path of the Export tab.</td></tr>
@@ -283,7 +284,7 @@ bsm_karma.main()</code></pre></li>
 <p>With both fog and clouds on, the Volume Limit is raised to at least 8.</p>
 
 <h3 id="tab-materials">Materials</h3>
-<p>Drag materials from a catalog onto the prims of your geometry. The tool writes the assignments in a <strong>Material Linker</strong> node.</p>
+<p>Assign materials from a catalog to the prims of your geometry: by drag and drop (on the tree or on the viewport) or with a button. The tool writes the assignments in a <strong>Material Linker</strong> node.</p>
 <h4>Catalog</h4>
 <table>
   <tr><th>Source</th><th>Description</th></tr>
@@ -292,14 +293,33 @@ bsm_karma.main()</code></pre></li>
   <tr><td>USD / MaterialX File&hellip;</td><td>Any <code>.mtlx</code>, <code>.usd</code>, <code>.usda</code>, <code>.usdc</code> or <code>.usdz</code> file. A <code>.mtlx</code> is wrapped in a small temporary USD layer so the gallery can show it.</td></tr>
 </table>
 <p>Press <strong>Connect</strong> to switch source. The catalog is shared by the whole Houdini session; when the window closes, the default catalog is restored.</p>
+<h4>Views of the catalog</h4>
+<p>The <strong>View</strong> list above the catalog switches how the same materials are shown.</p>
+<table>
+  <tr><th>View</th><th>Description</th></tr>
+  <tr><td>Thumbnails</td><td>Houdini's own gallery.</td></tr>
+  <tr><td>List</td><td>All materials as one alphabetical list. Hover a name to see the folder it comes from.</td></tr>
+  <tr><td>Categories</td><td>The materials grouped by folder, with the number of materials in each group.</td></tr>
+</table>
+<p>The List and Categories views read the rows the gallery has already loaded (they never ask a catalog for more, which could start a download), and they follow the gallery when it changes. They can be dragged from like the gallery.</p>
+<h4>Right click on a material</h4>
+<table>
+  <tr><th>Action</th><th>What it does</th></tr>
+  <tr><td>Assign to Selection</td><td>Same as the <strong>Assign Material to Selection</strong> button.</td></tr>
+  <tr><td>Edit Material (Material Linker)</td><td>References the material in <code>material_linker</code> (without assigning it), selects the node and makes it current, so Houdini's parameter pane and Material Linker show it.</td></tr>
+  <tr><td>Open MaterialX Network (Edit Material node)</td><td>Same reference, then creates <code>material_edit</code> (an Edit Material LOP) right after the linker, points it at the material, presses its Load button and dives into it, so you see and edit the material as nodes. Anything the tool cannot do on this Houdini (a parameter it does not find) is listed in the Log and the node is left selected for you to finish.</td></tr>
+</table>
+<p>The right click replaces the context menu of Houdini's gallery inside the tab. With several materials selected, the first one is opened. Each action is one undo step.</p>
 <h4>Assign to geometry</h4>
 <ol>
   <li>Choose a <strong>Geometry</strong> source: a LOP node of <code>/stage</code> that is not one of the tool's nodes. It is merged with the environment (<code>geo_merge</code>) on the next build. Selecting it lists its prims in the tree.</li>
-  <li><strong>Drag a material</strong> from the gallery onto a prim of the tree. If the prim is part of the selection, all selected prims receive it.</li>
+  <li><strong>Drag a material</strong> from the catalog onto a prim of the tree. If the prim is part of the selection, all selected prims receive it.</li>
+  <li>Or <strong>drag it onto an object of the Solaris viewport</strong> (option <em>Accept drops on the Solaris viewport</em>). The prim under the cursor gets the material, or the whole viewport selection if the prim is part of it. The drop is only listened to while a drag from the catalog may be running, and is refused on the tool's own window.</li>
+  <li>Or select a material in the catalog and press <strong>Assign Material to Selection</strong>. The targets are the prims selected in the list; with none, the selection of the Solaris viewport. <strong>From Viewport</strong> selects in the list the prims selected in the viewport.</li>
   <li>Or select prims and use <strong>Assign File&hellip;</strong> (a MaterialX or USD file); if the file holds several materials, you pick one.</li>
   <li><strong>Remove</strong> clears the assignment of the selected prims. <strong>Linker</strong> selects the node so you can edit the rules in Houdini's own panel.</li>
 </ol>
-<p>A prim has one material: assigning a new one replaces the previous rule. The first assignment builds the environment if needed and creates <code>material_linker</code>. The tree shows the material bound to each prim and is limited to the first 5000 prims; the tool's own prims (<code>/Render</code>, <code>/lights</code>, <code>/cameras</code>, <code>/World/Environment</code>, <code>/materials</code>) are hidden.</p>
+<p>Prim paths that come from the viewport are only used when they are plain USD paths. A prim has one material: assigning a new one replaces the previous rule. The first assignment builds the environment if needed and creates <code>material_linker</code>. The tree shows the material bound to each prim and is limited to the first 5000 prims; the tool's own prims (<code>/Render</code>, <code>/lights</code>, <code>/cameras</code>, <code>/World/Environment</code>, <code>/materials</code>) are hidden.</p>
 
 <h3 id="tab-render">Render</h3>
 <table>
@@ -457,6 +477,8 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>[WARN] Fog skipped</code> / <code>Clouds skipped</code></td><td>A node type of that branch is missing in your version. Fog or clouds are left out; the rest is built.</td></tr>
   <tr><td>No sun, or the sun does not move</td><td>See the <code>[WARN] Physical Sky</code> lines. Check that <em>Sky Rendering</em> matches what you want, and that <em>Sun Intensity</em> is above 0.</td></tr>
   <tr><td>Material not assigned</td><td>The Log gives the reason: the file contains an expression, the AMD folder is not the connected one, or the Material Linker of your version has a different parameter layout.</td></tr>
+  <tr><td>A drop on the viewport does nothing</td><td>Check the Log: <em>No prim under the cursor</em> means the pick found nothing. If there is no line at all, Houdini's viewport did not take the drop: use <strong>Assign Material to Selection</strong> after selecting the object. The debug log lists the widgets seen under the cursor, which tells what to adjust for your Houdini version.</td></tr>
+  <tr><td>The List and Categories views are empty</td><td>They read the gallery's loaded rows: open the folder in Thumbnails first, or press <strong>Connect</strong>. If the gallery has no item view the tool can reach, only Thumbnails is available (the debug log says so).</td></tr>
   <tr><td>The material gallery is empty or missing</td><td>Press <strong>Connect</strong> after choosing a source. For the AMD library, check your internet connection: an unreachable server is reported without freezing Houdini. If the widget itself is unavailable, the tab says why: use <em>Assign File&hellip;</em>.</td></tr>
   <tr><td>The light I moved went back</td><td>Update to this version: lights are now positioned only when they are created, so an existing light keeps the position you gave it.</td></tr>
   <tr><td>Sky intensity looks too strong with fog or clouds</td><td>Intentional: it is multiplied by 4 to compensate for the light the volumes absorb. Lower <em>Sky Intensity</em> if needed.</td></tr>
@@ -495,6 +517,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>linker</code>, <code>catalog</code></td><td>Material Linker rules; catalog drops, trust checks and stage prims.</td></tr>
   <tr><td><code>build</code></td><td><code>setup_karma_environment</code>: the whole build, cleanup and geometry merge.</td></tr>
   <tr><td><code>gauges</code>, <code>previews</code>, <code>widgets</code></td><td>Gauge fields and sliders; sun compass, altitude and atmosphere drawings; combo box and prim tree.</td></tr>
+  <tr><td><code>matviews</code>, <code>viewport_drop</code></td><td>Thumbnail, list and category views of the catalog; drops on the Solaris viewport.</td></tr>
   <tr><td><code>window</code></td><td>The dialog: it assembles the tabs, collects the settings and runs the build.</td></tr>
   <tr><td><code>tab_scene</code>, <code>tab_lighting</code>, <code>tab_atmosphere</code>, <code>tab_materials</code>, <code>tab_render</code>, <code>tab_passes</code>, <code>tab_export</code>, <code>tab_log</code></td><td>One file per tab of the window: its layout and its handlers.</td></tr>
   <tr><td><code>viewport</code>, <code>snapshots</code>, <code>live</code></td><td>Karma viewport and camera lock, A/B snapshots, live update.</td></tr>

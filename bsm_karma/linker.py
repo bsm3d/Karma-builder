@@ -4,7 +4,8 @@
 import hou
 import re
 import uuid
-from .config import MATERIAL_DEFAULT_ROOT, MATERIAL_LINK_TYPE
+from .config import (MATERIAL_DEFAULT_ROOT, MATERIAL_EDIT_LOAD_PARMS, MATERIAL_EDIT_NODE, MATERIAL_EDIT_PATH_PARMS,
+                     MATERIAL_EDIT_TYPE, MATERIAL_LINK_TYPE)
 from .nodeutil import _base_node_type_name, _is_tool_node_candidate, _mark_tool_node
 from .util import _has_expression
 
@@ -47,6 +48,66 @@ def _insert_material_linker_in_chain(stage, linker, log_callback):
                     node.setInput(index, linker)
         linker.setInput(0, matlib)
     return True
+
+
+# --------------------------------------------------
+def _material_edit_node(stage):
+    if stage is None:
+        return None
+    node = stage.node(MATERIAL_EDIT_NODE)
+    if node is not None and _base_node_type_name(node) == MATERIAL_EDIT_TYPE and _is_tool_node_candidate(node):
+        return node
+    return None
+
+
+# ----------------------------------------------------------------------
+def _get_or_create_material_edit(stage):
+    node = _material_edit_node(stage)
+    if node is None:
+        existing = stage.node(MATERIAL_EDIT_NODE)
+        if existing is not None:
+            raise hou.OperationFailed(
+                "{} was not created by BSM Karma Builder: rename it, the tool never changes nodes it did not build.".format(
+                    existing.path()))
+        node = stage.createNode(MATERIAL_EDIT_TYPE, MATERIAL_EDIT_NODE)
+    _mark_tool_node(node)
+    return node
+
+
+# ----------------------------------------------------------------
+# The Edit Material LOP sits right after the Material Linker, so it sees the referenced materials.
+def _insert_material_edit_in_chain(linker, edit):
+    if edit.input(0) == linker:
+        return
+    for node in linker.outputs():
+        if node == edit:
+            continue
+        for index, source in enumerate(node.inputs()):
+            if source == linker:
+                node.setInput(index, edit)
+    edit.setInput(0, linker)
+
+
+# ----------------------------------------------------------------------
+# Point the Edit Material LOP at a material and load it. Returns what could not be done, one text each.
+def _material_edit_load(edit, material_path):
+    problems = []
+    if _has_expression(material_path):
+        return ["the material path contains an expression"]
+    path_parm = next((edit.parm(name) for name in MATERIAL_EDIT_PATH_PARMS if edit.parm(name) is not None), None)
+    if path_parm is None:
+        return ["no material path parameter found on {} (looked for {})".format(
+            edit.path(), ", ".join(MATERIAL_EDIT_PATH_PARMS))]
+    path_parm.set(material_path)
+    load_parm = next((edit.parm(name) for name in MATERIAL_EDIT_LOAD_PARMS if edit.parm(name) is not None), None)
+    if load_parm is None:
+        problems.append("no Load button found on {}: press it yourself".format(edit.path()))
+    else:
+        try:
+            load_parm.pressButton()
+        except hou.Error as exc:
+            problems.append("Load failed: {}".format(exc))
+    return problems
 
 
 # ----------------------------------------

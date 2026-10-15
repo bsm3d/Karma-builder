@@ -5,7 +5,7 @@ import hou
 from .config import TOOL_STAGE_DELETE_ORDER
 from .debuglog import _debug, _debug_exception, _debug_state
 from .environment import _create_area_light, _create_cloud_branch, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _resolve_render_camera
-from .linker import _material_linker_node
+from .linker import _material_edit_node, _material_linker_node
 from .nodeutil import _get_or_create_node, _get_or_create_stage, _is_tool_node_candidate, _layout_tool_nodes, _remove_tool_node, _safe_connect
 from .rendering import _create_aov_chain, _create_material_library, _create_render_rop, _create_render_settings
 
@@ -178,6 +178,10 @@ def setup_karma_environment(cfg, log_callback):
     if linker is not None:
         _safe_connect(linker, mat)
         mat = linker
+        edit = _material_edit_node(stage)
+        if edit is not None:
+            _safe_connect(edit, mat)
+            mat = edit
 
     if cfg["enable_aovs"]:
         try:

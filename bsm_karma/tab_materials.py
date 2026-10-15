@@ -7,11 +7,14 @@ import tempfile
 from hutil.Qt import QtWidgets, QtCore
 from .util import _expand_plain_path
 from .catalog import _amd_library_reachable, _bound_material_name, _list_materials_in_file, _material_catalog_file, _parse_catalog_drop, _stage_target_prims
-from .config import STAGE_TARGET_LIMIT
+from .config import _PRIM_PATH_RE, STAGE_TARGET_LIMIT
 from .debuglog import _debug, _guarded_slot
-from .linker import _get_or_create_material_linker, _insert_material_linker_in_chain, _linker_add_reference, _linker_assign, _linker_unassign, _material_linker_node
+from .linker import (_get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain, _insert_material_linker_in_chain,
+                     _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_linker_node)
+from .matviews import MaterialBrowser
 from .nodeutil import _is_tool_node_candidate
 from .styles import _C
+from .viewport_drop import ViewportDropFilter, viewer_selection
 from .widgets import MaterialTargetTree, PopupRefreshComboBox, wrap_tab
 
 # ------------------------------------------------------------
@@ -51,9 +54,12 @@ class MaterialsTab:
         lay_catalog.addWidget(self.w_mat_download)
 
         self.mat_gallery = self._create_material_gallery()
+        self.mat_browser = None
         if self.mat_gallery is not None:
-            self.mat_gallery.setMinimumHeight(190)
-            lay_catalog.addWidget(self.mat_gallery, 1)
+            self.mat_gallery.setMinimumHeight(150)
+            self.mat_browser = MaterialBrowser(self.mat_gallery)
+            self.mat_browser.contextRequested.connect(self._on_catalog_context_menu)
+            lay_catalog.addWidget(self.mat_browser, 1)
         else:
             lbl_no_gallery = QtWidgets.QLabel(
                 "The material catalog is not available in this Houdini build ({}).\n"
@@ -71,7 +77,7 @@ class MaterialsTab:
         lay_catalog.addWidget(self.lbl_mat_status)
         layout_materials.addWidget(grp_catalog, 3)
 
-        grp_targets = QtWidgets.QGroupBox("Assign to Geometry (drag a material onto a prim)")
+        grp_targets = QtWidgets.QGroupBox("Assign to Geometry (drag a material onto a prim or the viewport)")
         lay_targets = QtWidgets.QVBoxLayout(grp_targets)
 
         row_geo = QtWidgets.QHBoxLayout()
@@ -93,6 +99,26 @@ class MaterialsTab:
         self.tree_mat_targets.assetDropped.connect(self.on_material_asset_dropped)
         lay_targets.addWidget(self.tree_mat_targets, 1)
 
+        row_assign = QtWidgets.QHBoxLayout()
+        self.btn_assign_selection = QtWidgets.QPushButton("Assign Material to Selection")
+        self.btn_assign_selection.setToolTip(
+            "Bind the material selected in the catalog to the selected prims: those of the list below, "
+            "or the selection of the viewport when the list has none.")
+        self.btn_assign_selection.clicked.connect(self.on_assign_material_to_selection)
+        self.btn_pick_viewport = QtWidgets.QPushButton("From Viewport")
+        self.btn_pick_viewport.setToolTip("Select in the list the prims selected in the Solaris viewport.")
+        self.btn_pick_viewport.clicked.connect(self.on_pick_viewport_selection)
+        row_assign.addWidget(self.btn_assign_selection, 1)
+        row_assign.addWidget(self.btn_pick_viewport)
+        lay_targets.addLayout(row_assign)
+
+        self.chk_viewport_drop = QtWidgets.QCheckBox("Accept drops on the Solaris viewport")
+        self.chk_viewport_drop.setToolTip(
+            "Drag a material from the catalog onto a prim of the viewport. Armed only while a drag from the "
+            "catalog may be running. Off with BSM_KARMA_VIEWPORT_DROP=0.")
+        self.chk_viewport_drop.setChecked(os.environ.get("BSM_KARMA_VIEWPORT_DROP", "1") != "0")
+        lay_targets.addWidget(self.chk_viewport_drop)
+
         row_mat_buttons = QtWidgets.QHBoxLayout()
         self.btn_assign_file = QtWidgets.QPushButton("Assign File...")
         self.btn_assign_file.setToolTip("Assign MaterialX / USD file: pick a .mtlx or USD file and bind its material to the selected prims.")
@@ -108,6 +134,11 @@ class MaterialsTab:
         row_mat_buttons.addWidget(self.btn_open_linker)
         lay_targets.addLayout(row_mat_buttons)
         layout_materials.addWidget(grp_targets, 2)
+
+        self._viewport_drop = ViewportDropFilter(self, self._get_active_scene_viewer, hou.qt.mainWindow, self)
+        self._viewport_drop.dropped.connect(self.on_viewport_material_drop)
+        if self.mat_browser is not None:
+            self.mat_browser.pressed.connect(self._arm_viewport_drop)
 
         tabs.addTab(wrap_tab(tab_materials), "Materials")
 
@@ -352,22 +383,166 @@ class MaterialsTab:
     # ------------------------------------------------------------------------
     @_guarded_slot
     def on_material_asset_dropped(self, payload, paths_text):
-        prim_paths = [p for p in paths_text.splitlines() if p]
+        self._assign_payload(payload, [p for p in paths_text.splitlines() if p])
+
+    # ------------------------------------------------------------
+    def _assets_from_payload(self, payload):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             # TODO: an AMD package downloads here on the UI thread (Houdini's own code), the window freezes while it runs
             assets, failures = _parse_catalog_drop(payload, amd_folder=self._amd_folder)
         except (ValueError, KeyError, IndexError, TypeError, AttributeError, hou.Error) as exc:
             self.log_message("[WARN] Unreadable material drop: {}".format(exc))
-            return
+            return []
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
         for failure in failures:
             self.log_message("[WARN] Material not available: {}".format(failure))
         if not assets:
-            self.log_message("[INFO] Nothing to assign: drop a material (not a folder) from the catalog.")
+            self.log_message("[INFO] No material found: pick a material (not a folder) in the catalog.")
+        return assets
+
+    # ------------------------------------------------------------
+    def _assign_payload(self, payload, prim_paths):
+        assets = self._assets_from_payload(payload)
+        if assets:
+            self._assign_material_assets(assets, prim_paths)
+
+    # ------------------------------------------------------------
+    # Prim paths come from Houdini or from the list, and end up in a rule text: plain USD paths only.
+    def _plain_prim_paths(self, paths):
+        good = [p for p in paths if _PRIM_PATH_RE.match(p)]
+        if len(good) != len(paths):
+            self.log_message("[WARN] {} prim path(s) ignored: not a plain USD path.".format(len(paths) - len(good)))
+        return good
+
+    # ------------------------------------------------------------
+    # The prims chosen in the list win, the viewport selection is the fallback. Returns (paths, where they come from).
+    def _assignment_targets(self):
+        paths = self.tree_mat_targets.selected_paths()
+        if paths:
+            return self._plain_prim_paths(paths), "the prim list"
+        viewer = self._get_active_scene_viewer()
+        if viewer is not None:
+            paths = viewer_selection(viewer)
+            if paths:
+                return self._plain_prim_paths(paths), "the viewport"
+        return [], ""
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_assign_material_to_selection(self):
+        payload = self.mat_browser.current_payload() if self.mat_browser is not None else ""
+        if not payload:
+            self.log_message("[INFO] Select a material in the catalog first (a click on it, not a folder).")
             return
-        self._assign_material_assets(assets, prim_paths)
+        paths, origin = self._assignment_targets()
+        if not paths:
+            self.log_message("[INFO] Select prims in the list, or in the viewport, first.")
+            return
+        self.log_message("[INFO] Assigning to {} prim(s) of {}.".format(len(paths), origin))
+        self._assign_payload(payload, paths)
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_pick_viewport_selection(self):
+        viewer = self._get_active_scene_viewer()
+        paths = viewer_selection(viewer) if viewer is not None else []
+        if not paths:
+            self.log_message("[INFO] Nothing selected in the Solaris viewport (or this Houdini cannot report it).")
+            return
+        found = self.tree_mat_targets.select_paths(paths)
+        self.log_message("[OK] {} of {} viewport prim(s) selected in the list.".format(found, len(paths)))
+
+    # ------------------------------------------------------------
+    def _arm_viewport_drop(self):
+        if self.chk_viewport_drop.isChecked():
+            self._viewport_drop.arm()
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_viewport_material_drop(self, payload, prim_path):
+        if not prim_path:
+            self.log_message("[INFO] No prim under the cursor: drop the material on an object of the viewport.")
+            return
+        viewer = self._get_active_scene_viewer()
+        selected = viewer_selection(viewer) if viewer is not None else []
+        # like the list: dropping on a selected prim takes the whole selection
+        paths = selected if prim_path in selected else [prim_path]
+        self.log_message("[INFO] Dropped on {} in the viewport.".format(prim_path))
+        self._assign_payload(payload, self._plain_prim_paths(paths))
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def _on_catalog_context_menu(self, global_pos):
+        menu = QtWidgets.QMenu(self)
+        act_assign = menu.addAction("Assign to Selection")
+        menu.addSeparator()
+        act_edit = menu.addAction("Edit Material (Material Linker)")
+        act_network = menu.addAction("Open MaterialX Network (Edit Material node)")
+        run = getattr(menu, "exec", None) or menu.exec_
+        chosen = run(global_pos)
+        if chosen is act_assign:
+            self.on_assign_material_to_selection()
+        elif chosen is act_edit:
+            self._edit_catalog_material(network=False)
+        elif chosen is act_network:
+            self._edit_catalog_material(network=True)
+
+    # ------------------------------------------------------------
+    # Reference the selected material in the Material Linker (not assigned to anything) and open it for editing:
+    # in the linker's own panel, or as a node network through an Edit Material LOP placed after the linker.
+    def _edit_catalog_material(self, network):
+        payload = self.mat_browser.current_payload() if self.mat_browser is not None else ""
+        if not payload:
+            self.log_message("[INFO] Select a material in the catalog first.")
+            return
+        assets = self._assets_from_payload(payload)
+        if not assets:
+            return
+        if len(assets) > 1:
+            self.log_message("[INFO] {} materials selected, editing the first one.".format(len(assets)))
+        asset = assets[0]
+        problems = []
+        with hou.undos.group("BSM Karma - Edit Material"):
+            linker = self._ensure_material_linker()
+            if linker is None:
+                return
+            try:
+                material_path = _linker_add_reference(linker, asset["file_path"], asset["prim_path"], asset["label"])
+            except ValueError as exc:
+                self.log_message("[WARN] Material not opened: {}".format(exc))
+                return
+            node = linker
+            if network:
+                try:
+                    node = _get_or_create_material_edit(hou.node("/stage"))
+                    _insert_material_edit_in_chain(linker, node)
+                    problems = _material_edit_load(node, material_path)
+                except hou.Error as exc:
+                    self.log_message("[WARN] Edit Material node unavailable ({}), opening the Material Linker instead.".format(exc))
+                    node = linker
+        for problem in problems:
+            self.log_message("[WARN] {}".format(problem))
+        self.log_message("[OK] {} ready to edit in {}.".format(material_path, node.path()))
+        self._focus_node(node, dive=network and not problems)
+        self.refresh_material_targets()
+
+    # ------------------------------------------------------------
+    # Select the node, make it current (the parameter pane follows) and show it in a network editor.
+    def _focus_node(self, node, dive=False):
+        node.setSelected(True, clear_all_selected=True)
+        try:
+            node.setCurrent(True, clear_all_selected=True)
+        except hou.Error:
+            pass
+        try:
+            editor = hou.ui.paneTabOfType(hou.paneTabType.NetworkEditor)
+            if editor is not None:
+                editor.setPwd(node if dive and node.children() else node.parent())
+                editor.homeToSelection()
+        except (hou.Error, AttributeError) as exc:
+            _debug("network editor not moved: {}".format(exc))
 
     # ------------------------------------------------------------
     @_guarded_slot
@@ -421,11 +596,7 @@ class MaterialsTab:
         if linker is None:
             self.log_message("[INFO] No Material Linker yet: drop a material on a prim first.")
             return
-        linker.setSelected(True, clear_all_selected=True)
-        try:
-            linker.setCurrent(True, clear_all_selected=True)
-        except hou.Error:
-            pass
+        self._focus_node(linker)
 
     MATERIAL_SOURCES = ["AMD MaterialX Library", "Houdini Default Catalog", "USD / MaterialX File..."]
 
