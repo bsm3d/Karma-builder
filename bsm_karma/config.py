@@ -103,7 +103,7 @@ STAGE_TARGET_LIMIT = 5000
 
 
 # pixels between a label and its field in the tab forms
-FORM_LABEL_GAP = 16
+FORM_LABEL_GAP = 14
 
 
 # Edit Material LOP: edits an existing USD material as a VOP network. Read on H22.0.466: a multiparm 'materials'
