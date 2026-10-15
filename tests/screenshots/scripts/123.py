@@ -20,8 +20,21 @@ MTLX = os.path.join(ROOT, "tests", "fixtures", "red.mtlx").replace("\\", "/")
 lines = []
 S = {}
 
-TABS = [("Scene", "scene"), ("Lighting", "lighting"), ("Atmosphere", "atmosphere"), ("Materials", "materials"),
-        ("Render", "render"), ("Passes", "passes"), ("Export", "export")]
+# (tab, file name, what to set before the picture). The names are the ones docs/index.html uses.
+def _cloud_type(index):
+    return lambda ui: ui.combo_cloud_type.setCurrentIndex(index)
+
+
+def _catalog_view(index):
+    return lambda ui: ui.mat_browser.combo_view.setCurrentIndex(index) if ui.mat_browser is not None else None
+
+
+TABS = [("Scene", "scene", None), ("Lighting", "lighting", None),
+        ("Atmosphere", "atmosphere_3d_clouds", _cloud_type(0)), ("Atmosphere", "atmosphere_2d_clouds", _cloud_type(1)),
+        ("Materials", "materials", _catalog_view(0)), ("Materials", "materials_list", _catalog_view(1)),
+        ("Materials", "materials_categories", _catalog_view(2)),
+        ("Render", "render", None), ("Passes", "passes", None), ("Export", "export", None),
+        ("Log", "log", None), ("About", "about", None)]
 
 
 # ------------------------------------------------------------
@@ -68,8 +81,10 @@ def setup():
 def shoot(index):
     ui = S["ui"]
     tabs = ui.findChild(QtWidgets.QTabWidget)
-    label, filename = TABS[index]
+    label, filename, prepare = TABS[index]
     tabs.setCurrentIndex([tabs.tabText(i) for i in range(tabs.count())].index(label))
+    if prepare is not None:
+        prepare(ui)
     QtWidgets.QApplication.processEvents()
 
     def save():
