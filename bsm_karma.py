@@ -412,6 +412,9 @@ class AtmosphereVisualWidget(QtWidgets.QWidget):
 
 # ----------------------------------------------------------------------
 class FloatSlider(QtWidgets.QWidget):
+    # real value, whether it came from the slider, the spin box or setValue()
+    valueChanged = QtCore.Signal(float)
+
     def __init__(self, min_val, max_val, default_val, decimals=2, tick_points=None, snap_points=None):
         super().__init__()
         self.mult = 10 ** decimals
@@ -426,9 +429,9 @@ class FloatSlider(QtWidgets.QWidget):
         slider_row.setSpacing(6)
         
         self.slider = ClickSlider(QtCore.Qt.Horizontal)
-        self.slider.setMinimum(int(min_val * self.mult))
-        self.slider.setMaximum(int(max_val * self.mult))
-        self.slider.setValue(int(default_val * self.mult))
+        self.slider.setMinimum(int(round(min_val * self.mult)))
+        self.slider.setMaximum(int(round(max_val * self.mult)))
+        self.slider.setValue(int(round(default_val * self.mult)))
         self.slider.setMinimumHeight(22)
         self.slider.setStyleSheet(_slider_stylesheet())
         
@@ -477,13 +480,14 @@ class FloatSlider(QtWidgets.QWidget):
         
         if snapped_val != real_val:
             self.slider.blockSignals(True)
-            self.slider.setValue(int(snapped_val * self.mult))
+            self.slider.setValue(int(round(snapped_val * self.mult)))
             self.slider.blockSignals(False)
             real_val = snapped_val
             
         self.spin.blockSignals(True)
         self.spin.setValue(real_val)
         self.spin.blockSignals(False)
+        self.valueChanged.emit(real_val)
         
 
     # ------------------------------------------------------------
@@ -496,8 +500,9 @@ class FloatSlider(QtWidgets.QWidget):
             val = snapped_val
             
         self.slider.blockSignals(True)
-        self.slider.setValue(int(val * self.mult))
+        self.slider.setValue(int(round(val * self.mult)))
         self.slider.blockSignals(False)
+        self.valueChanged.emit(val)
         
 
     # ----------------------------------------------------------------------
@@ -955,7 +960,8 @@ def _is_lop_camera(node):
 def _normalize_output_path_extension(path, output_format):
     ext = ".exr" if str(output_format).upper() == "EXR" else ".png"
     root, cur_ext = os.path.splitext(path)
-    if not cur_ext:
+    # "beauty.$F4" has no extension: the frame token must survive, not be swapped for ".exr"
+    if not cur_ext or "$" in cur_ext or "`" in cur_ext:
         return path + ext
     if cur_ext.lower() != ext:
         return root + ext
@@ -1099,13 +1105,15 @@ def _create_dome_light(stage, prev, intensity, texture_path, log_callback, name=
 
 # ------------------------------------------------------------
 def _create_area_light(stage, prev, intensity, log_callback, name="area_light", pos=(3.0, 4.0, 3.0), rot=(-45.0, 30.0, 0.0)):
+    is_new = stage.node(name) is None
     area = _get_or_create_node(stage, "light", name)
     _set_usd_input(area, "intensity", float(intensity), log_callback)
-    if area.parm("tx").isAtDefault():
+    # size and placement only at creation: a light moved by hand must stay where it was put
+    if is_new:
         _set_usd_input(area, "width", 1.5, log_callback)
         _set_usd_input(area, "height", 1.5, log_callback)
-    _pset(area, "tx", pos[0], log_callback); _pset(area, "ty", pos[1], log_callback); _pset(area, "tz", pos[2], log_callback)
-    _pset(area, "rx", rot[0], log_callback); _pset(area, "ry", rot[1], log_callback); _pset(area, "rz", rot[2], log_callback)
+        _pset(area, "tx", pos[0], log_callback); _pset(area, "ty", pos[1], log_callback); _pset(area, "tz", pos[2], log_callback)
+        _pset(area, "rx", rot[0], log_callback); _pset(area, "ry", rot[1], log_callback); _pset(area, "rz", rot[2], log_callback)
     _safe_connect(area, prev)
     return area
 
@@ -1436,13 +1444,14 @@ def _create_material_library(stage, prev, cfg, log_callback):
 
         return shader
 
+    is_new_pbr = mat_lib.node("pbr_standard") is None or mat_lib.node("pbr_standard").node("pbr_surface") is None
     pbr_surf = _ensure_shader_material(
         "pbr_standard",
         "pbr_surface",
         ("mtlxstandard_surface",),
         "surface",
     )
-    if pbr_surf is not None:
+    if pbr_surf is not None and is_new_pbr:
         _pset(pbr_surf, "base", 1.0, log_callback)
         _pset(pbr_surf, "base_colorr", 0.8, log_callback)
         _pset(pbr_surf, "base_colorg", 0.8, log_callback)
@@ -2060,7 +2069,7 @@ def _cleanup_environment_nodes(stage, cfg, log_callback):
 
     for node_name in candidates_to_remove:
         node = stage.node(node_name)
-        if node is None:
+        if node is None or not _is_tool_node_candidate(node, node_name):
             continue
         try:
             node.destroy()
@@ -2087,7 +2096,6 @@ def _layout_tool_nodes(stage):
 def _merge_geometry_source(stage, env_tip, cfg, log_callback):
     geo_path = (cfg.get("geo_source") or "").strip()
     geo_node = hou.node(geo_path) if geo_path else None
-    existing = stage.node("geo_merge")
 
     usable = (
         geo_node is not None
@@ -2098,8 +2106,7 @@ def _merge_geometry_source(stage, env_tip, cfg, log_callback):
     if not usable:
         if geo_path:
             log_callback("[WARN] Geometry source not usable: {}".format(geo_path))
-        if existing is not None:
-            existing.destroy()
+        _remove_tool_node(stage, "geo_merge", log_callback)
         return env_tip
 
     merge = _get_or_create_node(stage, "merge", "geo_merge")
@@ -2424,13 +2431,12 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.altitude_widget = SunAltitudeWidget()
         self.altitude_widget.set_elevation(30.0)
         
-        self.sld_sky_azim.slider.valueChanged.connect(
-            lambda val: self.compass_widget.set_azimuth(val / float(self.sld_sky_azim.mult))
-        )
-        self.sld_sky_elev.slider.valueChanged.connect(
+        # valueChanged carries the real value and also fires for presets and typed values
+        self.sld_sky_azim.valueChanged.connect(self.compass_widget.set_azimuth)
+        self.sld_sky_elev.valueChanged.connect(
             lambda val: (
-                self.compass_widget.set_elevation(val / float(self.sld_sky_elev.mult)),
-                self.altitude_widget.set_elevation(val / float(self.sld_sky_elev.mult))
+                self.compass_widget.set_elevation(val),
+                self.altitude_widget.set_elevation(val)
             )
         )
         
@@ -2527,13 +2533,13 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.combo_fog_preset.currentIndexChanged.connect(self.apply_fog_preset)
         form_fog.addRow("Fog Preset:", self.combo_fog_preset)
         self.sld_fog_density = FloatSlider(0.0, 5.0, 0.25)
-        self.sld_fog_density.slider.valueChanged.connect(
-            lambda val: self.atm_widget.update_fog(self.atm_widget.fog_height, val / float(self.sld_fog_density.mult))
+        self.sld_fog_density.valueChanged.connect(
+            lambda val: self.atm_widget.update_fog(self.atm_widget.fog_height, val)
         )
         form_fog.addRow("Fog Density:", self.sld_fog_density)
         self.sld_fog_height = FloatSlider(0.0, 500.0, 30.0)
-        self.sld_fog_height.slider.valueChanged.connect(
-            lambda val: self.atm_widget.update_fog(val / float(self.sld_fog_height.mult), self.atm_widget.fog_density)
+        self.sld_fog_height.valueChanged.connect(
+            lambda val: self.atm_widget.update_fog(val, self.atm_widget.fog_density)
         )
         form_fog.addRow("Fog Height:", self.sld_fog_height)
         self.sld_fog_radius = FloatSlider(10.0, 1000.0, 120.0)
@@ -2557,13 +2563,13 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.combo_cloud_preset.currentIndexChanged.connect(self.apply_cloud_preset)
         form_cloud.addRow("Cloud Preset:", self.combo_cloud_preset)
         self.sld_cloud_density = FloatSlider(0.0, 10.0, 0.20)
-        self.sld_cloud_density.slider.valueChanged.connect(
-            lambda val: self.atm_widget.update_cloud(self.atm_widget.cloud_alt, val / float(self.sld_cloud_density.mult))
+        self.sld_cloud_density.valueChanged.connect(
+            lambda val: self.atm_widget.update_cloud(self.atm_widget.cloud_alt, val)
         )
         form_cloud.addRow("Cloud Base Density:", self.sld_cloud_density)
         self.sld_cloud_altitude = FloatSlider(10.0, 13000.0, 140.0)
-        self.sld_cloud_altitude.slider.valueChanged.connect(
-            lambda val: self.atm_widget.update_cloud(val / float(self.sld_cloud_altitude.mult), self.atm_widget.cloud_density)
+        self.sld_cloud_altitude.valueChanged.connect(
+            lambda val: self.atm_widget.update_cloud(val, self.atm_widget.cloud_density)
         )
         form_cloud.addRow("Cloud Altitude:", self.sld_cloud_altitude)
         self.sld_cloud_scale = FloatSlider(10.0, 1000.0, 180.0)
@@ -3077,14 +3083,8 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.update_output_format_ui()
         self._do_hdri_preview()
         
-        self.atm_widget.update_fog(
-            self.sld_fog_height.value() / float(self.sld_fog_height.mult),
-            self.sld_fog_density.value() / float(self.sld_fog_density.mult)
-        )
-        self.atm_widget.update_cloud(
-            self.sld_cloud_altitude.value() / float(self.sld_cloud_altitude.mult),
-            self.sld_cloud_density.value() / float(self.sld_cloud_density.mult)
-        )
+        self.atm_widget.update_fog(self.sld_fog_height.value(), self.sld_fog_density.value())
+        self.atm_widget.update_cloud(self.sld_cloud_altitude.value(), self.sld_cloud_density.value())
 
         self.update_material_source_ui()
         self.refresh_geo_sources()
@@ -3967,9 +3967,8 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.chk_enable_fog.setEnabled(is_env_mode)
         self.chk_enable_clouds.setEnabled(is_env_mode)
 
+        # the preset is applied when it is picked (sync_from_*), not at every refresh: that wiped the sliders
         self.grp_sky.setVisible(is_physical)
-        if is_physical:
-            self.apply_sky_preset_data(self.combo_sky_preset.currentText())
 
     # ----------------------------------------------------------------------
     def _set_hdri_preview_message(self, message):
@@ -3983,7 +3982,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         if not pixmap.isNull():
             return pixmap
 
-        key = hashlib.md5(source_path.encode("utf-8")).hexdigest()[:12]
+        key = hashlib.md5(source_path.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
         preview_path = os.path.join(_private_temp_dir(), f"hdri_preview_{key}.jpg")
         if preview_path not in getattr(self, "_hdri_temp_files", []):
             self._hdri_temp_files.append(preview_path)
@@ -4088,6 +4087,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         except Exception:
             pass
             
+        is_env_mode = (self.combo_scene_mode.currentText() == "Environment")
         return {
             "scene_mode": self.combo_scene_mode.currentText(),
             "env_type": self.combo_env_type.currentText(),
@@ -4108,14 +4108,14 @@ class KarmaBuilderUI(QtWidgets.QDialog):
             "hdri_sat": self.sld_hdri_sat.value(),
             "hdri_temp": self.spin_hdri_temp.value(),
             "hdri_tint": self.sld_hdri_tint.value(),
-            "enable_fog": self.chk_enable_fog.isChecked(),
+            "enable_fog": is_env_mode and self.chk_enable_fog.isChecked(),
             "fog_density": self.sld_fog_density.value(),
             "fog_height": self.sld_fog_height.value(),
             "fog_radius": self.sld_fog_radius.value(),
             "fog_phase": self.sld_fog_phase.value(),
             "fog_noise_scale": self.sld_fog_noise_scale.value(),
             "fog_noise_amp": self.sld_fog_noise_amp.value(),
-            "enable_clouds": self.chk_enable_clouds.isChecked(),
+            "enable_clouds": is_env_mode and self.chk_enable_clouds.isChecked(),
             "cloud_density": self.sld_cloud_density.value(),
             "cloud_altitude": self.sld_cloud_altitude.value(),
             "cloud_scale": self.sld_cloud_scale.value(),
