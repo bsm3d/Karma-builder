@@ -1,4 +1,4 @@
-# Builds the BSM Karma Builder HDA from the project files: hython tools/build_hda.py [output.hda]
+# Builds the BSM Karma Builder HDA from the project files: hython build_hda.py [output.hda]
 #
 # The asset is a LOP node that passes its input through and carries the tool as sections (bsm_karma.py, presets,
 # loader, license, icon). It is rebuilt from the sources each time, bsm_karma.py stays the single source of truth.
@@ -10,21 +10,32 @@ import sys
 
 import hou
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_OUTPUT = os.path.join(ROOT, "hda", "bsm_karma_builder.hda")
+HERE = os.path.dirname(os.path.abspath(__file__))
+# the project root holds bsm_karma.py: the script's own folder when the files sit side by side, else its parent (tools/)
+ROOT = HERE if os.path.isfile(os.path.join(HERE, "bsm_karma.py")) else os.path.dirname(HERE)
+DEFAULT_OUTPUT = os.path.join(ROOT, "bsm_karma_builder.hda" if ROOT == HERE else os.path.join("hda", "bsm_karma_builder.hda"))
 
 OP_NAME = "bsm::karma_builder::1.0"
 OP_LABEL = "BSM Karma Builder"
 
 # ------------------------------------------------------------
-def read_text(*parts):
-    with open(os.path.join(ROOT, *parts), encoding="utf-8", newline="") as handle:
+# First existing candidate, each one a path relative to ROOT: the project is laid out either flat or with tools/.
+def find_file(*candidates):
+    for rel in candidates:
+        if os.path.isfile(os.path.join(ROOT, rel)):
+            return os.path.join(ROOT, rel)
+    raise FileNotFoundError("none of {} under {}".format(", ".join(candidates), ROOT))
+
+
+# ------------------------------------------------------------
+def read_text(*candidates):
+    with open(find_file(*candidates), encoding="utf-8", newline="") as handle:
         return handle.read().replace("\r\n", "\n")
 
 
 # ----------------------------------------
-def read_bytes(*parts):
-    with open(os.path.join(ROOT, *parts), "rb") as handle:
+def read_bytes(*candidates):
+    with open(find_file(*candidates), "rb") as handle:
         return handle.read()
 
 #------------------------------------------------------------
@@ -114,8 +125,8 @@ def build(output):
 
     definition.addSection("bsm_karma_py", read_text("bsm_karma.py"))
     definition.addSection("bsm_karma_presets_json", read_text("bsm_karma_presets.json"))
-    definition.addSection("PythonModule", read_text("tools", "hda_python_module.py"))
-    definition.addSection("LICENSE.txt", read_text("LICENSE.txt"))
+    definition.addSection("PythonModule", read_text("hda_python_module.py", os.path.join("tools", "hda_python_module.py")))
+    definition.addSection("LICENSE.txt", read_text("LICENSE.txt", "LICENSE", os.path.join("Informations", "LICENSE.txt")))
     definition.addSection("Help", HELP)
     definition.addSection("Tools.shelf", TOOLS_SHELF)
     icon_path = os.path.join("Karma builder", "icone_Bsm_Karma.png")
