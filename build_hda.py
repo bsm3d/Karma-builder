@@ -50,8 +50,7 @@ HELP = '''= BSM Karma Builder =
 
 #type: node
 #context: lop
-#internal: bsm_karma_builder
-#icon: opdef:/Lop/bsm::karma_builder::1.0?icon.png
+#icon: LOP/subnet
 
 """Opens BSM Karma Builder, the tool that builds Karma lighting, sky, atmosphere, materials and render
 settings in /stage."""
