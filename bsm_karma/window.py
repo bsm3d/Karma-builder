@@ -8,7 +8,7 @@ import sys
 from hutil.Qt import QtWidgets, QtCore, QtGui
 from .build import setup_karma_environment
 from .catalog import _CATALOG_WRAPPERS
-from .config import SCRIPT_VERSION
+from .config import FORM_LABEL_GAP, SCRIPT_VERSION
 from .debuglog import _debug, _debug_session_header, _guarded_slot
 from .live import LiveUpdateMixin
 from .snapshots import SnapshotMixin
@@ -137,6 +137,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self.chk_live_update.toggled.connect(self.on_live_toggled)
 
         self._compact_combos()
+        self._space_forms()
 
     # ----------------------------------------
     def _close_pane_tab(self, pane_tab):
@@ -387,6 +388,12 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self.refresh_stage_cameras()
         self.refresh_material_targets()
         return True
+
+    # ------------------------------------------------------------
+    # room between the labels and the fields, so a long label does not touch its slider
+    def _space_forms(self):
+        for form in self.findChildren(QtWidgets.QFormLayout):
+            form.setHorizontalSpacing(FORM_LABEL_GAP)
 
     # ------------------------------------------------------------
     # A combo box asks for the width of its longest item, which sets the width of a whole tab. Give it a short

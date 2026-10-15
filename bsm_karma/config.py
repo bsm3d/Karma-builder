@@ -102,6 +102,10 @@ AMD_SOURCE_ID = "AMD MaterialX Library"
 STAGE_TARGET_LIMIT = 5000
 
 
+# pixels between a label and its field in the tab forms
+FORM_LABEL_GAP = 16
+
+
 # Edit Material LOP: edits an existing USD material as a VOP network. Read on H22.0.466: a multiparm 'materials'
 # whose first entry is enable1, matpath1 (the material), load1 (button) and matnode1. The tool always uses entry 1.
 MATERIAL_EDIT_NODE = "material_edit"
