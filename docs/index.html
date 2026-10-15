@@ -80,6 +80,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
       <ul><li><a href="#modes">Scene modes</a></li><li><a href="#incremental">Rebuilding safely</a></li></ul></li>
     <li><a href="#ui">Interface reference</a>
       <ul>
+        <li><a href="#fields">Numeric fields</a></li>
         <li><a href="#tab-scene">Scene</a></li><li><a href="#tab-lighting">Lighting</a></li>
         <li><a href="#tab-atmosphere">Atmosphere</a></li><li><a href="#tab-materials">Materials</a></li>
         <li><a href="#tab-render">Render</a></li><li><a href="#tab-passes">Passes</a></li>
@@ -201,6 +202,14 @@ bsm_karma.main()</code></pre></li>
 
 <h2 id="ui">Interface reference</h2>
 <p>The window has one tab per topic and a <strong>Build Environment Only</strong> button that stays visible at the bottom.</p>
+<h3 id="fields">Numeric fields</h3>
+<p>Every number is a hybrid field: a bar with an amber gauge showing where the value sits in its range, and the value written in the middle.</p>
+<ul>
+  <li><strong>Drag</strong> across the bar to set the value; it follows the mouse position. The sun altitude and direction snap to common values (0, 15, 30, 45&hellip;) while you drag.</li>
+  <li><strong>Click without moving</strong> to type a number. <kbd>Enter</kbd> or a click elsewhere confirms, <kbd>Esc</kbd> cancels. A typed value is exact and is limited to the range of the field.</li>
+  <li><strong>Arrow keys</strong> (left and right) change the value by the smallest step, and <kbd>Shift</kbd> makes the step ten times larger.</li>
+  <li>The mouse wheel does not change values, so it keeps scrolling the tab.</li>
+</ul>
 
 <h3 id="tab-scene">Scene</h3>
 <table>
