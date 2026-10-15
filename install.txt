@@ -93,31 +93,19 @@ Other MaterialX sources (check the licence of each one before using its material
 was downloaded or tried here):
 
     ambientCG          https://ambientcg.com
-                       Free PBR library listed as CC0. Its MaterialX packages can be downloaded with the tool below.
+                       Free PBR library listed as CC0. In the download window of the tool.
+    Poly Haven         https://polyhaven.com/textures
+                       MaterialX versions of its textures are offered by its API. In the download window of the tool.
     materialxmaterials https://pypi.org/project/materialxmaterials/
-                       Command line tool (pip install materialxmaterials) that downloads MaterialX packages from
-                       AMD GPUOpen and ambientCG. It also names PhysicallyBased and Poly Haven as supported
-                       libraries; that was not checked.
+                       The open source command line tool whose requests the download window follows (Apache 2.0).
+                       Not needed.
     MaterialX project  https://github.com/AcademySoftwareFoundation/MaterialX
                        Example materials in resources/Materials. SideFX ships the same examples with Houdini.
 
-The Materials tab has a Download... button that does the same from a window (Python with materialxmaterials needed,
-the window can install it).
-
-Downloading with materialxmaterials (pip install materialxmaterials; on Windows, if the command is not found, use
-"python -m materialxMaterials" instead of "materialxMaterials"). Options below were read from its --help, the
-downloads themselves were not run here:
-
-    materialxMaterials acg -m WoodFloor038 -r 2 -f PNG --output D:\Materials\ambientCG
-        ambientCG: the package of the material whose name matches, 2K (1, 2, 4 or 8), PNG textures. Unzip it.
-    materialxMaterials polyhaven -id polystyrene -dt mtlx -res 2k -c 1 -x -fe -df D:\Materials\PolyHaven
-        Poly Haven: MaterialX assets whose id matches, 2k, extracted. It warns that OpenImageIO is missing, which
-        only matters for EXR textures.
-    materialxMaterials physbased -o D:\Materials\PhysicallyBased
-        PhysicallyBased: converts its measured material values to .mtlx files (no textures).
-    materialxMaterials <command> --help   lists every option of a command (gpuopen, acg, polyhaven, physbased).
-
-The AMD library does not need it: the Materials tab reads it directly.
+The Materials tab has a Download... button that downloads from ambientCG and Poly Haven from a window. Nothing has
+to be installed: no pip, no extra Python. Give the name of a material (Load List shows the names of the site), the
+resolution, and press Download. The files go to $HOUDINI_USER_PREF_DIR/bsm_karma/mtlx by default, and Use in Catalog
+shows them in the Materials tab.
 
 To use files from these sources: Materials tab > Source: USD / MaterialX File... (the catalog then shows the
 materials of that file), or Assign File... for the selected prims.
