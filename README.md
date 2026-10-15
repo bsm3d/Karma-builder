@@ -55,6 +55,10 @@ bsm_karma.main()
 5. Adjust the `Render` and `Passes` (AOV) tabs as needed.
 6. Click **Build Environment Only** to generate the LOP network, or use the render buttons to output directly to MPlay or Disk.
 
+## Documentation
+
+The full documentation (interface reference, what is built, presets, building the HDA, troubleshooting) is in [`docs/index.html`](docs/index.html). GitHub shows HTML files as source: download the repository and open the file in a browser, or serve the `docs` folder with GitHub Pages.
+
 ## Author
 
 BSM
