@@ -2,7 +2,8 @@
 # Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
 
 import hou
-from .config import CAMERA_CREATE_LABEL, DEFAULT_CLOUD_MATERIAL_PATH, GENERATED_CAMERA_NAME, QUICK_CLOUD_NAME, USD_CAMERA_PREFIX
+from .clouds2d import CLOUD_TEXTURE_SIZE, cloud_texture_path
+from .config import CAMERA_CREATE_LABEL, CLOUD_LAYER_NAME, DEFAULT_CLOUD_MATERIAL_PATH, GENERATED_CAMERA_NAME, QUICK_CLOUD_NAME, USD_CAMERA_PREFIX
 from .nodeutil import _get_or_create_node, _is_tool_node_candidate, _mark_tool_node, _pset, _remove_tool_node, _safe_connect, _set_first_existing_parm, _set_first_existing_parm_tuple, _set_light_color, _set_usd_input
 from .util import _apply_saturation, _apply_tint, _kelvin_to_rgb
 
@@ -292,6 +293,17 @@ def _create_quick_cloud_material(stage, prev, cfg, log_callback):
     _pset(node, "densityscale", max(0.0, float(cfg.get("cloud_density", 0.20)) * 5.0), log_callback, quiet=True)
     _safe_connect(node, prev)
     return node
+
+
+# ------------------------------------------------------------
+# 2D clouds: a procedural cloud picture on a second dome light, added to the sky. No geometry, no volume: it renders
+# like any dome. A live update uses a smaller picture, the next Build writes the full one.
+def _create_cloud_layer_2d(stage, prev, cfg, log_callback):
+    size = (CLOUD_TEXTURE_SIZE[0] // 2, CLOUD_TEXTURE_SIZE[1] // 2) if cfg.get("live") else CLOUD_TEXTURE_SIZE
+    path = cloud_texture_path(
+        cfg.get("cloud2d_coverage", 0.45), cfg.get("cloud2d_softness", 0.4), cfg.get("cloud2d_scale", 3.0),
+        cfg.get("cloud2d_seed", 7), size)
+    return _create_dome_light(stage, prev, float(cfg.get("cloud2d_brightness", 0.6)), path, log_callback, name=CLOUD_LAYER_NAME)
 
 
 # ------------------------------------------------------------

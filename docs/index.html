@@ -175,7 +175,7 @@ bsm_karma.main()</code></pre></li>
 <table>
   <tr><th>Mode</th><th>Nodes</th><th>Notes</th></tr>
   <tr><td><strong>Environment</strong></td>
-    <td><code>physical_sky</code> (and <code>sky_atmosphere_linker</code> in Volumetric mode) <em>or</em> <code>env_hdri</code>; optional <code>atmosphere_fog</code>; optional <code>cloud_geo</code>, <code>cloud_xform</code>, <code>quickcloudmaterial</code>, <code>assign_cloud_shader</code>; then <code>env_merge</code></td>
+    <td><code>physical_sky</code> (and <code>sky_atmosphere_linker</code> in Volumetric mode) <em>or</em> <code>env_hdri</code>; optional <code>atmosphere_fog</code>; optional <code>cloud_geo</code>, <code>cloud_xform</code>, <code>quickcloudmaterial</code>, <code>assign_cloud_shader</code> (3D clouds) or <code>cloud_layer_2d</code> (2D clouds); then <code>env_merge</code></td>
     <td>Choose <em>Physical Sky</em> or <em>HDRI Image</em>. Fog and clouds are only available in this mode.</td></tr>
   <tr><td><strong>Studio</strong></td>
     <td><code>studio_hdri</code> (dome light) and <code>studio_key</code> (area light)</td>
@@ -227,7 +227,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td>Look Through</td><td>Locks a Scene Viewer on <code>/stage</code> to the render camera. Builds first if the camera does not exist yet. If no viewer is on <code>/stage</code>, it opens the Karma viewport instead.</td></tr>
   <tr><td>New Camera</td><td>Focal length (5 to 400 mm) of the generated camera. <em>Match viewport</em> copies the position and rotation of the active viewport at each build; left off, the camera keeps the position it was given the first time. For ultra-wide formats (width/height above 2) the aperture is set to 41.42.</td></tr>
   <tr><td>Clear All Tool Nodes</td><td>See <a href="#incremental">Rebuilding safely</a>.</td></tr>
-  <tr><td>Live Update (<em>Rebuild on change</em>)</td><td>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: any change to a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma - Live Update</em>. A change that adds or removes nodes or switches the engine (<em>Scene Mode</em>, <em>Environment</em>, <em>Sky Rendering</em>, fog, clouds, AOVs, <em>Engine</em>, camera, geometry source, cloud material path) is not applied live: a running Karma viewport restarts on such a change and Houdini can freeze for minutes. The Log says what changed, and Live Update goes on after the next <strong>Build Environment Only</strong>. Live Update also waits for a first Build. Camera and material lists are refreshed by a normal Build.</td></tr>
+  <tr><td>Live Update (<em>Rebuild on change</em>)</td><td>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: any change to a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma - Live Update</em>. A change that adds or removes nodes or switches the engine (<em>Scene Mode</em>, <em>Environment</em>, <em>Sky Rendering</em>, fog, clouds, <em>Cloud Type</em>, AOVs, <em>Engine</em>, camera, geometry source, cloud material path) is not applied live: a running Karma viewport restarts on such a change and Houdini can freeze for minutes. The Log says what changed, and Live Update goes on after the next <strong>Build Environment Only</strong>. Live Update also waits for a first Build. Camera and material lists are refreshed by a normal Build.</td></tr>
 </table>
 
 <h3 id="tab-lighting">Lighting</h3>
@@ -272,6 +272,22 @@ bsm_karma.main()</code></pre></li>
   <tr><td>Fog Noise Freq, Amp</td><td>Noise frequency and strength inside the fog.</td></tr>
 </table>
 <h4>Clouds</h4>
+<p><strong>Cloud Type</strong> chooses how the clouds are made.</p>
+<table>
+  <tr><th>Type</th><th>Description</th></tr>
+  <tr><td>3D Volume (slow, realistic)</td><td>Real cloud volumes, lit by the sun, with parallax (below).</td></tr>
+  <tr><td>2D Layer (fast, backdrop)</td><td>A cloud picture on a second dome light (<code>cloud_layer_2d</code>), added to the sky. No geometry and no volume, so it renders like any dome light: for a distant background. The clouds light the scene a little, like sky bounce, and do not cast shadows.</td></tr>
+</table>
+<p>The 2D layer is generated by the tool (a seamless picture around the horizon, nothing below it, fading near the horizon) and written as <code>bsm_clouds_*.png</code> in the <code>bsm_karma/clouds</code> folder of your Houdini preferences. The same settings reuse the same file; the last six are kept. Copy the file with the project if the scene is rendered on another machine. A live update uses a half size picture, the next Build writes the full one (2048 x 1024). It needs <code>numpy</code>, which ships with Houdini.</p>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Coverage</td><td>Share of the sky covered, 0 (clear) to 1.</td></tr>
+  <tr><td>Softness</td><td>Soft edges and haze (high) or crisp cumulus edges (low).</td></tr>
+  <tr><td>Cloud Size</td><td>Number of large cloud masses around the horizon.</td></tr>
+  <tr><td>Brightness</td><td>Intensity of the cloud dome light.</td></tr>
+  <tr><td>Seed</td><td>Another number, another pattern.</td></tr>
+</table>
+<h4>3D clouds</h4>
 <p>A <strong>SOP Create</strong> LOP named <code>cloud_geo</code>, holding a small SOP network (<em>Sky Box</em> &rarr; <em>Cloud Billowy Noise</em> &rarr; <em>Cloud Adjust Density Profile</em>) at <code>/World/Environment/Clouds</code>, moved by <code>cloud_xform</code> and bound to a cloud material by <code>assign_cloud_shader</code>.</p>
 <table>
   <tr><th>Control</th><th>Description</th></tr>
@@ -518,6 +534,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>linker</code>, <code>catalog</code></td><td>Material Linker rules; catalog drops, trust checks and stage prims.</td></tr>
   <tr><td><code>build</code></td><td><code>setup_karma_environment</code>: the whole build, cleanup and geometry merge.</td></tr>
   <tr><td><code>gauges</code>, <code>previews</code>, <code>widgets</code></td><td>Gauge fields and sliders; sun compass, altitude and atmosphere drawings; combo box and prim tree.</td></tr>
+  <tr><td><code>clouds2d</code></td><td>The 2D cloud picture: noise, PNG file, cache.</td></tr>
   <tr><td><code>matviews</code>, <code>viewport_drop</code></td><td>Thumbnail, list and category views of the catalog; drops on the Solaris viewport.</td></tr>
   <tr><td><code>window</code></td><td>The dialog: it assembles the tabs, collects the settings and runs the build.</td></tr>
   <tr><td><code>tab_scene</code>, <code>tab_lighting</code>, <code>tab_atmosphere</code>, <code>tab_materials</code>, <code>tab_render</code>, <code>tab_passes</code>, <code>tab_export</code>, <code>tab_log</code></td><td>One file per tab of the window: its layout and its handlers.</td></tr>

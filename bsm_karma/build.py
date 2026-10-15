@@ -4,7 +4,7 @@
 import hou
 from .config import TOOL_STAGE_DELETE_ORDER
 from .debuglog import _debug, _debug_exception, _debug_state
-from .environment import _create_area_light, _create_cloud_branch, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _resolve_render_camera
+from .environment import _create_area_light, _create_cloud_branch, _create_cloud_layer_2d, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _resolve_render_camera
 from .linker import _material_edit_node, _material_linker_node
 from .nodeutil import (_get_or_create_node, _get_or_create_stage, _is_tool_node_candidate, _layout_tool_nodes, _paused_cooking,
                        _remove_tool_node, _safe_connect)
@@ -14,7 +14,7 @@ from .rendering import _create_aov_chain, _create_material_library, _create_rend
 def _cleanup_environment_nodes(stage, cfg, log_callback):
     all_env_nodes = {
         "physical_sky", "sky_atmosphere_linker", "env_hdri", "atmosphere_fog", "fog_xform", "assign_fog_shader",
-        "cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader", "cloud_volume", "env_merge",
+        "cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader", "cloud_volume", "cloud_layer_2d", "env_merge",
         "studio_hdri", "studio_key", "fill_hdri", "key_light", "fill_light", "rim_light", "window_portal",
     }
 
@@ -33,7 +33,10 @@ def _cleanup_environment_nodes(stage, cfg, log_callback):
         if cfg.get("enable_fog"):
             keep.add("atmosphere_fog")
         if cfg.get("enable_clouds"):
-            keep.update({"cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader"})
+            if int(cfg.get("cloud_type", 0)) == 1:
+                keep.add("cloud_layer_2d")
+            else:
+                keep.update({"cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader"})
     elif mode == "Studio":
         keep.update({"studio_hdri", "studio_key"})
     elif mode == "3 Points":
@@ -132,7 +135,13 @@ def _build_lighting(stage, cam, cfg, log_callback, skipped):
             except hou.Error as exc:
                 log_callback("[WARN] Fog skipped: {}".format(exc))
                 skipped.append("fog")
-        if cfg["enable_clouds"]:
+        if cfg["enable_clouds"] and int(cfg.get("cloud_type", 0)) == 1:
+            try:
+                cloud = _create_cloud_layer_2d(stage, cam, cfg, log_callback)
+            except (hou.Error, OSError, ImportError, ValueError) as exc:
+                log_callback("[WARN] 2D clouds skipped: {}".format(exc))
+                skipped.append("clouds")
+        elif cfg["enable_clouds"]:
             try:
                 cloud = _create_cloud_branch(stage, cam, cfg, log_callback)
             except hou.Error as exc:

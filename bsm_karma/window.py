@@ -316,6 +316,12 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
             "cloud_precision": self.sld_cloud_precision.value(),
             "cloud_clip": self.sld_cloud_clip.value(),
             "cloud_material_path": self.line_cloud_mat.text().strip(),
+            "cloud_type": self.combo_cloud_type.currentIndex(),
+            "cloud2d_coverage": self.sld_cloud2d_coverage.value(),
+            "cloud2d_softness": self.sld_cloud2d_softness.value(),
+            "cloud2d_scale": self.sld_cloud2d_scale.value(),
+            "cloud2d_brightness": self.sld_cloud2d_brightness.value(),
+            "cloud2d_seed": self.sld_cloud2d_seed.value(),
             "geo_source": self._current_geo_source(),
 
             "sky_mode": self.combo_sky_mode.currentIndex(),

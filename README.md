@@ -31,6 +31,8 @@ Install `bsm_karma_builder.hda` (Assets > Install Asset Library), drop a **BSM K
 
 ### Option B: the script
 
+A step by step version, with the shelf button code and the AMD library address, is in `install.txt`.
+
 1. Copy the whole `bsm_karma` folder (the Python package, presets included) to your Houdini user preferences directory, typically:
    * Windows: `C:\Users\%USERNAME%\Documents\houdini<version>\scripts\python\`
    * Linux: `~/houdini<version>/scripts/python/`

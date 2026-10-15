@@ -10,7 +10,7 @@ from .gauges import GaugeBar
 # ------------------------------------------------------------
 LIVE_STRUCTURE_LABELS = {
     "scene_mode": "Scene Mode", "env_type": "Environment", "sky_mode": "Sky Rendering", "enable_fog": "Fog",
-    "enable_clouds": "Clouds", "enable_aovs": "AOVs", "engine": "Engine", "camera_choice": "Camera",
+    "enable_clouds": "Clouds", "cloud_type": "Cloud Type", "enable_aovs": "AOVs", "engine": "Engine", "camera_choice": "Camera",
     "geo_source": "Geometry Source", "cloud_material_path": "Cloud Material Path",
 }
 

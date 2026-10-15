@@ -3,6 +3,7 @@
 # On H22 many parameter names the tool guessed did not exist, and the quiet setters hid it.
 #
 # Revision : 10-10-2026 | Auteur : BSM
+import os
 from _common import Checker, base_config, load_tool, scratch_dir
 
 hou, k = load_tool()
@@ -82,6 +83,29 @@ build(env_type="HDRI Image", enable_clouds=True, hdri_path=out_dir + "/sky.exr")
 t.check("back to automatic recreates it", stage.node("quickcloudmaterial") is not None)
 build(env_type="HDRI Image", enable_clouds=False, hdri_path=out_dir + "/sky.exr")
 t.check("disabling clouds removes the material node", stage.node("quickcloudmaterial") is None and stage.node("assign_cloud_shader") is None)
+
+# --- 2D clouds: a second dome light with a generated picture ---
+build(enable_clouds=True, cloud_type=1, cloud2d_brightness=0.8)
+layer = stage.node("cloud_layer_2d")
+t.check("2D clouds: a dome light node", layer is not None and layer.type().name() == "domelight")
+t.check("2D clouds: merged with the sky", layer in stage.node("env_merge").inputs(), [n.name() for n in stage.node("env_merge").inputs()])
+t.check("2D clouds: no volume nodes left", all(stage.node(n) is None for n in ("cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader")))
+t.check("2D clouds: no warning", not [l for l in logs if "WARN" in l], [l for l in logs if "WARN" in l])
+cloud_stage = stage.node("karma_settings").stage()
+cloud_prims = [p for p in cloud_stage.Traverse() if p.GetName() == "cloud_layer_2d"]
+texture = cloud_prims[0].GetAttribute("inputs:texture:file").Get() if cloud_prims else None
+texture_path = str(texture.path) if texture is not None and hasattr(texture, "path") else str(texture)
+t.check("2D clouds: the light reads a generated picture", bool(cloud_prims) and "bsm_clouds_" in texture_path, texture_path)
+t.check("2D clouds: the picture exists", os.path.isfile(texture_path.replace("\\", "/")), texture_path)
+t.check("2D clouds: intensity", abs(float(cloud_prims[0].GetAttribute("inputs:intensity").Get()) - 0.8) < 1e-6 if cloud_prims else False)
+build(enable_clouds=True, cloud_type=0)
+t.check("back to 3D clouds: the 2D layer is removed, the volume is back", stage.node("cloud_layer_2d") is None and stage.node("cloud_geo") is not None)
+build(enable_clouds=True, cloud_type=1)
+t.check("3D to 2D again: the volume nodes are removed", stage.node("cloud_geo") is None and stage.node("cloud_layer_2d") is not None)
+build(enable_clouds=False, cloud_type=1)
+t.check("clouds off: no 2D layer either", stage.node("cloud_layer_2d") is None)
+build(scene_mode="Studio", env_type="HDRI Image", enable_clouds=True, cloud_type=1)
+t.check("clouds only exist in Environment mode", stage.node("cloud_layer_2d") is None)
 
 build(engine="cpu", sky_mode=1, sky_atm_rayleigh=2.0, sky_atm_mie=3.0)
 t.check("CPU uses path traced convergence", val("karma_settings", "convergence_mode") == "Path Traced")
