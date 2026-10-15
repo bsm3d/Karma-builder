@@ -7,7 +7,7 @@
 [TODO] repository - Git setup and CI once the tool is finished
 [TODO] bsm_karma/catalog.py - drag sources other than AMD are only checked for suffix and existence; an allowlist (default catalog, connected file) needs the identifier of the shared catalog of each Houdini version
 [TODO] bsm_karma/viewport_drop.py - never run in Houdini: the viewport widget lookup (size of the viewport, class names), the drop site opening and VIEWPORT_PICK_FLIP_Y (config.py) must be checked on H21 and H22. Read the 'viewport drop' lines of the debug log
-[TODO] bsm_karma/linker.py - Edit Material LOP parameters (matpath1, load1, enable1) read on H22.0.466 only: check H21, and that Load really builds the network
+[TODO] bsm_karma/linker.py - Edit Material LOP parameters (matpath1, load1, enable1): verified on H22.0.466 (Load builds the network as a child of material_edit), check H21
 [TODO] bsm_karma/matviews.py - List and Categories read the item view found inside Houdini's gallery (model, mimeData): check on H21 and H22 that the rows, the folders and the drags are right
 [DONE] bsm_karma.py split into the bsm_karma package, one module per responsibility
 [DONE] broad except Exception narrowed, the five that must never raise are commented
