@@ -102,12 +102,14 @@ AMD_SOURCE_ID = "AMD MaterialX Library"
 STAGE_TARGET_LIMIT = 5000
 
 
-# Edit Material LOP: edits an existing USD material as a VOP network. Its parameter names are not documented in
-# this repo, so they are looked up from these candidates and the node is left for the user when none matches.
+# Edit Material LOP: edits an existing USD material as a VOP network. Read on H22.0.466: a multiparm 'materials'
+# whose first entry is enable1, matpath1 (the material), load1 (button) and matnode1. The tool always uses entry 1.
 MATERIAL_EDIT_NODE = "material_edit"
 MATERIAL_EDIT_TYPE = "editmaterial"
-MATERIAL_EDIT_PATH_PARMS = ("materialpath", "matpath", "primpath", "material", "path")
-MATERIAL_EDIT_LOAD_PARMS = ("load", "loadmaterial", "loadnetwork", "reload")
+MATERIAL_EDIT_COUNT_PARM = "materials"
+MATERIAL_EDIT_ENABLE_PARM = "enable1"
+MATERIAL_EDIT_PATH_PARM = "matpath1"
+MATERIAL_EDIT_LOAD_PARM = "load1"
 
 
 # list and category views of the catalog: rows read from the gallery model, never more than this

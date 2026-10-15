@@ -56,8 +56,11 @@ t.check("edit node created and owned", k._material_edit_node(stage) == edit and 
 k._insert_material_edit_in_chain(linker, edit)
 t.check("edit node sits between the linker and the AOVs", edit.input(0) == linker and stage.node("standard_aovs").input(0) == edit)
 problems = k._material_edit_load(edit, dst)
-print("INFO Edit Material parameters: {}".format(sorted(p.name() for p in edit.parms())[:40]))
 print("INFO Edit Material problems: {}".format(problems))
+print("INFO Edit Material after load: matpath1={!r} matnode1={!r} children={}".format(
+    edit.parm("matpath1").evalAsString(), edit.parm("matnode1").evalAsString(), [c.name() for c in edit.children()]))
+t.check("Edit Material takes the material path", edit.parm("matpath1").evalAsString() == dst, edit.parm("matpath1").evalAsString())
+t.check("Edit Material loads the material without a problem", problems == [], problems)
 user_node = stage.createNode("editmaterial", "user_edit")
 stage.node("material_edit").destroy()
 user_clash = stage.createNode("editmaterial", "material_edit")

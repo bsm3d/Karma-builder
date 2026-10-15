@@ -4,8 +4,8 @@
 import hou
 import re
 import uuid
-from .config import (MATERIAL_DEFAULT_ROOT, MATERIAL_EDIT_LOAD_PARMS, MATERIAL_EDIT_NODE, MATERIAL_EDIT_PATH_PARMS,
-                     MATERIAL_EDIT_TYPE, MATERIAL_LINK_TYPE)
+from .config import (MATERIAL_DEFAULT_ROOT, MATERIAL_EDIT_COUNT_PARM, MATERIAL_EDIT_ENABLE_PARM, MATERIAL_EDIT_LOAD_PARM,
+                     MATERIAL_EDIT_NODE, MATERIAL_EDIT_PATH_PARM, MATERIAL_EDIT_TYPE, MATERIAL_LINK_TYPE)
 from .nodeutil import _base_node_type_name, _is_tool_node_candidate, _mark_tool_node
 from .util import _has_expression
 
@@ -89,25 +89,30 @@ def _insert_material_edit_in_chain(linker, edit):
 
 
 # ----------------------------------------------------------------------
-# Point the Edit Material LOP at a material and load it. Returns what could not be done, one text each.
+# Point the first entry of the Edit Material LOP at a material and load it. Returns what could not be done, one
+# text each.
 def _material_edit_load(edit, material_path):
-    problems = []
     if _has_expression(material_path):
         return ["the material path contains an expression"]
-    path_parm = next((edit.parm(name) for name in MATERIAL_EDIT_PATH_PARMS if edit.parm(name) is not None), None)
+    count = edit.parm(MATERIAL_EDIT_COUNT_PARM)
+    if count is not None and count.evalAsInt() < 1:
+        count.insertMultiParmInstance(0)
+    path_parm = edit.parm(MATERIAL_EDIT_PATH_PARM)
     if path_parm is None:
-        return ["no material path parameter found on {} (looked for {})".format(
-            edit.path(), ", ".join(MATERIAL_EDIT_PATH_PARMS))]
+        return ["no '{}' parameter on {}: this Houdini's Edit Material LOP has another layout".format(
+            MATERIAL_EDIT_PATH_PARM, edit.path())]
     path_parm.set(material_path)
-    load_parm = next((edit.parm(name) for name in MATERIAL_EDIT_LOAD_PARMS if edit.parm(name) is not None), None)
-    if load_parm is None:
-        problems.append("no Load button found on {}: press it yourself".format(edit.path()))
-    else:
-        try:
-            load_parm.pressButton()
-        except hou.Error as exc:
-            problems.append("Load failed: {}".format(exc))
-    return problems
+    enable = edit.parm(MATERIAL_EDIT_ENABLE_PARM)
+    if enable is not None:
+        enable.set(1)
+    load = edit.parm(MATERIAL_EDIT_LOAD_PARM)
+    if load is None:
+        return ["no Load button '{}' on {}: press Load yourself".format(MATERIAL_EDIT_LOAD_PARM, edit.path())]
+    try:
+        load.pressButton()
+    except hou.Error as exc:
+        return ["Load failed: {}".format(exc)]
+    return []
 
 
 # ----------------------------------------
