@@ -161,10 +161,11 @@ class MaterialCategoryTree(_ModelItemsMixin, QtWidgets.QTreeWidget):
 
 # ------------------------------------------------------------
 # Switch between Houdini's thumbnails and two plain lists of the same materials. A right click on a material
-# emits contextRequested(global position) after selecting it, and a left press emits pressed (a drag may follow).
+# emits contextRequested(global position) after selecting it; a left press followed by a move of a drag's length emits
+# dragStarted (once per press), just before the view starts its own drag.
 class MaterialBrowser(QtWidgets.QWidget):
     contextRequested = QtCore.Signal(QtCore.QPoint)
-    pressed = QtCore.Signal()
+    dragStarted = QtCore.Signal()
 
     # ----------------------------------------------------------------------
     def __init__(self, gallery, parent=None):
@@ -204,13 +205,34 @@ class MaterialBrowser(QtWidgets.QWidget):
         self._refill.setSingleShot(True)
         self._refill.setInterval(300)
         self._refill.timeout.connect(self._fill_text_views)
-        model = self._gallery_view.model() if self._gallery_view is not None else None
-        if model is not None:
-            for signal in (model.modelReset, model.rowsInserted, model.rowsRemoved, model.layoutChanged):
-                signal.connect(self._refill_later)
-        else:
+        self._bound_model = None
+        self.rebind_model()
+        if self._bound_model is None:
             _debug("material browser: no item view found inside the gallery, only thumbnails are available")
             self.combo_view.setEnabled(False)
+
+    # ------------------------------------------------------------
+    # Follow the model the gallery uses now: a new catalog source may give it another one.
+    def rebind_model(self):
+        model = self._gallery_view.model() if self._gallery_view is not None else None
+        if model is self._bound_model:
+            return
+        if self._bound_model is not None:
+            for signal in self._model_signals(self._bound_model):
+                try:
+                    signal.disconnect(self._refill_later)
+                except (RuntimeError, TypeError):
+                    pass   # the old model is already gone
+        self._bound_model = model
+        if model is not None:
+            for signal in self._model_signals(model):
+                signal.connect(self._refill_later)
+            self._refill_later()
+
+    # ------------------------------------------------------------
+    @staticmethod
+    def _model_signals(model):
+        return (model.modelReset, model.rowsInserted, model.rowsRemoved, model.layoutChanged)
 
     # ------------------------------------------------------------
     def _refill_later(self, *_):
@@ -236,6 +258,7 @@ class MaterialBrowser(QtWidgets.QWidget):
 
     # ------------------------------------------------------------
     def refresh(self):
+        self.rebind_model()
         self._fill_text_views()
 
     # ------------------------------------------------------------
@@ -280,12 +303,21 @@ class _ViewEvents(QtCore.QObject):
     def __init__(self, browser):
         super().__init__(browser)
         self._browser = browser
+        self._press_pos = None
 
     # --------------------------------------------------
     def eventFilter(self, obj, event):
         kind = event.type()
         if kind == QtCore.QEvent.MouseButtonPress and event.button() == QtCore.Qt.LeftButton:
-            self._browser.pressed.emit()
+            self._press_pos = event.pos()
+            return False
+        if kind == QtCore.QEvent.MouseButtonRelease:
+            self._press_pos = None
+            return False
+        if kind == QtCore.QEvent.MouseMove and self._press_pos is not None and event.buttons() & QtCore.Qt.LeftButton:
+            if (event.pos() - self._press_pos).manhattanLength() >= QtWidgets.QApplication.startDragDistance():
+                self._press_pos = None
+                self._browser.dragStarted.emit()
             return False
         if kind == QtCore.QEvent.ContextMenu:
             view = self._browser.current_view()

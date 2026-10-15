@@ -97,8 +97,8 @@ def _find_viewport_widget(widget, viewer, log_once):
 
 
 # ------------------------------------------------------------
-# Application-wide filter, armed only while a drag may be running (a left press in the catalog) so the rest of the
-# time Houdini's events never reach Python. A drop of a catalog material on the viewport emits dropped(payload, prim).
+# Application-wide filter, armed only while a drag may be running (a drag has started in the catalog) so the rest of
+# the time Houdini's events never reach Python. A drop of a catalog material on the viewport emits dropped(payload, prim).
 class ViewportDropFilter(QtCore.QObject):
     dropped = QtCore.Signal(str, str)
 
@@ -207,8 +207,8 @@ class ViewportDropFilter(QtCore.QObject):
         if kind in _DRAG_TYPES:
             try:
                 return self._handle(obj, event)
-            except (RuntimeError, hou.Error) as exc:
-                self._log_once("viewport drop filter failed: {}".format(exc))
+            except Exception as exc:   # an application-wide filter must never raise into Qt, whatever went wrong
+                self._log_once("viewport drop filter failed: {}: {}".format(type(exc).__name__, exc))
                 return False
         if kind == QtCore.QEvent.MouseButtonRelease:
             self.disarm()

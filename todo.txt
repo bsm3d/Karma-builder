@@ -1,9 +1,9 @@
-[TODO] bsm_karma/tab_materials.py:332 - AMD package downloads on the UI thread (Houdini's own code), the window freezes while it runs
-[TODO] bsm_karma/tab_materials.py:130 - HACK: hou.qt._createAssetGallery is private, guarded (notice, disabled controls, BSM_KARMA_GALLERY=0). Read the 'hou.qt names about galleries' line of the debug log on H21 and H22, replace it with a public path if one exists
+[TODO] bsm_karma/tab_materials.py - AMD package downloads on the UI thread (Houdini's own code), the window freezes while it runs
+[TODO] bsm_karma/tab_materials.py - HACK: hou.qt._createAssetGallery is private, guarded (notice, disabled controls, BSM_KARMA_GALLERY=0). Read the 'hou.qt names about galleries' line of the debug log on H21 and H22, replace it with a public path if one exists
 [TODO] bsm_karma/environment.py - physical sky, fog, cloud and light linker parameter names are checked on H22 only: build once on H21 and read the [WARN] lines
 [TODO] bsm_karma/linker.py - Material Linker multiparm names (num_files, num_links, link_*) not verified on H21
-[TODO] tests/ - run the whole suite (run_tests.ps1, then -Gui) on H21 and H22, not run since the split into the bsm_karma package
-[TODO] bsm_karma_builder.hda - holds the old single-file code, rebuild with hython build_hda.py once the tool is stable
+[TODO] tests/ - headless suite passes on H22.0.466 (180 checks); still to run: -Gui on H22, and the whole suite on H21
+[TODO] bsm_karma_builder.hda - rebuild with hython build_hda.py after every code change, and before a release
 [TODO] repository - Git setup and CI once the tool is finished
 [TODO] bsm_karma/catalog.py - drag sources other than AMD are only checked for suffix and existence; an allowlist (default catalog, connected file) needs the identifier of the shared catalog of each Houdini version
 [TODO] bsm_karma/viewport_drop.py - never run in Houdini: the viewport widget lookup (size of the viewport, class names), the drop site opening and VIEWPORT_PICK_FLIP_Y (config.py) must be checked on H21 and H22. Read the 'viewport drop' lines of the debug log

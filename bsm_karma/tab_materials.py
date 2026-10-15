@@ -138,7 +138,7 @@ class MaterialsTab:
         self._viewport_drop = ViewportDropFilter(self, self._get_active_scene_viewer, hou.qt.mainWindow, self)
         self._viewport_drop.dropped.connect(self.on_viewport_material_drop)
         if self.mat_browser is not None:
-            self.mat_browser.pressed.connect(self._arm_viewport_drop)
+            self.mat_browser.dragStarted.connect(self._arm_viewport_drop)
 
         tabs.addTab(wrap_tab(tab_materials), "Materials")
 
@@ -255,6 +255,8 @@ class MaterialsTab:
             self._material_source_changed = True
             self._amd_folder = folder if source == self.MATERIAL_SOURCES[0] else None
             self._set_material_status(hint)
+            if self.mat_browser is not None:
+                self.mat_browser.refresh()
             self.log_message("[OK] Material catalog connected: {}".format(source))
         except (hou.Error, OSError, ValueError, AttributeError) as exc:
             self._set_material_status("Could not connect: {}".format(exc))
