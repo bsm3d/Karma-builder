@@ -195,7 +195,8 @@ bsm_karma.main()</code></pre></li>
   <li><strong>updates</strong> the nodes that already exist instead of creating new ones;</li>
   <li><strong>keeps hand placement</strong>: the generated camera and the area lights are positioned only when they are created. Move one by hand and a rebuild leaves it where it is. (<em>Match viewport</em> on the camera is the exception: it copies the viewport at each build.)</li>
   <li><strong>keeps the default material</strong>: <code>pbr_surface</code> receives its default values once, when it is created;</li>
-  <li><strong>removes</strong> only its own nodes that the current mode no longer uses;</li>
+  <li><strong>removes</strong> only its own nodes that the current mode no longer uses, and does it last: the new network is built and wired first, so what is displayed never depends on a node that is about to disappear;</li>
+  <li><strong>pauses cooking</strong> while it works (Houdini's update mode goes to Manual, then back to what it was, even after an error), so a running Karma viewport restarts once at the end instead of after every node. A session already in Manual mode is left as it is. Clear All Tool Nodes does the same;</li>
   <li><strong>never touches your nodes</strong>: the tool recognizes its own nodes only by the mark it put on them. A node of yours is never deleted, rewired, moved or marked, even if it has the same name or the same type as one of the tool's nodes. If one has the name the tool needs, the build stops with an error that names it (<code>[ERROR] ... was not created by BSM Karma Builder</code>); rename it and build again.</li>
 </ul>
 <div class="callout warn"><strong>Clear All Tool Nodes</strong>Deletes the nodes the tool built in <code>/stage</code>, after a confirmation that lists them. Nodes you made are never in that list. A tool node that is wired to something outside the tool's own nodes is skipped and reported in the Log. The deletion is a single undo step.</div>

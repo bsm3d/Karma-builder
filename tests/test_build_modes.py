@@ -13,9 +13,14 @@ logs = []
 
 
 #------------------------------------------------------------
+update_mode_before = hou.updateModeSetting()
+
+
 def build(**over):
     logs.clear()
     k.setup_karma_environment(dict(base_config(out_dir), **over), logs.append)
+    if hou.updateModeSetting() != update_mode_before:
+        t.check("a build leaves Houdini's update mode as it found it", False, hou.updateModeSetting())
 
 
 # --------------------------------------------------

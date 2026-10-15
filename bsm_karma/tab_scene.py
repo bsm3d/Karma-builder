@@ -7,7 +7,7 @@ from .config import CAMERA_CREATE_LABEL, TOOL_STAGE_DELETE_ORDER, TOOL_STAGE_NOD
 from .debuglog import _guarded_slot
 from .environment import _lop_camera_nodes, _stage_camera_prims
 from .gauges import IntSlider
-from .nodeutil import _is_tool_node_candidate
+from .nodeutil import _is_tool_node_candidate, _paused_cooking
 from .styles import _C, _btn_style
 from .widgets import PopupRefreshComboBox, wrap_tab
 
@@ -266,11 +266,12 @@ class SceneTab:
                     self.log_message("[WARN] Could not remove {}: {}".format(path, exc))
                     skipped.append(path)
 
-        try:
-            with hou.undos.group("BSM Karma - Clear Tool Nodes"):
+        with _paused_cooking():
+            try:
+                with hou.undos.group("BSM Karma - Clear Tool Nodes"):
+                    _delete_impl()
+            except hou.Error:
                 _delete_impl()
-        except hou.Error:
-            _delete_impl()
 
         return deleted, skipped
 

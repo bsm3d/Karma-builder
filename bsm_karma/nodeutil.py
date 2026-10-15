@@ -1,6 +1,7 @@
 # nodeutil.py - BSM Karma Builder - helpers to create, mark and set nodes
 # Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
 
+import contextlib
 import hou
 import re
 from .config import TOOL_NODE_TAG_KEY, TOOL_NODE_TAG_VALUE
@@ -71,6 +72,30 @@ def _get_or_create_node(parent, node_type, node_name):
 def _safe_connect(node, prev):
     if node is not None and prev is not None and node.input(0) != prev:
         node.setInput(0, prev)
+
+
+# ------------------------------------------------------------
+# Houdini cooks the stage after every node change, and a running Karma viewport restarts each time. While the
+# network is being built, cooking is paused (manual update), then put back: one cook at the end. A session that
+# was already in manual mode is left alone.
+@contextlib.contextmanager
+def _paused_cooking():
+    previous = None
+    try:
+        current = hou.updateModeSetting()
+        if current != hou.updateMode.Manual:
+            hou.setUpdateMode(hou.updateMode.Manual)
+            previous = current
+    except (hou.Error, AttributeError) as exc:
+        _debug("cooking not paused: {}".format(exc))
+    try:
+        yield
+    finally:
+        if previous is not None:
+            try:
+                hou.setUpdateMode(previous)
+            except (hou.Error, AttributeError) as exc:
+                _debug("update mode not restored: {}".format(exc))
 
 
 # ------------------------------------------------------------
