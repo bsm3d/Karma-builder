@@ -101,5 +101,20 @@ was downloaded or tried here):
     MaterialX project  https://github.com/AcademySoftwareFoundation/MaterialX
                        Example materials in resources/Materials. SideFX ships the same examples with Houdini.
 
+Downloading with materialxmaterials (pip install materialxmaterials; on Windows, if the command is not found, use
+"python -m materialxMaterials" instead of "materialxMaterials"). Options below were read from its --help, the
+downloads themselves were not run here:
+
+    materialxMaterials acg -m WoodFloor038 -r 2 -f PNG --output D:\Materials\ambientCG
+        ambientCG: the package of the material whose name matches, 2K (1, 2, 4 or 8), PNG textures. Unzip it.
+    materialxMaterials polyhaven -id polystyrene -dt mtlx -res 2k -c 1 -x -fe -df D:\Materials\PolyHaven
+        Poly Haven: MaterialX assets whose id matches, 2k, extracted. It warns that OpenImageIO is missing, which
+        only matters for EXR textures.
+    materialxMaterials physbased -o D:\Materials\PhysicallyBased
+        PhysicallyBased: converts its measured material values to .mtlx files (no textures).
+    materialxMaterials <command> --help   lists every option of a command (gpuopen, acg, polyhaven, physbased).
+
+The AMD library does not need it: the Materials tab reads it directly.
+
 To use files from these sources: Materials tab > Source: USD / MaterialX File... (the catalog then shows the
 materials of that file), or Assign File... for the selected prims.
