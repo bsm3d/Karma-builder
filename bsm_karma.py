@@ -191,6 +191,7 @@ _C = {
     "accent_brown":"#4b3621",
     "danger":      "#7a3232",
     "primary":     "#3e5a78",
+    "amber":       "#e8a317",
 }
 
 BSM_STYLE = f"""
@@ -225,13 +226,15 @@ QTextEdit {{
 # A full rule with a border: with only a background-color, the Houdini 22 theme draws no button, just the text.
 def _btn_style(bg):
     base = QtGui.QColor(bg)
+    luma = 0.299 * base.red() + 0.587 * base.green() + 0.114 * base.blue()
+    fg = "#1e1e1e" if luma > 150 else "white"   # dark text on a light fill such as amber
     return (
-        "QPushButton {{ background-color: {bg}; color: white; font-weight: bold; padding: 10px;"
+        "QPushButton {{ background-color: {bg}; color: {fg}; font-weight: bold; padding: 10px;"
         " border: 1px solid {edge}; border-radius: 4px; }}"
         "QPushButton:hover {{ background-color: {hover}; }}"
         "QPushButton:pressed {{ background-color: {pressed}; }}"
         "QPushButton:disabled {{ background-color: #3a3a3a; color: #7a7a7a; border-color: #4a4a4a; }}"
-    ).format(bg=bg, edge=base.lighter(160).name(), hover=base.lighter(125).name(), pressed=base.darker(125).name())
+    ).format(bg=bg, fg=fg, edge=base.lighter(160).name(), hover=base.lighter(125).name(), pressed=base.darker(125).name())
 
 TOOL_NODE_TAG_KEY = "bsm_karma_managed"
 TOOL_NODE_TAG_VALUE = "1"
@@ -2538,7 +2541,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         form_main.addRow("New Camera:", self.w_new_camera)
 
         self.btn_clear_all_main = QtWidgets.QPushButton("Clear All Tool Nodes")
-        self.btn_clear_all_main.setStyleSheet(_btn_style(_C["danger"]))
+        self.btn_clear_all_main.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_clear_all_main.clicked.connect(self.on_clear_all)
         form_main.addRow("", self.btn_clear_all_main)
 
@@ -3068,19 +3071,19 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         lay_render_btns = QtWidgets.QHBoxLayout()
         
         self.btn_render_mplay = QtWidgets.QPushButton("Render to MPlay")
-        self.btn_render_mplay.setStyleSheet(_btn_style(_C["accent_green"]))
+        self.btn_render_mplay.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_render_mplay.clicked.connect(self.on_render_mplay)
         
         self.btn_render_disk = QtWidgets.QPushButton("Render to Disk")
-        self.btn_render_disk.setStyleSheet(_btn_style(_C["accent_brown"]))
+        self.btn_render_disk.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_render_disk.clicked.connect(self.on_render_disk)
 
         self.btn_open_karma_settings = QtWidgets.QPushButton("Karma Settings")
-        self.btn_open_karma_settings.setStyleSheet(_btn_style(_C["accent_teal"]))
+        self.btn_open_karma_settings.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_open_karma_settings.clicked.connect(self.on_open_karma_settings)
 
         self.btn_open_viewport = QtWidgets.QPushButton("Karma Viewport")
-        self.btn_open_viewport.setStyleSheet(_btn_style(_C["accent_blue"]))
+        self.btn_open_viewport.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_open_viewport.clicked.connect(self.on_open_viewport)
         
         lay_render_btns.addWidget(self.btn_render_mplay)
@@ -3273,7 +3276,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         main_layout.addWidget(tabs)
         
         self.btn_build = QtWidgets.QPushButton("Build Environment Only")
-        self.btn_build.setStyleSheet(_btn_style(_C["primary"]))
+        self.btn_build.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_build.clicked.connect(self.on_build)
         main_layout.addWidget(self.btn_build)
         
