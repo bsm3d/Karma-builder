@@ -224,12 +224,13 @@ QTextEdit {{
 
 # ------------------------------------------------------------
 # A full rule with a border: with only a background-color, the Houdini 22 theme draws no button, just the text.
+# Padding kept small so the colored buttons stay the size of the standard ones.
 def _btn_style(bg):
     base = QtGui.QColor(bg)
     luma = 0.299 * base.red() + 0.587 * base.green() + 0.114 * base.blue()
     fg = "#1e1e1e" if luma > 150 else "white"   # dark text on a light fill such as amber
     return (
-        "QPushButton {{ background-color: {bg}; color: {fg}; font-weight: bold; padding: 10px;"
+        "QPushButton {{ background-color: {bg}; color: {fg}; padding: 3px 8px;"
         " border: 1px solid {edge}; border-radius: 4px; }}"
         "QPushButton:hover {{ background-color: {hover}; }}"
         "QPushButton:pressed {{ background-color: {pressed}; }}"
@@ -600,8 +601,8 @@ class GaugeBar(QtWidgets.QWidget):
         self._press_x = None
         self._dragging = False
         self._editor = None
-        self.setMinimumHeight(24)
-        self.setMinimumWidth(90)
+        self.setMinimumHeight(20)
+        self.setMinimumWidth(70)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.setCursor(QtCore.Qt.SizeHorCursor)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -997,29 +998,26 @@ def _mark_tool_node(node):
 
 
 # ----------------------------------------------------------------------
+# Only the tag proves that the tool built a node. A node that merely has the same name or the same type is the
+# user's: it is never deleted, rewired, moved or retagged.
 def _is_tool_node_candidate(node, node_name=None):
     if node is None:
         return False
-
     try:
-        if node.userData(TOOL_NODE_TAG_KEY) == TOOL_NODE_TAG_VALUE:
-            return True
+        return node.userData(TOOL_NODE_TAG_KEY) == TOOL_NODE_TAG_VALUE
     except Exception:
-        pass
-
-    if node_name in TOOL_STAGE_NODE_TYPES:
-        return _base_node_type_name(node) in TOOL_STAGE_NODE_TYPES[node_name]
-    return False
+        return False
 
 
 def _get_or_create_node(parent, node_type, node_name):
     n = parent.node(node_name)
     if n is None:
         n = parent.createNode(node_type, node_name)
-    elif not _is_tool_node_candidate(n, node_name) and _base_node_type_name(n) != node_type:
-        # a user's node that only shares the name: never rewire, retag or delete it
-        raise hou.OperationFailed("{} exists and is a '{}', not a '{}': rename it or delete it.".format(
-            n.path(), _base_node_type_name(n), node_type))
+    elif not _is_tool_node_candidate(n, node_name):
+        # a node of the user's that only shares the name: the tool leaves it alone and stops
+        raise hou.OperationFailed(
+            "{} ({}) was not created by BSM Karma Builder: rename it, the tool never changes nodes it did not build.".format(
+                n.path(), _base_node_type_name(n)))
     _mark_tool_node(n)
     return n
 
@@ -1512,6 +1510,9 @@ def _create_quick_cloud_material(stage, prev, cfg, log_callback):
         return None
 
     node = stage.node(QUICK_CLOUD_NAME)
+    if node is not None and not _is_tool_node_candidate(node):
+        log_callback("[WARN] {} was not created by BSM Karma Builder: left untouched, no Quick Cloud Material.".format(node.path()))
+        return None
     if node is None:
         node = stage.createNode("editmaterialproperties", QUICK_CLOUD_NAME)
         try:
@@ -1948,7 +1949,7 @@ def _material_linker_node(stage):
     if stage is None:
         return None
     node = stage.node("material_linker")
-    if node is not None and _base_node_type_name(node) == "materiallinker":
+    if node is not None and _base_node_type_name(node) == "materiallinker" and _is_tool_node_candidate(node):
         return node
     return None
 
@@ -1956,6 +1957,10 @@ def _material_linker_node(stage):
 def _get_or_create_material_linker(stage):
     node = _material_linker_node(stage)
     if node is None:
+        if stage.node("material_linker") is not None:
+            raise hou.OperationFailed(
+                "{} was not created by BSM Karma Builder: rename it, the tool never changes nodes it did not build.".format(
+                    stage.node("material_linker").path()))
         node = stage.createNode("materiallinker", "material_linker")
     _mark_tool_node(node)
     return node
@@ -2411,12 +2416,14 @@ def _merge_geometry_source(stage, env_tip, cfg, log_callback):
 # --------------------------------------------------------------------------------
 def setup_karma_environment(cfg, log_callback):
     log_callback(f"--- Building: {cfg['scene_mode']} (Houdini {hou.applicationVersionString()}) ---")
+    live = bool(cfg.get("live"))
     try:
         if hou.applicationVersion()[0] < 21:
             log_callback("[WARN] Written for Houdini 21 and 22: some Karma parameters may be missing in this version.")
     except (hou.Error, TypeError, IndexError):
         pass
     stage = _get_or_create_stage()
+    child_count = len(stage.children())
     cam, cam_path = _resolve_render_camera(stage, cfg, log_callback)
 
     mode = cfg.get("scene_mode", "Environment")
@@ -2482,13 +2489,16 @@ def setup_karma_environment(cfg, log_callback):
     ks = _create_render_settings(stage, cam_path, upstream, cfg, log_callback)
     _create_render_rop(stage, ks, cfg, log_callback)
 
-    _layout_tool_nodes(stage)
+    # a live update only re-places the nodes when it created or removed some, and never takes the selection
+    if not live or len(stage.children()) != child_count:
+        _layout_tool_nodes(stage)
     _debug_stage_dump(stage)
 
     # le node karma settings reste le node actif et sélectionné après un build
     if ks:
         ks.setDisplayFlag(True)
-        ks.setSelected(True, True)
+        if not live:
+            ks.setSelected(True, True)
         
     log_callback(f"[OK] Karma Ready. Engine: {cfg['engine'].upper()} | Env: {env_type}")
 
@@ -2513,8 +2523,8 @@ class KarmaBuilderUI(QtWidgets.QDialog):
             parent = hou.qt.mainWindow()
         super().__init__(parent)
         self.setWindowTitle("BSM Karma Builder {}".format(SCRIPT_VERSION))
-        self.resize(720, 840)
-        self.setMinimumSize(600, 750)
+        self.resize(540, 600)
+        self.setMinimumSize(440, 420)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         self.setStyleSheet(BSM_STYLE)
         # child of the main window: without this a closed dialog lives until Houdini exits
@@ -2522,6 +2532,8 @@ class KarmaBuilderUI(QtWidgets.QDialog):
 
         _debug_session_header()
         self._released = False
+        self._live_building = False
+        self._live_seen = set()
         self._pending_logs = []
         self._amd_folder = None
         self._release_errors = []
@@ -2646,6 +2658,12 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.btn_clear_all_main.clicked.connect(self.on_clear_all)
         form_main.addRow("", self.btn_clear_all_main)
 
+        self.chk_live_update = QtWidgets.QCheckBox("Rebuild automatically when a value changes")
+        self.chk_live_update.setToolTip(
+            "On: any change updates the nodes after a short pause, no need to press Build.\n"
+            "Off: the network only changes when you press Build (better on a slower machine).")
+        form_main.addRow("Live Update:", self.chk_live_update)
+
         tabs.addTab(_wrap_tab(tab_main), "Scene")
         
         # --- TAB 2: LIGHTING & SKY ---
@@ -2693,7 +2711,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.form_base.addRow("HDRI Tint:", self.sld_hdri_tint)
 
         self.lbl_hdri_preview = QtWidgets.QLabel("HDRI preview")
-        self.lbl_hdri_preview.setMinimumHeight(160)
+        self.lbl_hdri_preview.setMinimumHeight(110)
         self.lbl_hdri_preview.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_hdri_preview.setScaledContents(True)
         self.lbl_hdri_preview.setObjectName("hdriPreview")
@@ -2747,7 +2765,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         
         form_sky.addRow("Solar Altitude:", self.sld_sky_elev)
         form_sky.addRow("Solar Direction:", self.sld_sky_azim)
-        self.chk_sky_follow_view = QtWidgets.QCheckBox("Add the viewport heading to the direction at each build")
+        self.chk_sky_follow_view = QtWidgets.QCheckBox("Follow the viewport heading")
         self.chk_sky_follow_view.setToolTip(
             "Off: the sun sits at the Solar Direction shown by the compass.\n"
             "On: the Y rotation of the active Scene Viewer is added, so the sun turns with the view.")
@@ -2935,7 +2953,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
 
         self.mat_gallery = self._create_material_gallery()
         if self.mat_gallery is not None:
-            self.mat_gallery.setMinimumHeight(260)
+            self.mat_gallery.setMinimumHeight(190)
             lay_catalog.addWidget(self.mat_gallery, 1)
         else:
             lbl_no_gallery = QtWidgets.QLabel(
@@ -2969,7 +2987,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         lay_targets.addLayout(row_geo)
 
         self.tree_mat_targets = MaterialTargetTree()
-        self.tree_mat_targets.setMinimumHeight(170)
+        self.tree_mat_targets.setMinimumHeight(120)
         self.tree_mat_targets.assetDropped.connect(self.on_material_asset_dropped)
         lay_targets.addWidget(self.tree_mat_targets, 1)
 
@@ -3266,13 +3284,13 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         lay_viewport_tools.addLayout(row_compare)
 
         self.w_snapshot_preview = QtWidgets.QWidget()
-        self.w_snapshot_preview.setMinimumHeight(220)
+        self.w_snapshot_preview.setMinimumHeight(150)
         self.w_snapshot_preview.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         lay_snapshot_stack = QtWidgets.QVBoxLayout(self.w_snapshot_preview)
         lay_snapshot_stack.setContentsMargins(0, 0, 0, 0)
 
         self.lbl_snapshot_preview = QtWidgets.QLabel("No snapshot yet.")
-        self.lbl_snapshot_preview.setMinimumHeight(220)
+        self.lbl_snapshot_preview.setMinimumHeight(150)
         self.lbl_snapshot_preview.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_snapshot_preview.setScaledContents(False)
         self.lbl_snapshot_preview.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
@@ -3401,6 +3419,13 @@ class KarmaBuilderUI(QtWidgets.QDialog):
 
         self._update_debug_path_label()
 
+        # live update is wired last: the values set while the window is built must not trigger a build
+        self._live_timer = QtCore.QTimer(self)
+        self._live_timer.setSingleShot(True)
+        self._live_timer.timeout.connect(self._live_build)
+        self._connect_live_update([tab_main, tab_lights, tab_volumetrics, tab_filters, tab_aov, tab_out])
+        self.chk_live_update.toggled.connect(self.on_live_toggled)
+
     # ----------------------------------------
     # LIFECYCLE
     # ----------------------------------------
@@ -3441,6 +3466,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
 
         _debug("window closed")
         step("timer", self._hdri_preview_timer.stop)
+        step("live timer", self._live_timer.stop)
 
         step("viewport panel", lambda: self._close_pane_tab(self._karma_scene_viewer))
         step("parameter panel", lambda: self._close_pane_tab(self._parm_pane_tab))
@@ -3581,6 +3607,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         if path:
             self.line_hdri_path.setText(hou.text.expandString(path))
             self._do_hdri_preview()
+            self._schedule_live_update()
 
     # ------------------------------------------------------------
     def browse_output(self):
@@ -3589,6 +3616,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         if path:
             self.line_out.setText(hou.text.expandString(path))
             self.sync_output_extension()
+            self._schedule_live_update()
 
     # ------------------------------------------------------------
     def browse_cloud_mat(self):
@@ -3634,6 +3662,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
                 
         if prim_path:
             self.line_cloud_mat.setText(prim_path)
+            self._schedule_live_update()
 
     # ------------------------------------------------
     # MATERIALS TAB
@@ -4284,7 +4313,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         is_hdri = (mode in ["Studio", "3 Points"]) or (mode in ["Environment", "Interior"] and env_type == "HDRI Image")
         is_physical = (mode in ["Environment", "Interior"] and env_type == "Physical Sky")
         
-        self.lbl_hdri_preview.setMinimumHeight(160 if is_hdri else 0)
+        self.lbl_hdri_preview.setMinimumHeight(110 if is_hdri else 0)
 
         hdri_rows = [
             self.sld_hdri_int,
@@ -4507,20 +4536,107 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         }
 
     # ------------------------------------------------------------------------
-    @_guarded_slot
-    def on_build(self):
+    def _run_build(self, log, undo_name, live=False):
         self.sync_output_extension()
         config = self._collect_config()
+        config["live"] = live
         _debug("build settings: " + json.dumps(config, sort_keys=True, default=str))
         try:
-            with hou.undos.group("BSM Karma - Build"):
-                setup_karma_environment(config, self.log_message)
+            with hou.undos.group(undo_name):
+                setup_karma_environment(config, log)
         except hou.OperationFailed as exc:
             self.log_message("[ERROR] Build stopped: {}".format(exc))
+            return False
+        return True
+
+    # ------------------------------------------------------------------------
+    @_guarded_slot
+    def on_build(self):
+        self._live_seen.clear()
+        if not self._run_build(self.log_message, "BSM Karma - Build"):
             return False
         self.refresh_stage_cameras()
         self.refresh_material_targets()
         return True
+
+    # ------------------------------------------------------------------------
+    # Live update. Off: nothing happens until Build is pressed (slow machines). On: a change of any value
+    # rebuilds the network after a short pause, so a slider can be dragged without a build per step.
+    LIVE_UPDATE_DELAY_MS = 350
+
+    # ------------------------------------------------------------
+    def _connect_live_update(self, pages):
+        skipped = {self.chk_live_update, self.combo_viewport_engine, self.chk_snapshot_safe,
+                   self.combo_snapshot_safe_type, self.chk_snapshot_compare}
+        trigger = self._schedule_live_update
+        for page in pages:
+            for widget in page.findChildren(QtWidgets.QWidget):
+                if widget in skipped:
+                    continue
+                if isinstance(widget, GaugeBar):
+                    widget.valueChanged.connect(trigger)
+                elif isinstance(widget, QtWidgets.QComboBox):
+                    widget.currentIndexChanged.connect(trigger)
+                elif isinstance(widget, QtWidgets.QCheckBox):
+                    widget.toggled.connect(trigger)
+                elif isinstance(widget, QtWidgets.QGroupBox) and widget.isCheckable():
+                    widget.toggled.connect(trigger)
+                elif isinstance(widget, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)):
+                    widget.valueChanged.connect(trigger)
+                elif isinstance(widget, QtWidgets.QLineEdit):
+                    if not isinstance(widget.parent(), QtWidgets.QAbstractSpinBox):   # not the editor inside a spin box
+                        self._connect_live_line_edit(widget)
+
+    # ------------------------------------------------------------
+    # A path is built when typing ends and only if the text was edited, not at every letter or focus change.
+    def _connect_live_line_edit(self, edit):
+        edited = {"flag": False}
+
+        def mark(*_):
+            edited["flag"] = True
+
+        def finished():
+            if edited["flag"]:
+                edited["flag"] = False
+                self._schedule_live_update()
+
+        edit.textEdited.connect(mark)
+        edit.editingFinished.connect(finished)
+
+    # ------------------------------------------------------------
+    def on_live_toggled(self, enabled):
+        self._live_seen.clear()
+        _debug("live update {}".format("on" if enabled else "off"))
+        if enabled:
+            self._schedule_live_update()
+        else:
+            self._live_timer.stop()
+
+    # ------------------------------------------------------------
+    def _schedule_live_update(self, *_):
+        if self.chk_live_update.isChecked() and not self._released:
+            self._live_timer.start(self.LIVE_UPDATE_DELAY_MS)
+
+    # ------------------------------------------------------------
+    # Only problems reach the Log tab, once each; the debug file keeps every message.
+    def _live_log(self, message):
+        text = message.strip()
+        if text.startswith(("[WARN]", "[ERROR]")) and text not in self._live_seen:
+            self._live_seen.add(text)
+            self.log_message(message)
+        else:
+            _debug(message, "LOG")
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def _live_build(self):
+        if self._live_building or not self.chk_live_update.isChecked():
+            return
+        self._live_building = True
+        try:
+            self._run_build(self._live_log, "BSM Karma - Live Update", live=True)
+        finally:
+            self._live_building = False
 
     # ------------------------------------
     @_guarded_slot

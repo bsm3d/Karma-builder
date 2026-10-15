@@ -195,13 +195,13 @@ bsm_karma.main()</code></pre></li>
   <li><strong>keeps hand placement</strong>: the generated camera and the area lights are positioned only when they are created. Move one by hand and a rebuild leaves it where it is. (<em>Match current viewport</em> on the camera is the exception: it copies the viewport at each build.)</li>
   <li><strong>keeps the default material</strong>: <code>pbr_surface</code> receives its default values once, when it is created;</li>
   <li><strong>removes</strong> only its own nodes that the current mode no longer uses;</li>
-  <li><strong>refuses to touch your nodes</strong>: if a node of <code>/stage</code> has the same name as one of the tool's nodes but is of a different type, the build stops with an error that names the node. Rename or delete it and build again.</li>
+  <li><strong>never touches your nodes</strong>: the tool recognizes its own nodes only by the mark it put on them. A node of yours is never deleted, rewired, moved or marked, even if it has the same name or the same type as one of the tool's nodes. If one has the name the tool needs, the build stops with an error that names it (<code>[ERROR] ... was not created by BSM Karma Builder</code>); rename it and build again.</li>
 </ul>
-<div class="callout warn"><strong>Clear All Tool Nodes</strong>Deletes every node marked by the tool in <code>/stage</code>, after a confirmation that lists them. A node that is wired to something outside the tool's own nodes is skipped and reported in the Log. The deletion is a single undo step.</div>
+<div class="callout warn"><strong>Clear All Tool Nodes</strong>Deletes the nodes the tool built in <code>/stage</code>, after a confirmation that lists them. Nodes you made are never in that list. A tool node that is wired to something outside the tool's own nodes is skipped and reported in the Log. The deletion is a single undo step.</div>
 <p>Each build, and each material assignment, is also one undo step: <em>BSM Karma &ndash; Build</em>.</p>
 
 <h2 id="ui">Interface reference</h2>
-<p>The window has one tab per topic and a <strong>Build Environment Only</strong> button that stays visible at the bottom.</p>
+<p>The window has one tab per topic and a <strong>Build Environment Only</strong> button that stays visible at the bottom. It opens compact (about 540 &times; 600 pixels) and can be resized; each tab scrolls when it does not fit.</p>
 <h3 id="fields">Numeric fields</h3>
 <p>Every number is a hybrid field: a bar with an amber gauge showing where the value sits in its range, and the value written in the middle.</p>
 <ul>
@@ -225,6 +225,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td>Look Through</td><td>Locks a Scene Viewer on <code>/stage</code> to the render camera. Builds first if the camera does not exist yet. If no viewer is on <code>/stage</code>, it opens the Karma viewport instead.</td></tr>
   <tr><td>New Camera</td><td>Focal length (5 to 400 mm) of the generated camera. <em>Match current viewport</em> copies the position and rotation of the active viewport at each build; left off, the camera keeps the position it was given the first time. For ultra-wide formats (width/height above 2) the aperture is set to 41.42.</td></tr>
   <tr><td>Clear All Tool Nodes</td><td>See <a href="#incremental">Rebuilding safely</a>.</td></tr>
+  <tr><td>Live Update</td><td>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: any change to a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma &ndash; Live Update</em>. Camera and material lists are refreshed by a normal Build.</td></tr>
 </table>
 
 <h3 id="tab-lighting">Lighting</h3>
@@ -248,7 +249,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td>Sky Rendering</td><td><em>Basic Projection (Fast)</em> uses the classic sky. <em>Volumetric Atmosphere (Realistic)</em> uses the volumetric atmosphere and adds a <code>sky_atmosphere_linker</code> (Light Linker) that links the sun to the atmosphere.</td></tr>
   <tr><td>Solar Altitude</td><td>&minus;20&deg; to 90&deg;. A side view next to the sliders shows the sun's height.</td></tr>
   <tr><td>Solar Direction</td><td>0&deg; to 360&deg;, with a compass.</td></tr>
-  <tr><td>Align to View</td><td>Off by default. When on, the Y rotation of the active Scene Viewer is added to the Solar Direction at each build, so the sun turns with the view. The compass does not show this offset.</td></tr>
+  <tr><td>Follow the viewport heading (Align to View)</td><td>Off by default. When on, the Y rotation of the active Scene Viewer is added to the Solar Direction at each build, so the sun turns with the view. The compass does not show this offset.</td></tr>
   <tr><td>Sun Intensity, Angular Size</td><td>Sun intensity (0 to 50) and apparent size (0.01&deg; to 10&deg;; the real sun is about 0.53&deg;).</td></tr>
   <tr><td>Sun Temp. (K)</td><td>Sun color, 1500 to 20000 K, with a list of common sources (candle, tungsten, daylight&hellip;).</td></tr>
   <tr><td>Ambient Tint (Sky/Fog)</td><td>R, G, B multipliers. Used as the fog color.</td></tr>
