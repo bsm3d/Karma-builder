@@ -222,8 +222,16 @@ QTextEdit {{
 
 
 # ------------------------------------------------------------
-def _btn_style(bg): 
-    return f"background-color: {bg}; color: white; font-weight: bold; padding: 10px;"
+# A full rule with a border: with only a background-color, the Houdini 22 theme draws no button, just the text.
+def _btn_style(bg):
+    base = QtGui.QColor(bg)
+    return (
+        "QPushButton {{ background-color: {bg}; color: white; font-weight: bold; padding: 10px;"
+        " border: 1px solid {edge}; border-radius: 4px; }}"
+        "QPushButton:hover {{ background-color: {hover}; }}"
+        "QPushButton:pressed {{ background-color: {pressed}; }}"
+        "QPushButton:disabled {{ background-color: #3a3a3a; color: #7a7a7a; border-color: #4a4a4a; }}"
+    ).format(bg=bg, edge=base.lighter(160).name(), hover=base.lighter(125).name(), pressed=base.darker(125).name())
 
 TOOL_NODE_TAG_KEY = "bsm_karma_managed"
 TOOL_NODE_TAG_VALUE = "1"
