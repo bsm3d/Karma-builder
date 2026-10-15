@@ -341,12 +341,12 @@ bsm_karma.main()</code></pre></li>
 <h3 id="tab-export">Export</h3>
 <table>
   <tr><th>Control</th><th>Description</th></tr>
-  <tr><td>Format</td><td>EXR or PNG.</td></tr>
-  <tr><td>Precision</td><td>16-bit or 32-bit float. EXR only.</td></tr>
-  <tr><td>Render Mode</td><td><em>Single Frame</em> or <em>Frame Range</em> with a start and end frame.</td></tr>
-  <tr><td>Output Path</td><td>Default <code>$HIP/render/beauty/frame_$F4.exr</code>. The extension is corrected to match the format. A name with a frame token but no extension, such as <code>beauty.$F4</code>, keeps the token and gets the extension added.</td></tr>
+  <tr><td>Format, Precision</td><td>EXR or PNG, and for EXR the precision (16-bit or 32-bit float), on one row. The precision is hidden for PNG.</td></tr>
+  <tr><td>Frames</td><td><em>Single Frame</em> or <em>Frame Range</em>; the start and end frames sit on the same row and are enabled for a range.</td></tr>
+  <tr><td>Output</td><td>Default <code>$HIP/render/beauty/frame_$F4.exr</code>. The extension is corrected to match the format. A name with a frame token but no extension, such as <code>beauty.$F4</code>, keeps the token and gets the extension added.</td></tr>
 </table>
 <h4>Buttons</h4>
+<p>The four actions are in a 2 &times; 2 grid.</p>
 <ul>
   <li><strong>Render to MPlay</strong>: builds, then renders the frame to MPlay without writing a file.</li>
   <li><strong>Render to Disk</strong>: builds, creates the output folder if needed, then starts the USD Render ROP. If the build fails, nothing is rendered.</li>
@@ -355,8 +355,8 @@ bsm_karma.main()</code></pre></li>
 </ul>
 <h4>Viewport tools</h4>
 <ul>
-  <li><strong>Viewport Engine</strong> and <strong>Apply Renderer</strong> switch the viewport (and the build) between XPU and CPU.</li>
-  <li><strong>Snapshot</strong> captures the viewport into slot A, then slot B alternately. <strong>Compare A/B</strong> shows both with a slider; <strong>Safe Frame</strong> overlays action-safe (10%) and text-safe (5%) margins. <strong>Save Snapshot</strong> writes a PNG or JPEG; <strong>Clear Slots</strong> empties both.</li>
+  <li><strong>Engine</strong> and <strong>Apply</strong> switch the viewport (and the build) between XPU and CPU.</li>
+  <li><strong>Snapshot</strong> captures the viewport into slot A, then slot B alternately. The slots are shown as thumbnails, with <strong>Safe Frame</strong> (action-safe 10% and text-safe 5% margins) and <strong>Compare A/B</strong> (both images with a slider) beside them. <strong>Save</strong> writes a PNG or JPEG; <strong>Clear</strong> empties both slots.</li>
 </ul>
 
 <h3 id="tab-log">Log and About</h3>
