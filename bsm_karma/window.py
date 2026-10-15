@@ -8,9 +8,9 @@ import sys
 from hutil.Qt import QtWidgets, QtCore, QtGui
 from .build import setup_karma_environment
 from .catalog import _CATALOG_WRAPPERS
-from .config import SCRIPT_VERSION
+from .config import FORM_LABEL_GAP, SCRIPT_VERSION
 from .debuglog import _debug, _debug_session_header, _guarded_slot
-from .live import LiveUpdateMixin
+from .live import LiveUpdateMixin, _structure_of
 from .snapshots import SnapshotMixin
 from .styles import BSM_STYLE, _C, _btn_style
 from .tab_atmosphere import AtmosphereTab
@@ -60,6 +60,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         _debug_session_header()
         self._released = False
         self._live_building = False
+        self._live_structure = None
         self._live_seen = set()
         self._pending_logs = []
         self._amd_folder = None
@@ -67,6 +68,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self._karma_scene_viewer = None
         self._parm_pane_tab = None
         self._material_source_changed = False
+        self._mx_dialog = None
         self._snapshot_source_image = QtGui.QImage()
         self._snapshot_compare_image = QtGui.QImage()
         self._snapshot_slot_target = "A"
@@ -137,6 +139,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self.chk_live_update.toggled.connect(self.on_live_toggled)
 
         self._compact_combos()
+        self._space_forms()
 
     # ----------------------------------------
     def _close_pane_tab(self, pane_tab):
@@ -182,10 +185,17 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self._parm_pane_tab = None
 
         step("viewport drop", self._viewport_drop.disarm)
+        step("download window", self._close_downloader)
         step("catalog source", self._restore_material_source)
         step("snapshots", self._clear_snapshot_images)
         step("target list", lambda: self.tree_mat_targets.set_prims([], {}))
         step("temp files", self._remove_temp_files)
+
+    # ------------------------------------------------------------
+    def _close_downloader(self):
+        dialog, self._mx_dialog = self._mx_dialog, None
+        if dialog is not None:
+            dialog.close()
 
     # ------------------------------------------------------------
     def _remove_temp_files(self):
@@ -314,6 +324,12 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
             "cloud_precision": self.sld_cloud_precision.value(),
             "cloud_clip": self.sld_cloud_clip.value(),
             "cloud_material_path": self.line_cloud_mat.text().strip(),
+            "cloud_type": self.combo_cloud_type.currentIndex(),
+            "cloud2d_coverage": self.sld_cloud2d_coverage.value(),
+            "cloud2d_softness": self.sld_cloud2d_softness.value(),
+            "cloud2d_scale": self.sld_cloud2d_scale.value(),
+            "cloud2d_brightness": self.sld_cloud2d_brightness.value(),
+            "cloud2d_seed": self.sld_cloud2d_seed.value(),
             "geo_source": self._current_geo_source(),
 
             "sky_mode": self.combo_sky_mode.currentIndex(),
@@ -374,8 +390,9 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
             with hou.undos.group(undo_name):
                 setup_karma_environment(config, log)
         except hou.Error as exc:
-            self.log_message("[ERROR] Build stopped: {}".format(exc))
+            log("[ERROR] Build stopped: {}".format(exc))
             return False
+        self._live_structure = _structure_of(config)
         return True
 
     # ------------------------------------------------------------------------
@@ -387,6 +404,12 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self.refresh_stage_cameras()
         self.refresh_material_targets()
         return True
+
+    # ------------------------------------------------------------
+    # room between the labels and the fields, so a long label does not touch its slider
+    def _space_forms(self):
+        for form in self.findChildren(QtWidgets.QFormLayout):
+            form.setHorizontalSpacing(FORM_LABEL_GAP)
 
     # ------------------------------------------------------------
     # A combo box asks for the width of its longest item, which sets the width of a whole tab. Give it a short

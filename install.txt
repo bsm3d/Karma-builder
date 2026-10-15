@@ -1,0 +1,111 @@
+BSM Karma Builder - installation as a script with a shelf button (no HDA)
+==========================================================================
+
+Needs Houdini 21 or 22, Solaris (LOPs) and Karma.
+
+
+1. Where to put the tool
+------------------------
+
+Copy the whole "bsm_karma" folder (the Python files AND presets.json, not only the .py files) into:
+
+    $HOUDINI_USER_PREF_DIR/scripts/python/
+
+so that this file exists:
+
+    $HOUDINI_USER_PREF_DIR/scripts/python/bsm_karma/__init__.py
+
+On your machine ($HOUDINI_USER_PREF_DIR as printed by Houdini 22.0.466):
+
+    D:\Documents\houdini22.0\scripts\python\bsm_karma\
+
+For Houdini 21 use the houdini21.x folder of the same Documents directory. Houdini puts scripts/python on the Python
+path by itself. To check, in the Python Shell of Houdini:
+
+    import bsm_karma
+    print(bsm_karma.SCRIPT_VERSION, bsm_karma.__file__)
+
+Updating: replace the folder with the new one and restart the tool (the shelf button below reloads it, no restart of
+Houdini needed).
+
+Option: work directly from the Git folder without copying. Create the file
+$HOUDINI_USER_PREF_DIR/packages/bsm_karma.json with:
+
+    {
+        "env": [
+            { "PYTHONPATH": "D:/Documents/Coding/Houdini Scripts/Karma-builder" }
+        ]
+    }
+
+and restart Houdini. Do not keep both a copy in scripts/python and this package: Houdini would load one of them
+and you would not know which.
+
+
+2. The shelf button (toolbar)
+-----------------------------
+
+In Houdini: right click on the shelf tabs > New Shelf... (name: bsm_karma, label: BSM Karma). Then right click on
+the empty shelf > New Tool... Name "bsm_karma_builder", label "Karma Builder". Open the Script tab, keep the
+language on Python, and paste:
+
+    import importlib
+    import bsm_karma
+    importlib.reload(bsm_karma)
+    bsm_karma.main()
+
+The reload line makes the button pick up a new version of the code each time it is pressed. Once the tool is
+stable you can remove "importlib.reload(bsm_karma)" and the "import importlib" line above it.
+
+Icon (optional): in the tool's Options tab, set Icon to the file icone_Bsm_Karma.png of the repository.
+
+Ready-made alternative: copy tools/bsm_karma.shelf of the repository to
+
+    $HOUDINI_USER_PREF_DIR/toolbar/bsm_karma.shelf
+
+and restart Houdini; the shelf "BSM Karma" appears with the button. Open it with the shelf tab list (the + at the
+right of the tabs) if it is not shown.
+
+
+3. First start
+--------------
+
+Press the button. The window "BSM Karma Builder" opens; press Build Environment Only to create the nodes in /stage.
+The debug log is written in bsm_karma_debug.log, in the folder shown at the bottom of the Log tab. Send that file
+when something goes wrong.
+
+If the button does nothing, open Windows > Python Shell and run the four lines above one by one: the error shows
+what is missing (most often the folder is not in scripts/python, or presets.json was not copied).
+
+
+4. Material sources
+-------------------
+
+AMD MaterialX Library (free, online, about 290 materials). The tool connects to it from the Materials tab
+(Source: AMD MaterialX Library, then Connect):
+
+    Website : https://matlib.gpuopen.com
+    API used: https://api.matlib.gpuopen.com/api
+
+The tool tests that the server answers before connecting. Packages are downloaded into the "Download to" folder of
+the Materials tab the first time a material is used.
+
+Other MaterialX sources (check the licence of each one before using its materials in a project; none of them
+was downloaded or tried here):
+
+    ambientCG          https://ambientcg.com
+                       Free PBR library listed as CC0. In the download window of the tool.
+    Poly Haven         https://polyhaven.com/textures
+                       MaterialX versions of its textures are offered by its API. In the download window of the tool.
+    materialxmaterials https://pypi.org/project/materialxmaterials/
+                       The open source command line tool whose requests the download window follows (Apache 2.0).
+                       Not needed.
+    MaterialX project  https://github.com/AcademySoftwareFoundation/MaterialX
+                       Example materials in resources/Materials. SideFX ships the same examples with Houdini.
+
+The Materials tab has a Download... button that downloads from ambientCG and Poly Haven from a window. Nothing has
+to be installed: no pip, no extra Python. Give the name of a material (Load List shows the names of the site), the
+resolution, and press Download. The files go to $HOUDINI_USER_PREF_DIR/bsm_karma/mtlx by default, and Use in Catalog
+shows them in the Materials tab.
+
+To use files from these sources: Materials tab > Source: USD / MaterialX File... (the catalog then shows the
+materials of that file), or Assign File... for the selected prims.

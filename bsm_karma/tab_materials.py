@@ -7,12 +7,13 @@ import tempfile
 from hutil.Qt import QtWidgets, QtCore
 from .util import _expand_plain_path
 from .catalog import _amd_library_reachable, _bound_material_name, _list_materials_in_file, _material_catalog_file, _parse_catalog_drop, _stage_target_prims
-from .config import _PRIM_PATH_RE, STAGE_TARGET_LIMIT
+from .config import _PRIM_PATH_RE, MATERIAL_EDIT_PATH_PARM, STAGE_TARGET_LIMIT
 from .debuglog import _debug, _guarded_slot
 from .linker import (_get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain, _insert_material_linker_in_chain,
-                     _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_linker_node)
+                     _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_edit_node, _material_linker_node)
 from .matviews import MaterialBrowser
-from .nodeutil import _is_tool_node_candidate
+from .mxdownload import MaterialDownloadDialog
+from .nodeutil import _is_tool_node_candidate, _paused_cooking
 from .styles import _C
 from .viewport_drop import ViewportDropFilter, viewer_selection
 from .widgets import MaterialTargetTree, PopupRefreshComboBox, wrap_tab
@@ -74,7 +75,13 @@ class MaterialsTab:
         self.lbl_mat_status.setTextFormat(QtCore.Qt.PlainText)
         self.lbl_mat_status.setWordWrap(True)
         self.lbl_mat_status.setStyleSheet("color: {};".format(_C["text_muted"]))
-        lay_catalog.addWidget(self.lbl_mat_status)
+        self.btn_mat_download = QtWidgets.QPushButton("Download...")
+        self.btn_mat_download.setToolTip("Download MaterialX materials from ambientCG or Poly Haven, then show them in this catalog.")
+        self.btn_mat_download.clicked.connect(self.on_open_material_downloader)
+        row_status = QtWidgets.QHBoxLayout()
+        row_status.addWidget(self.lbl_mat_status, 1)
+        row_status.addWidget(self.btn_mat_download, 0, QtCore.Qt.AlignTop)
+        lay_catalog.addLayout(row_status)
         layout_materials.addWidget(grp_catalog, 3)
 
         grp_targets = QtWidgets.QGroupBox("Assign to Geometry (drag a material onto a prim or the viewport)")
@@ -138,7 +145,7 @@ class MaterialsTab:
         self._viewport_drop = ViewportDropFilter(self, self._get_active_scene_viewer, hou.qt.mainWindow, self)
         self._viewport_drop.dropped.connect(self.on_viewport_material_drop)
         if self.mat_browser is not None:
-            self.mat_browser.pressed.connect(self._arm_viewport_drop)
+            self.mat_browser.dragStarted.connect(self._arm_viewport_drop)
 
         tabs.addTab(wrap_tab(tab_materials), "Materials")
 
@@ -242,25 +249,77 @@ class MaterialsTab:
                     pattern="*.mtlx *.usd *.usda *.usdc *.usdz")
                 if not path:
                     return
-                path = _expand_plain_path(path)
-                source_file = _material_catalog_file(path)
-                if source_file != path:
-                    self._hdri_temp_files.append(source_file)  # removed when the dialog is released
-                data_source = hou.AssetGalleryDataSource(source_file, "%type:Material")
-                if not data_source.isValid():
-                    self._set_material_status("Houdini could not open {} as a material source.".format(path))
+                data_source, hint = self._material_file_source(_expand_plain_path(path))
+                if data_source is None:
                     return
-                hint = "Materials found in {}".format(path)
             hou.ui.setSharedAssetGalleryDataSource(data_source, "material")
             self._material_source_changed = True
             self._amd_folder = folder if source == self.MATERIAL_SOURCES[0] else None
             self._set_material_status(hint)
+            if self.mat_browser is not None:
+                self.mat_browser.refresh()
             self.log_message("[OK] Material catalog connected: {}".format(source))
         except (hou.Error, OSError, ValueError, AttributeError) as exc:
             self._set_material_status("Could not connect: {}".format(exc))
             self.log_message("[WARN] Material catalog connection failed ({}): {}".format(source, exc))
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
+
+    # ------------------------------------------------------------
+    # The catalog source of a .mtlx or USD file, and the line that says what it shows; (None, "") when Houdini cannot
+    # open it.
+    def _material_file_source(self, path):
+        source_file = _material_catalog_file(path)
+        if source_file != path:
+            self._hdri_temp_files.append(source_file)  # removed when the dialog is released
+        data_source = hou.AssetGalleryDataSource(source_file, "%type:Material")
+        if not data_source.isValid():
+            self._set_material_status("Houdini could not open {} as a material source.".format(path))
+            return None, ""
+        return data_source, "Materials found in {}".format(path)
+
+    # ------------------------------------------------------------
+    # A file chosen in the download window: show it in the catalog like the "USD / MaterialX File..." source.
+    @_guarded_slot
+    def _show_material_file(self, path):
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            data_source, hint = self._material_file_source(_expand_plain_path(path))
+            if data_source is None:
+                return
+            hou.ui.setSharedAssetGalleryDataSource(data_source, "material")
+            self._material_source_changed = True
+            self._amd_folder = None
+            self.combo_mat_source.setCurrentIndex(2)
+            self._set_material_status(hint)
+            if self.mat_browser is not None:
+                self.mat_browser.refresh()
+            self.log_message("[OK] Material catalog connected: {}".format(path))
+        except (hou.Error, OSError, ValueError, AttributeError) as exc:
+            self._set_material_status("Could not open the file: {}".format(exc))
+            self.log_message("[WARN] Downloaded material not shown ({}): {}".format(path, exc))
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_open_material_downloader(self):
+        dialog = self._mx_dialog
+        if dialog is not None:
+            try:
+                dialog.raise_()
+                dialog.activateWindow()
+                return
+            except RuntimeError:
+                self._mx_dialog = None   # closed meanwhile
+        pref = hou.text.expandString("$HOUDINI_USER_PREF_DIR")
+        base = pref if pref and not pref.startswith("$") else os.path.dirname(self._default_material_download_dir())
+        folder = os.path.join(base, "bsm_karma", "mtlx").replace("\\", "/")
+        dialog = MaterialDownloadDialog(folder, parent=self)
+        dialog.fileChosen.connect(self._show_material_file)
+        dialog.destroyed.connect(lambda *_: setattr(self, "_mx_dialog", None))
+        self._mx_dialog = dialog
+        dialog.show()
 
     # ------------------------------------------------------------
     def _geo_source_candidates(self):
@@ -404,6 +463,9 @@ class MaterialsTab:
 
     # ------------------------------------------------------------
     def _assign_payload(self, payload, prim_paths):
+        if not prim_paths:
+            self.log_message("[INFO] No prim to assign to.")
+            return
         assets = self._assets_from_payload(payload)
         if assets:
             self._assign_material_assets(assets, prim_paths)
@@ -476,6 +538,7 @@ class MaterialsTab:
     @_guarded_slot
     def _on_catalog_context_menu(self, global_pos):
         menu = QtWidgets.QMenu(self)
+        menu.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         act_assign = menu.addAction("Assign to Selection")
         menu.addSeparator()
         act_edit = menu.addAction("Edit Material (Material Linker)")
@@ -503,30 +566,55 @@ class MaterialsTab:
         if len(assets) > 1:
             self.log_message("[INFO] {} materials selected, editing the first one.".format(len(assets)))
         asset = assets[0]
+        if network and not self._confirm_replace_edited_material(asset["label"]):
+            return
         problems = []
         with hou.undos.group("BSM Karma - Edit Material"):
-            linker = self._ensure_material_linker()
-            if linker is None:
-                return
-            try:
-                material_path = _linker_add_reference(linker, asset["file_path"], asset["prim_path"], asset["label"])
-            except ValueError as exc:
-                self.log_message("[WARN] Material not opened: {}".format(exc))
-                return
-            node = linker
-            if network:
+            with _paused_cooking(self.log_message):
+                linker = self._ensure_material_linker()
+                if linker is None:
+                    return
                 try:
-                    node = _get_or_create_material_edit(hou.node("/stage"))
-                    _insert_material_edit_in_chain(linker, node)
+                    material_path = _linker_add_reference(linker, asset["file_path"], asset["prim_path"], asset["label"])
+                except ValueError as exc:
+                    self.log_message("[WARN] Material not opened: {}".format(exc))
+                    return
+                node = linker
+                if network:
+                    try:
+                        node = _get_or_create_material_edit(hou.node("/stage"))
+                        _insert_material_edit_in_chain(linker, node)
+                    except hou.Error as exc:
+                        self.log_message("[WARN] Edit Material node unavailable ({}), opening the Material Linker instead.".format(exc))
+                        node = linker
+            # the Load button reads the stage: cooking is back on for it
+            if network and node is not linker:
+                try:
                     problems = _material_edit_load(node, material_path)
                 except hou.Error as exc:
-                    self.log_message("[WARN] Edit Material node unavailable ({}), opening the Material Linker instead.".format(exc))
-                    node = linker
+                    problems = ["Load failed: {}".format(exc)]
         for problem in problems:
             self.log_message("[WARN] {}".format(problem))
         self.log_message("[OK] {} ready to edit in {}.".format(material_path, node.path()))
         self._focus_node(node, dive=network and not problems)
         self.refresh_material_targets()
+
+    # ------------------------------------------------------------
+    # The Edit Material node holds one material at a time: loading another one replaces the network being edited.
+    def _confirm_replace_edited_material(self, label):
+        edit = _material_edit_node(hou.node("/stage"))
+        if edit is None or not edit.children():
+            return True
+        current = edit.parm(MATERIAL_EDIT_PATH_PARM)
+        current = current.evalAsString() if current is not None else ""
+        if not current or current.rsplit("/", 1)[-1] == label:
+            return True
+        reply = QtWidgets.QMessageBox.question(
+            self, "Edit Material",
+            "{} is editing {}.\n\nOpening {} replaces it, and the edits made in that network are lost "
+            "(Ctrl+Z brings them back).\n\nContinue?".format(edit.name(), current, label),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel, QtWidgets.QMessageBox.Cancel)
+        return reply == QtWidgets.QMessageBox.Yes
 
     # ------------------------------------------------------------
     # Select the node, make it current (the parameter pane follows) and show it in a network editor.

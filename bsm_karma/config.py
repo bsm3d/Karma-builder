@@ -27,6 +27,7 @@ TOOL_STAGE_NODE_TYPES = {
     "window_portal": {"light"},
     "atmosphere_fog": {"karmafogbox"},
     "cloud_geo": {"sopcreate"},
+    "cloud_layer_2d": {"domelight"},
     "quickcloudmaterial": {"editmaterialproperties"},
     "env_merge": {"merge"},
     "mtlx_materials": {"materiallibrary"},
@@ -50,6 +51,7 @@ TOOL_STAGE_DELETE_ORDER = [
     "env_merge",
     "atmosphere_fog",
     "cloud_geo",
+    "cloud_layer_2d",
     "window_portal",
     "rim_light",
     "fill_light",
@@ -100,6 +102,21 @@ AMD_SOURCE_ID = "AMD MaterialX Library"
 
 
 STAGE_TARGET_LIMIT = 5000
+
+
+# pixels between a label and its field in the tab forms
+FORM_LABEL_GAP = 14
+
+
+# Settings that add, remove or rewire nodes, or switch the render engine. A running Karma viewport restarts on
+# these and can freeze Houdini for minutes, so Live Update leaves them to the Build button.
+LIVE_STRUCTURE_KEYS = ("scene_mode", "env_type", "sky_mode", "enable_fog", "enable_clouds", "cloud_type", "enable_aovs",
+                       "engine", "camera_choice", "geo_source", "cloud_material_path")
+
+
+# cloud types of the Atmosphere tab: a volume (slow, lit, parallax) or a 2D layer on a second dome light (fast)
+CLOUD_TYPES = ["3D Volume (slow, realistic)", "2D Layer (fast, backdrop)"]
+CLOUD_LAYER_NAME = "cloud_layer_2d"
 
 
 # Edit Material LOP: edits an existing USD material as a VOP network. Read on H22.0.466: a multiparm 'materials'

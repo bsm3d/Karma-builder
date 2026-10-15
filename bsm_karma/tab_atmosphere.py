@@ -3,10 +3,14 @@
 
 import hou
 from hutil.Qt import QtWidgets
+from .config import CLOUD_TYPES
 from .debuglog import _guarded_slot
 from .gauges import FloatSlider, IntSlider
 from .previews import AtmosphereVisualWidget
 from .widgets import wrap_tab
+
+CLOUD_LABEL_WIDTH = 146
+
 
 # ------------------------------------------------------------
 class AtmosphereTab:
@@ -51,26 +55,37 @@ class AtmosphereTab:
         self.chk_enable_clouds.toggled.connect(self.update_environment_tab)
         
         form_cloud = QtWidgets.QFormLayout(self.chk_enable_clouds)
+        self.combo_cloud_type = QtWidgets.QComboBox()
+        self.combo_cloud_type.addItems(CLOUD_TYPES)
+        self.combo_cloud_type.setToolTip(
+            "3D Volume: real clouds, lit by the sun, with parallax. Heavy to render.\n"
+            "2D Layer: a cloud picture on a second dome light, added to the sky. Fast, for a distant background.")
+        self.combo_cloud_type.currentIndexChanged.connect(self.update_cloud_type_ui)
+        form_cloud.addRow("Cloud Type:", self.combo_cloud_type)
+
+        self.w_cloud_3d = QtWidgets.QWidget()
+        form_cloud3d = QtWidgets.QFormLayout(self.w_cloud_3d)
+        form_cloud3d.setContentsMargins(0, 0, 0, 0)
         self.combo_cloud_preset = QtWidgets.QComboBox()
         self.combo_cloud_preset.addItems(["-- Custom --"] + list(self.cloud_presets.keys()))
         self.combo_cloud_preset.currentIndexChanged.connect(self.apply_cloud_preset)
-        form_cloud.addRow("Cloud Preset:", self.combo_cloud_preset)
+        form_cloud3d.addRow("Cloud Preset:", self.combo_cloud_preset)
         self.sld_cloud_density = FloatSlider(0.0, 10.0, 0.20)
         self.sld_cloud_density.valueChanged.connect(
             lambda val: self.atm_widget.update_cloud(self.atm_widget.cloud_alt, val)
         )
-        form_cloud.addRow("Cloud Base Density:", self.sld_cloud_density)
+        form_cloud3d.addRow("Cloud Base Density:", self.sld_cloud_density)
         self.sld_cloud_altitude = FloatSlider(10.0, 13000.0, 140.0)
         self.sld_cloud_altitude.valueChanged.connect(
             lambda val: self.atm_widget.update_cloud(val, self.atm_widget.cloud_density)
         )
-        form_cloud.addRow("Cloud Altitude:", self.sld_cloud_altitude)
+        form_cloud3d.addRow("Cloud Altitude:", self.sld_cloud_altitude)
         self.sld_cloud_scale = FloatSlider(10.0, 1000.0, 180.0)
-        form_cloud.addRow("Cloud Scale:", self.sld_cloud_scale)
+        form_cloud3d.addRow("Cloud Scale:", self.sld_cloud_scale)
         self.sld_cloud_precision = IntSlider(2, 20, 5)
-        form_cloud.addRow("Cloud Voxel Size (Prec):", self.sld_cloud_precision)
+        form_cloud3d.addRow("Cloud Voxel Size (Prec):", self.sld_cloud_precision)
         self.sld_cloud_clip = FloatSlider(0.0, 1.0, 0.35)
-        form_cloud.addRow("Cloud Edge Clip:", self.sld_cloud_clip)
+        form_cloud3d.addRow("Cloud Edge Clip:", self.sld_cloud_clip)
         self.w_cloud_mat_path = QtWidgets.QWidget()
         layout_cloud_mat = QtWidgets.QHBoxLayout(self.w_cloud_mat_path)
         layout_cloud_mat.setContentsMargins(0, 0, 0, 0)
@@ -82,8 +97,37 @@ class AtmosphereTab:
         btn_browse_cloud_mat.clicked.connect(self.browse_cloud_mat)
         layout_cloud_mat.addWidget(self.line_cloud_mat)
         layout_cloud_mat.addWidget(btn_browse_cloud_mat)
-        form_cloud.addRow("Cloud Material Path:", self.w_cloud_mat_path)
+        form_cloud3d.addRow("Cloud Material Path:", self.w_cloud_mat_path)
         
+        form_cloud.addRow(self.w_cloud_3d)
+
+        self.w_cloud_2d = QtWidgets.QWidget()
+        form_cloud2d = QtWidgets.QFormLayout(self.w_cloud_2d)
+        form_cloud2d.setContentsMargins(0, 0, 0, 0)
+        self.sld_cloud2d_coverage = FloatSlider(0.0, 1.0, 0.45)
+        self.sld_cloud2d_coverage.setToolTip("Share of the sky covered by clouds.")
+        form_cloud2d.addRow("Coverage:", self.sld_cloud2d_coverage)
+        self.sld_cloud2d_softness = FloatSlider(0.0, 1.0, 0.40)
+        self.sld_cloud2d_softness.setToolTip("Soft edges and haze (high) or crisp cumulus edges (low).")
+        form_cloud2d.addRow("Softness:", self.sld_cloud2d_softness)
+        self.sld_cloud2d_scale = FloatSlider(1.0, 12.0, 3.0)
+        self.sld_cloud2d_scale.setToolTip("Number of large cloud masses around the horizon.")
+        form_cloud2d.addRow("Cloud Size:", self.sld_cloud2d_scale)
+        self.sld_cloud2d_brightness = FloatSlider(0.0, 4.0, 0.6)
+        self.sld_cloud2d_brightness.setToolTip("Intensity of the cloud dome light. It also lights the scene a little, like sky bounce.")
+        form_cloud2d.addRow("Brightness:", self.sld_cloud2d_brightness)
+        self.sld_cloud2d_seed = IntSlider(0, 999, 7)
+        self.sld_cloud2d_seed.setToolTip("Another number, another cloud pattern.")
+        form_cloud2d.addRow("Seed:", self.sld_cloud2d_seed)
+        form_cloud.addRow(self.w_cloud_2d)
+        # the three forms line their sliders up on the same column
+        for form in (form_cloud, form_cloud3d, form_cloud2d):
+            for row in range(form.rowCount()):
+                item = form.itemAt(row, QtWidgets.QFormLayout.LabelRole)
+                if item is not None and item.widget() is not None:
+                    item.widget().setMinimumWidth(CLOUD_LABEL_WIDTH)
+        self.update_cloud_type_ui()
+
         layout_vol_main.addWidget(self.chk_enable_clouds)
         
         self.atm_widget = AtmosphereVisualWidget()
@@ -93,6 +137,12 @@ class AtmosphereTab:
 
         tabs.addTab(wrap_tab(tab_volumetrics), "Atmosphere")
         self._config_tabs.append(tab_volumetrics)
+
+    # ------------------------------------------------------------
+    def update_cloud_type_ui(self, *_):
+        is_2d = self.combo_cloud_type.currentIndex() == 1
+        self.w_cloud_3d.setVisible(not is_2d)
+        self.w_cloud_2d.setVisible(is_2d)
 
     # ------------------------------------------------------------
     def apply_fog_preset(self):

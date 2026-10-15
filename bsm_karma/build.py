@@ -4,16 +4,17 @@
 import hou
 from .config import TOOL_STAGE_DELETE_ORDER
 from .debuglog import _debug, _debug_exception, _debug_state
-from .environment import _create_area_light, _create_cloud_branch, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _resolve_render_camera
+from .environment import _create_area_light, _create_cloud_branch, _create_cloud_layer_2d, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _resolve_render_camera
 from .linker import _material_edit_node, _material_linker_node
-from .nodeutil import _get_or_create_node, _get_or_create_stage, _is_tool_node_candidate, _layout_tool_nodes, _remove_tool_node, _safe_connect
+from .nodeutil import (_get_or_create_node, _get_or_create_stage, _is_tool_node_candidate, _layout_tool_nodes, _paused_cooking,
+                       _remove_tool_node, _safe_connect)
 from .rendering import _create_aov_chain, _create_material_library, _create_render_rop, _create_render_settings
 
 #--------------------------------------------------------
 def _cleanup_environment_nodes(stage, cfg, log_callback):
     all_env_nodes = {
         "physical_sky", "sky_atmosphere_linker", "env_hdri", "atmosphere_fog", "fog_xform", "assign_fog_shader",
-        "cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader", "cloud_volume", "env_merge",
+        "cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader", "cloud_volume", "cloud_layer_2d", "env_merge",
         "studio_hdri", "studio_key", "fill_hdri", "key_light", "fill_light", "rim_light", "window_portal",
     }
 
@@ -32,7 +33,10 @@ def _cleanup_environment_nodes(stage, cfg, log_callback):
         if cfg.get("enable_fog"):
             keep.add("atmosphere_fog")
         if cfg.get("enable_clouds"):
-            keep.update({"cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader"})
+            if int(cfg.get("cloud_type", 0)) == 1:
+                keep.add("cloud_layer_2d")
+            else:
+                keep.update({"cloud_geo", "cloud_xform", "quickcloudmaterial", "assign_cloud_shader"})
     elif mode == "Studio":
         keep.update({"studio_hdri", "studio_key"})
     elif mode == "3 Points":
@@ -73,9 +77,18 @@ def _cleanup_environment_nodes(stage, cfg, log_callback):
 
 
 # --------------------------------------------------------------------------------
+# A node the build no longer needs: removed now, or, when a list is given, at the end of the build (see below).
+def _drop_node(stage, name, log_callback, reason, removals):
+    if removals is None:
+        _remove_tool_node(stage, name, log_callback, reason)
+    else:
+        removals.append((name, reason))
+
+
+# --------------------------------------------------------------------------------
 # Merge the geometry LOP with the environment so materials can bind to it.
 # No source selected: the chain is left as it was and an old merge is removed.
-def _merge_geometry_source(stage, env_tip, cfg, log_callback):
+def _merge_geometry_source(stage, env_tip, cfg, log_callback, removals=None):
     geo_path = (cfg.get("geo_source") or "").strip()
     geo_node = hou.node(geo_path) if geo_path else None
 
@@ -88,7 +101,7 @@ def _merge_geometry_source(stage, env_tip, cfg, log_callback):
     if not usable:
         if geo_path:
             log_callback("[WARN] Geometry source not usable: {}".format(geo_path))
-        _remove_tool_node(stage, "geo_merge", log_callback)
+        _drop_node(stage, "geo_merge", log_callback, "", removals)
         return env_tip
 
     merge = _get_or_create_node(stage, "merge", "geo_merge")
@@ -104,29 +117,17 @@ def _merge_geometry_source(stage, env_tip, cfg, log_callback):
 
 
 # --------------------------------------------------------------------------------
-def setup_karma_environment(cfg, log_callback):
-    log_callback(f"--- Building: {cfg['scene_mode']} (Houdini {hou.applicationVersionString()}) ---")
-    live = bool(cfg.get("live"))
-    try:
-        if hou.applicationVersion()[0] < 21:
-            log_callback("[WARN] Written for Houdini 21 and 22: some Karma parameters may be missing in this version.")
-    except (hou.Error, TypeError, IndexError):
-        pass
-    skipped = []
-    stage = _get_or_create_stage()
-    child_count = len(stage.children())
-    cam, cam_path = _resolve_render_camera(stage, cfg, log_callback)
-
+# The lighting branch of the chosen scene mode. Returns the last node of it.
+def _build_lighting(stage, cam, cfg, log_callback, skipped):
     mode = cfg.get("scene_mode", "Environment")
     env_type = cfg.get("env_type", "Physical Sky")
-    _cleanup_environment_nodes(stage, cfg, log_callback)
-    
+
     if mode == "Environment":
         if env_type == "Physical Sky":
             env_base = _create_physical_sky(stage, cam, cfg, log_callback)
         else:
             env_base = _create_dome_light(stage, cam, cfg["hdri_int"], cfg["hdri_path"], log_callback, name="env_hdri", hdri_opts=cfg)
-            
+
         fog = cloud = None
         if cfg["enable_fog"]:
             try:
@@ -134,39 +135,44 @@ def setup_karma_environment(cfg, log_callback):
             except hou.Error as exc:
                 log_callback("[WARN] Fog skipped: {}".format(exc))
                 skipped.append("fog")
-        if cfg["enable_clouds"]:
+        if cfg["enable_clouds"] and int(cfg.get("cloud_type", 0)) == 1:
+            try:
+                cloud = _create_cloud_layer_2d(stage, cam, cfg, log_callback)
+            except (hou.Error, OSError, ImportError, ValueError) as exc:
+                log_callback("[WARN] 2D clouds skipped: {}".format(exc))
+                skipped.append("clouds")
+        elif cfg["enable_clouds"]:
             try:
                 cloud = _create_cloud_branch(stage, cam, cfg, log_callback)
             except hou.Error as exc:
                 log_callback("[WARN] Clouds skipped (a node type may be missing in this Houdini): {}".format(exc))
                 skipped.append("clouds")
-        env_tip = _create_environment_merge(stage, env_base, fog, cloud)
-        
-    elif mode == "Studio":
+        return _create_environment_merge(stage, env_base, fog, cloud)
+
+    if mode == "Studio":
         dome = _create_dome_light(stage, cam, cfg["hdri_int"], cfg["hdri_path"], log_callback, name="studio_hdri", hdri_opts=cfg)
-        key = _create_area_light(stage, dome, cfg["area_int"], log_callback, name="studio_key", pos=(3, 4, 3), rot=(-45, 30, 0))
-        env_tip = key
-        
-    elif mode == "3 Points":
+        return _create_area_light(stage, dome, cfg["area_int"], log_callback, name="studio_key", pos=(3, 4, 3), rot=(-45, 30, 0))
+
+    if mode == "3 Points":
         dome = _create_dome_light(stage, cam, float(cfg["hdri_int"])*0.2, cfg["hdri_path"], log_callback, name="fill_hdri", hdri_opts=cfg)
         key = _create_area_light(stage, dome, float(cfg["area_int"]), log_callback, name="key_light", pos=(3, 4, 3), rot=(-45, 30, 0))
         fill = _create_area_light(stage, key, float(cfg["area_int"])*0.4, log_callback, name="fill_light", pos=(-4, 2, 2), rot=(-20, -45, 0))
-        rim = _create_area_light(stage, fill, float(cfg["area_int"])*1.5, log_callback, name="rim_light", pos=(-2, 3, -4), rot=(-30, -150, 0))
-        env_tip = rim
-        
-    elif mode == "Interior":
+        return _create_area_light(stage, fill, float(cfg["area_int"])*1.5, log_callback, name="rim_light", pos=(-2, 3, -4), rot=(-30, -150, 0))
+
+    if mode == "Interior":
         if env_type == "Physical Sky":
             env_base = _create_physical_sky(stage, cam, cfg, log_callback)
         else:
             env_base = _create_dome_light(stage, cam, cfg["hdri_int"], cfg["hdri_path"], log_callback, name="env_hdri", hdri_opts=cfg)
-        window = _create_area_light(stage, env_base, float(cfg["area_int"]), log_callback, name="window_portal", pos=(5, 2, 0), rot=(0, 90, 0))
-        env_tip = window
-        
-    else:
-        env_tip = cam
+        return _create_area_light(stage, env_base, float(cfg["area_int"]), log_callback, name="window_portal", pos=(5, 2, 0), rot=(0, 90, 0))
 
-    env_tip = _merge_geometry_source(stage, env_tip, cfg, log_callback)
+    return cam
 
+
+# --------------------------------------------------------------------------------
+# Material library, Material Linker, Edit Material, AOVs, render settings and ROP, each wired after the previous one.
+# Returns the Karma Render Settings node.
+def _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped, removals):
     try:
         mat = _create_material_library(stage, env_tip, cfg, log_callback)
     except hou.Error as exc:
@@ -191,7 +197,7 @@ def setup_karma_environment(cfg, log_callback):
             skipped.append("AOVs")
             upstream = mat
     else:
-        _remove_tool_node(stage, "standard_aovs", log_callback, "AOVs disabled")
+        _drop_node(stage, "standard_aovs", log_callback, "AOVs disabled", removals)
         upstream = mat
     ks = _create_render_settings(stage, cam_path, upstream, cfg, log_callback)
     try:
@@ -199,22 +205,50 @@ def setup_karma_environment(cfg, log_callback):
     except hou.Error as exc:
         log_callback("[WARN] Render ROP skipped: {}".format(exc))
         skipped.append("render ROP")
+    return ks
 
-    # a live update only re-places the nodes when it created or removed some, and never takes the selection
-    if not live or len(stage.children()) != child_count:
-        _layout_tool_nodes(stage)
-    _debug_stage_dump(stage)
 
-    # le node karma settings reste le node actif et sélectionné après un build
-    if ks:
-        ks.setDisplayFlag(True)
-        if not live:
-            ks.setSelected(True, True)
-        
+# --------------------------------------------------------------------------------
+# Order matters for a running Karma viewport: the new network is built and wired first, the obsolete nodes are removed
+# last, when nothing displayed depends on them any more, and cooking is paused for the whole build.
+def setup_karma_environment(cfg, log_callback):
+    log_callback(f"--- Building: {cfg['scene_mode']} (Houdini {hou.applicationVersionString()}) ---")
+    live = bool(cfg.get("live"))
+    try:
+        if hou.applicationVersion()[0] < 21:
+            log_callback("[WARN] Written for Houdini 21 and 22: some Karma parameters may be missing in this version.")
+    except (hou.Error, TypeError, IndexError):
+        pass
+    skipped = []
+    removals = []
+    with _paused_cooking(log_callback):
+        stage = _get_or_create_stage()
+        child_count = len(stage.children())
+        cam, cam_path = _resolve_render_camera(stage, cfg, log_callback)
+
+        env_tip = _build_lighting(stage, cam, cfg, log_callback, skipped)
+        env_tip = _merge_geometry_source(stage, env_tip, cfg, log_callback, removals)
+        ks = _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped, removals)
+        # their consumers are rewired by now
+        for name, reason in removals:
+            _remove_tool_node(stage, name, log_callback, reason)
+        _cleanup_environment_nodes(stage, cfg, log_callback)
+
+        # a live update only re-places the nodes when it created or removed some, and never takes the selection
+        if not live or len(stage.children()) != child_count:
+            _layout_tool_nodes(stage)
+        _debug_stage_dump(stage)
+
+        # le node karma settings reste le node actif et sélectionné après un build
+        if ks:
+            ks.setDisplayFlag(True)
+            if not live:
+                ks.setSelected(True, True)
+
     if skipped:
         log_callback("[WARN] Built, but these steps were skipped: {}.".format(", ".join(skipped)))
     else:
-        log_callback(f"[OK] Karma Ready. Engine: {cfg['engine'].upper()} | Env: {env_type}")
+        log_callback(f"[OK] Karma Ready. Engine: {cfg['engine'].upper()} | Env: {cfg.get('env_type', 'Physical Sky')}")
 
 
 # ------------------------------------------------------------

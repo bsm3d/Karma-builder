@@ -175,7 +175,7 @@ bsm_karma.main()</code></pre></li>
 <table>
   <tr><th>Mode</th><th>Nodes</th><th>Notes</th></tr>
   <tr><td><strong>Environment</strong></td>
-    <td><code>physical_sky</code> (and <code>sky_atmosphere_linker</code> in Volumetric mode) <em>or</em> <code>env_hdri</code>; optional <code>atmosphere_fog</code>; optional <code>cloud_geo</code>, <code>cloud_xform</code>, <code>quickcloudmaterial</code>, <code>assign_cloud_shader</code>; then <code>env_merge</code></td>
+    <td><code>physical_sky</code> (and <code>sky_atmosphere_linker</code> in Volumetric mode) <em>or</em> <code>env_hdri</code>; optional <code>atmosphere_fog</code>; optional <code>cloud_geo</code>, <code>cloud_xform</code>, <code>quickcloudmaterial</code>, <code>assign_cloud_shader</code> (3D clouds) or <code>cloud_layer_2d</code> (2D clouds); then <code>env_merge</code></td>
     <td>Choose <em>Physical Sky</em> or <em>HDRI Image</em>. Fog and clouds are only available in this mode.</td></tr>
   <tr><td><strong>Studio</strong></td>
     <td><code>studio_hdri</code> (dome light) and <code>studio_key</code> (area light)</td>
@@ -195,7 +195,8 @@ bsm_karma.main()</code></pre></li>
   <li><strong>updates</strong> the nodes that already exist instead of creating new ones;</li>
   <li><strong>keeps hand placement</strong>: the generated camera and the area lights are positioned only when they are created. Move one by hand and a rebuild leaves it where it is. (<em>Match viewport</em> on the camera is the exception: it copies the viewport at each build.)</li>
   <li><strong>keeps the default material</strong>: <code>pbr_surface</code> receives its default values once, when it is created;</li>
-  <li><strong>removes</strong> only its own nodes that the current mode no longer uses;</li>
+  <li><strong>removes</strong> only its own nodes that the current mode no longer uses, and does it last: the new network is built and wired first, so what is displayed never depends on a node that is about to disappear;</li>
+  <li><strong>pauses cooking</strong> while it works (Houdini's update mode goes to Manual, then back to what it was, even after an error), so a running Karma viewport restarts once at the end instead of after every node. A session already in Manual mode is left as it is. Clear All Tool Nodes does the same;</li>
   <li><strong>never touches your nodes</strong>: the tool recognizes its own nodes only by the mark it put on them. A node of yours is never deleted, rewired, moved or marked, even if it has the same name or the same type as one of the tool's nodes. If one has the name the tool needs, the build stops with an error that names it (<code>[ERROR] ... was not created by BSM Karma Builder</code>); rename it and build again.</li>
 </ul>
 <div class="callout warn"><strong>Clear All Tool Nodes</strong>Deletes the nodes the tool built in <code>/stage</code>, after a confirmation that lists them. Nodes you made are never in that list. A tool node that is wired to something outside the tool's own nodes is skipped and reported in the Log. The deletion is a single undo step.</div>
@@ -226,7 +227,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td>Look Through</td><td>Locks a Scene Viewer on <code>/stage</code> to the render camera. Builds first if the camera does not exist yet. If no viewer is on <code>/stage</code>, it opens the Karma viewport instead.</td></tr>
   <tr><td>New Camera</td><td>Focal length (5 to 400 mm) of the generated camera. <em>Match viewport</em> copies the position and rotation of the active viewport at each build; left off, the camera keeps the position it was given the first time. For ultra-wide formats (width/height above 2) the aperture is set to 41.42.</td></tr>
   <tr><td>Clear All Tool Nodes</td><td>See <a href="#incremental">Rebuilding safely</a>.</td></tr>
-  <tr><td>Live Update (<em>Rebuild on change</em>)</td><td>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: any change to a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma - Live Update</em>. Camera and material lists are refreshed by a normal Build.</td></tr>
+  <tr><td>Live Update (<em>Rebuild on change</em>)</td><td>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: any change to a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma - Live Update</em>. A change that adds or removes nodes or switches the engine (<em>Scene Mode</em>, <em>Environment</em>, <em>Sky Rendering</em>, fog, clouds, <em>Cloud Type</em>, AOVs, <em>Engine</em>, camera, geometry source, cloud material path) is not applied live: a running Karma viewport restarts on such a change and Houdini can freeze for minutes. The Log says what changed, and Live Update goes on after the next <strong>Build Environment Only</strong>. Live Update also waits for a first Build. Camera and material lists are refreshed by a normal Build.</td></tr>
 </table>
 
 <h3 id="tab-lighting">Lighting</h3>
@@ -271,6 +272,22 @@ bsm_karma.main()</code></pre></li>
   <tr><td>Fog Noise Freq, Amp</td><td>Noise frequency and strength inside the fog.</td></tr>
 </table>
 <h4>Clouds</h4>
+<p><strong>Cloud Type</strong> chooses how the clouds are made.</p>
+<table>
+  <tr><th>Type</th><th>Description</th></tr>
+  <tr><td>3D Volume (slow, realistic)</td><td>Real cloud volumes, lit by the sun, with parallax (below).</td></tr>
+  <tr><td>2D Layer (fast, backdrop)</td><td>A cloud picture on a second dome light (<code>cloud_layer_2d</code>), added to the sky. No geometry and no volume, so it renders like any dome light: for a distant background. The clouds light the scene a little, like sky bounce, and do not cast shadows.</td></tr>
+</table>
+<p>The 2D layer is generated by the tool (a seamless picture around the horizon, nothing below it, fading near the horizon) and written as <code>bsm_clouds_*.png</code> in the <code>bsm_karma/clouds</code> folder of your Houdini preferences. The same settings reuse the same file; the last six are kept. Copy the file with the project if the scene is rendered on another machine. A live update uses a half size picture, the next Build writes the full one (2048 x 1024). It needs <code>numpy</code>, which ships with Houdini.</p>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Coverage</td><td>Share of the sky covered, 0 (clear) to 1.</td></tr>
+  <tr><td>Softness</td><td>Soft edges and haze (high) or crisp cumulus edges (low).</td></tr>
+  <tr><td>Cloud Size</td><td>Number of large cloud masses around the horizon.</td></tr>
+  <tr><td>Brightness</td><td>Intensity of the cloud dome light.</td></tr>
+  <tr><td>Seed</td><td>Another number, another pattern.</td></tr>
+</table>
+<h4>3D clouds</h4>
 <p>A <strong>SOP Create</strong> LOP named <code>cloud_geo</code>, holding a small SOP network (<em>Sky Box</em> &rarr; <em>Cloud Billowy Noise</em> &rarr; <em>Cloud Adjust Density Profile</em>) at <code>/World/Environment/Clouds</code>, moved by <code>cloud_xform</code> and bound to a cloud material by <code>assign_cloud_shader</code>.</p>
 <table>
   <tr><th>Control</th><th>Description</th></tr>
@@ -293,6 +310,15 @@ bsm_karma.main()</code></pre></li>
   <tr><td>USD / MaterialX File&hellip;</td><td>Any <code>.mtlx</code>, <code>.usd</code>, <code>.usda</code>, <code>.usdc</code> or <code>.usdz</code> file. A <code>.mtlx</code> is wrapped in a small temporary USD layer so the gallery can show it.</td></tr>
 </table>
 <p>Press <strong>Connect</strong> to switch source. The catalog is shared by the whole Houdini session; when the window closes, the default catalog is restored.</p>
+<h4>Download materials</h4>
+<p>The <strong>Download...</strong> button, under the catalog, opens a window that downloads MaterialX materials from <strong>ambientCG</strong> or <strong>Poly Haven</strong>. Nothing has to be installed: the tool makes the requests itself, with the <code>requests</code> module that ships with Houdini. The download runs in the background, Houdini stays usable, and <strong>Stop</strong> ends it.</p>
+<table>
+  <tr><th>Source</th><th>What you give</th></tr>
+  <tr><td>ambientCG</td><td>The material name (for example <code>WoodFloor038</code>), the resolution (1K to 8K) and the image format (PNG or JPG). The zip is saved, then unpacked into a folder of its name.</td></tr>
+  <tr><td>Poly Haven</td><td>The asset id (for example <code>polystyrene</code>) and the resolution (1k to 8k). The <code>.mtlx</code> and its textures go to <code>&lt;id&gt;_materialx</code>. EXR textures are taken as PNG when the site has them, and the <code>.mtlx</code> is changed to match.</td></tr>
+</table>
+<p><strong>Load List</strong> asks the site for the names of its materials; the list can be filtered, and a click puts the name in the field. <strong>Open Website</strong> opens the source in your browser. When the run ends, the <code>.mtlx</code> files of the folder are listed (the new one selected); <strong>Use in Catalog</strong>, or a double click, shows that file's materials in the catalog above, like the <em>USD / MaterialX File...</em> source. The default folder is <code>bsm_karma/mtlx</code> in your Houdini preferences; the folder and the source are remembered.</p>
+<p>What a server sends is not trusted: only https addresses on ambientCG and Poly Haven are used, one file may not exceed 800 MB, a path that leaves the folder, a backtick in a file name or a very large archive is refused, and names are limited to letters, digits, <code>_</code>, <code>.</code> and <code>-</code> (no leading dash). The materials come from the internet: check their licence, and treat the files like any file you did not make. The requests follow what the open source <a href="https://pypi.org/project/materialxmaterials/">materialxmaterials</a> tool (Bernard Kwok, Apache 2.0) does.</p>
 <h4>Views of the catalog</h4>
 <p>The <strong>View</strong> list above the catalog switches how the same materials are shown.</p>
 <table>
@@ -517,6 +543,8 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>linker</code>, <code>catalog</code></td><td>Material Linker rules; catalog drops, trust checks and stage prims.</td></tr>
   <tr><td><code>build</code></td><td><code>setup_karma_environment</code>: the whole build, cleanup and geometry merge.</td></tr>
   <tr><td><code>gauges</code>, <code>previews</code>, <code>widgets</code></td><td>Gauge fields and sliders; sun compass, altitude and atmosphere drawings; combo box and prim tree.</td></tr>
+  <tr><td><code>clouds2d</code></td><td>The 2D cloud picture: noise, PNG file, cache.</td></tr>
+  <tr><td><code>mxdownload</code>, <code>mxsources</code></td><td>The download window, and the requests to ambientCG and Poly Haven with their checks.</td></tr>
   <tr><td><code>matviews</code>, <code>viewport_drop</code></td><td>Thumbnail, list and category views of the catalog; drops on the Solaris viewport.</td></tr>
   <tr><td><code>window</code></td><td>The dialog: it assembles the tabs, collects the settings and runs the build.</td></tr>
   <tr><td><code>tab_scene</code>, <code>tab_lighting</code>, <code>tab_atmosphere</code>, <code>tab_materials</code>, <code>tab_render</code>, <code>tab_passes</code>, <code>tab_export</code>, <code>tab_log</code></td><td>One file per tab of the window: its layout and its handlers.</td></tr>

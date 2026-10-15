@@ -3,6 +3,7 @@
 
 import hou
 from hutil.Qt import QtWidgets, QtCore, QtGui
+from .util import _clamp
 
 
 # --------------------------------------------------------
@@ -13,6 +14,37 @@ class PopupRefreshComboBox(QtWidgets.QComboBox):
     def showPopup(self):
         self.popupAboutToShow.emit()
         super().showPopup()
+
+
+# --------------------------------------------------------
+# Small square showing an RGB value. Values above 1 (the sliders go up to 2) are clipped for display.
+class ColorSwatch(QtWidgets.QWidget):
+    EDGE = QtGui.QColor("#3f4246")
+
+    # ------------------------------------------------------------
+    def __init__(self, width=44, height=16, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(width, height)
+        self._rgb = (1.0, 1.0, 1.0)
+
+    # ------------------------------------------------------------
+    def set_rgb(self, r, g, b):
+        self._rgb = (float(r), float(g), float(b))
+        self.setToolTip("R {:.2f}  G {:.2f}  B {:.2f}{}".format(
+            *self._rgb, "  (above 1: shown clipped)" if max(self._rgb) > 1.0 else ""))
+        self.update()
+
+    # ------------------------------------------------------------
+    def shown_color(self):
+        return QtGui.QColor(*[int(round(_clamp(c, 0.0, 1.0) * 255)) for c in self._rgb])
+
+    # ------------------------------------------------------------
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setPen(QtGui.QPen(self.EDGE, 1))
+        painter.setBrush(self.shown_color())
+        painter.drawRoundedRect(QtCore.QRectF(0.5, 0.5, self.width() - 1, self.height() - 1), 3, 3)
+        painter.end()
 
 
 # ------------------------------------------------------------
@@ -92,16 +124,16 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
 
     # ------------------------------------------------------------
     # Select the rows of these prims, return how many exist in the list.
+    # The current selection is kept when none of them is listed.
     def select_paths(self, paths):
+        items = [self._items[path] for path in paths if path in self._items]
+        if not items:
+            return 0
         self.clearSelection()
-        found = 0
-        for path in paths:
-            item = self._items.get(path)
-            if item is not None:
-                item.setSelected(True)
-                self.scrollToItem(item)
-                found += 1
-        return found
+        for item in items:
+            item.setSelected(True)
+        self.scrollToItem(items[0])
+        return len(items)
 
     # drag and drop
 
