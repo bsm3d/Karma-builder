@@ -1,5 +1,5 @@
 [TODO] bsm_karma/tab_materials.py:332 - AMD package downloads on the UI thread (Houdini's own code), the window freezes while it runs
-[TODO] bsm_karma/tab_materials.py:130 - HACK: hou.qt._createAssetGallery is private. Read the 'hou.qt names about galleries' line of the debug log on H21 and H22, replace it with a public path if one exists
+[TODO] bsm_karma/tab_materials.py:130 - HACK: hou.qt._createAssetGallery is private, guarded (notice, disabled controls, BSM_KARMA_GALLERY=0). Read the 'hou.qt names about galleries' line of the debug log on H21 and H22, replace it with a public path if one exists
 [TODO] bsm_karma/environment.py - physical sky, fog, cloud and light linker parameter names are checked on H22 only: build once on H21 and read the [WARN] lines
 [TODO] bsm_karma/linker.py - Material Linker multiparm names (num_files, num_links, link_*) not verified on H21
 [TODO] tests/ - run the whole suite (run_tests.ps1, then -Gui) on H21 and H22, not run since the split into the bsm_karma package

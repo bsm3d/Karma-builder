@@ -55,8 +55,8 @@ class MaterialsTab:
             lay_catalog.addWidget(self.mat_gallery, 1)
         else:
             lbl_no_gallery = QtWidgets.QLabel(
-                "The material catalog widget is not available in this Houdini build.\n"
-                "Use 'Assign File...' below instead.")
+                "The material catalog is not available in this Houdini build ({}).\n"
+                "Use 'Assign File...' below instead.".format(self._gallery_problem or "unknown reason"))
             lbl_no_gallery.setAlignment(QtCore.Qt.AlignCenter)
             lbl_no_gallery.setWordWrap(True)
             lay_catalog.addWidget(lbl_no_gallery)
@@ -128,20 +128,37 @@ class MaterialsTab:
     # --------------------------------------------------
     def _create_material_gallery(self):
         # HACK: hou.qt._createAssetGallery is private. It is what the Material Linker panel calls,
-        # there is no public way to get this widget. When it fails, the debug log lists what hou.qt offers
-        # instead, so a replacement can be found for that Houdini version.
+        # there is no public way to get this widget. Guard rail: any failure, or an object that is not a widget,
+        # leaves the Materials tab without catalog (the reason is shown there) and "Assign File..." still works.
+        # BSM_KARMA_GALLERY=0 skips the private call altogether. When it fails, the debug log lists what hou.qt
+        # offers instead, so a replacement can be found for that Houdini version.
+        self._gallery_problem = ""
+        if os.environ.get("BSM_KARMA_GALLERY", "1") == "0":
+            self._gallery_problem = "switched off by BSM_KARMA_GALLERY=0"
+            return None
         try:
-            return hou.qt._createAssetGallery("material")
+            gallery = hou.qt._createAssetGallery("material")
         except (AttributeError, hou.Error, TypeError, RuntimeError) as exc:
-            self._pending_logs.append("Material catalog widget unavailable: {}".format(exc))
+            self._gallery_problem = "{}: {}".format(type(exc).__name__, exc)
+            self._pending_logs.append("Material catalog widget unavailable: {}".format(self._gallery_problem))
             _debug("hou.qt names about galleries: {}".format(
                 [name for name in dir(hou.qt) if "allery" in name or "sset" in name]))
             return None
+        if not isinstance(gallery, QtWidgets.QWidget):
+            self._gallery_problem = "Houdini returned a {} instead of a widget".format(type(gallery).__name__)
+            self._pending_logs.append("Material catalog widget unavailable: {}".format(self._gallery_problem))
+            return None
+        return gallery
 
     #------------------------------------------------------------------------------------------
     def update_material_source_ui(self):
         self.w_mat_download.setVisible(self.combo_mat_source.currentText() == self.MATERIAL_SOURCES[0])
-        self.btn_mat_connect.setEnabled(self.mat_gallery is not None)
+        # without the catalog widget the source controls would do nothing
+        has_gallery = self.mat_gallery is not None
+        self.btn_mat_connect.setEnabled(has_gallery)
+        self.combo_mat_source.setEnabled(has_gallery)
+        if not has_gallery:
+            self.w_mat_download.setVisible(False)
 
     def browse_material_download_dir(self):
         path = hou.ui.selectFile(start_directory=self.line_mat_download.text(), title="Material Download Folder",

@@ -423,7 +423,7 @@ bsm_karma.main()</code></pre></li>
   <li><strong>Parameter names.</strong> Karma nodes do not always keep the same parameter names between releases. The tool uses the Houdini 22 names and tries older names when they are missing. A setting that no known name matches is skipped, and the Log says which one.</li>
   <li><strong>Qt.</strong> The interface goes through Houdini's <code>hutil.Qt</code>, so it runs on PySide2 or PySide6.</li>
   <li><strong>A node type that is missing</strong> (for example a cloud or fog node in a given version) makes that branch skip with a warning; the rest of the build goes on.</li>
-  <li><strong>Material catalog.</strong> The gallery widget is created with a private Houdini function (<code>hou.qt._createAssetGallery</code>), because no public one exists. If it is not available, the Materials tab shows a message and <em>Assign File&hellip;</em> still works.</li>
+  <li><strong>Material catalog.</strong> The gallery widget is created with a private Houdini function (<code>hou.qt._createAssetGallery</code>), because no public one exists. If it fails, or returns something that is not a widget, the Materials tab shows a notice with the reason, the source controls are disabled and <em>Assign File&hellip;</em> still works. Set the environment variable <code>BSM_KARMA_GALLERY=0</code> to skip the private call altogether, for a Houdini version where it misbehaves. The debug log then lists what <code>hou.qt</code> offers, to find a replacement.</li>
 </ul>
 
 <h2 id="security">Safety checks</h2>
@@ -444,7 +444,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>[WARN] Fog skipped</code> / <code>Clouds skipped</code></td><td>A node type of that branch is missing in your version. Fog or clouds are left out; the rest is built.</td></tr>
   <tr><td>No sun, or the sun does not move</td><td>See the <code>[WARN] Physical Sky</code> lines. Check that <em>Sky Rendering</em> matches what you want, and that <em>Sun Intensity</em> is above 0.</td></tr>
   <tr><td>Material not assigned</td><td>The Log gives the reason: the file contains an expression, the AMD folder is not the connected one, or the Material Linker of your version has a different parameter layout.</td></tr>
-  <tr><td>The material gallery is empty or missing</td><td>Press <strong>Connect</strong> after choosing a source. For the AMD library, check your internet connection: an unreachable server is reported without freezing Houdini. If the widget itself is unavailable, use <em>Assign File&hellip;</em>.</td></tr>
+  <tr><td>The material gallery is empty or missing</td><td>Press <strong>Connect</strong> after choosing a source. For the AMD library, check your internet connection: an unreachable server is reported without freezing Houdini. If the widget itself is unavailable, the tab says why: use <em>Assign File&hellip;</em>.</td></tr>
   <tr><td>The light I moved went back</td><td>Update to this version: lights are now positioned only when they are created, so an existing light keeps the position you gave it.</td></tr>
   <tr><td>Sky intensity looks too strong with fog or clouds</td><td>Intentional: it is multiplied by 4 to compensate for the light the volumes absorb. Lower <em>Sky Intensity</em> if needed.</td></tr>
   <tr><td>Every frame overwrites the previous one</td><td>The output path has no frame token. Use <code>$F4</code> in the name, for example <code>frame_$F4.exr</code>.</td></tr>
