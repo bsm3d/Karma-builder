@@ -2621,18 +2621,18 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.combo_camera.popupAboutToShow.connect(self.refresh_stage_cameras)
         self.combo_camera.currentIndexChanged.connect(self.update_camera_ui)
         self.btn_refresh_cameras = QtWidgets.QPushButton("Refresh")
-        self.btn_refresh_cameras.setFixedWidth(92)
+        self.btn_refresh_cameras.setFixedWidth(64)
         self.btn_refresh_cameras.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         self.btn_refresh_cameras.clicked.connect(self.refresh_stage_cameras)
         self.btn_look_through = QtWidgets.QPushButton("Look Through")
-        self.btn_look_through.setFixedWidth(100)
+        self.btn_look_through.setFixedWidth(92)
         self.btn_look_through.setToolTip("Lock a viewport to the render camera (builds first if needed).")
         self.btn_look_through.clicked.connect(self.on_look_through_camera)
         lay_camera_select.addWidget(self.combo_camera)
         lay_camera_select.addWidget(self.btn_refresh_cameras)
         lay_camera_select.addWidget(self.btn_look_through)
         lay_camera_select.setStretch(0, 1)
-        form_main.addRow("Render Camera:", self.w_camera_select)
+        form_main.addRow("Camera:", self.w_camera_select)
 
         self.w_new_camera = QtWidgets.QWidget()
         lay_new_camera = QtWidgets.QHBoxLayout(self.w_new_camera)
@@ -2644,7 +2644,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.spin_cam_focal.setSingleStep(1.0)
         self.spin_cam_focal.setValue(35.0)
         self.spin_cam_focal.setSuffix(" mm")
-        self.chk_cam_from_viewport = QtWidgets.QCheckBox("Match current viewport")
+        self.chk_cam_from_viewport = QtWidgets.QCheckBox("Match viewport")
         self.chk_cam_from_viewport.setToolTip(
             "Copy the position and rotation of the active viewport onto the new camera at each build.\n"
             "Left off, the camera keeps the position it was given the first time.")
@@ -2658,7 +2658,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.btn_clear_all_main.clicked.connect(self.on_clear_all)
         form_main.addRow("", self.btn_clear_all_main)
 
-        self.chk_live_update = QtWidgets.QCheckBox("Rebuild automatically when a value changes")
+        self.chk_live_update = QtWidgets.QCheckBox("Rebuild on change")
         self.chk_live_update.setToolTip(
             "On: any change updates the nodes after a short pause, no need to press Build.\n"
             "Off: the network only changes when you press Build (better on a slower machine).")
@@ -2675,7 +2675,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.form_base = QtWidgets.QFormLayout(grp_base)
         self.sld_hdri_int = FloatSlider(0.0, 20.0, 1.0)
         self.sld_area_int = FloatSlider(0.0, 100.0, 10.0)
-        self.form_base.addRow("HDRI / Dome Intensity:", self.sld_hdri_int)
+        self.form_base.addRow("Dome Intensity:", self.sld_hdri_int)
         self.form_base.addRow("Main Area Intensity:", self.sld_area_int)
 
         self.w_hdri_path = QtWidgets.QWidget()
@@ -2693,10 +2693,11 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         btn_browse_hdri.clicked.connect(self.browse_hdri)
         layout_hdri.addWidget(self.line_hdri_path)
         layout_hdri.addWidget(btn_browse_hdri)
-        self.form_base.addRow("HDRI Texture Path:", self.w_hdri_path)
+        self.form_base.addRow("HDRI Path:", self.w_hdri_path)
 
         self.sld_hdri_ev = FloatSlider(-8.0, 8.0, 0.0)
-        self.form_base.addRow("HDRI Exposure (EV):", self.sld_hdri_ev)
+        self.sld_hdri_ev.setToolTip("Exposure in stops (EV).")
+        self.form_base.addRow("HDRI Exposure:", self.sld_hdri_ev)
 
         self.sld_hdri_rot = FloatSlider(-180.0, 180.0, 0.0)
         self.form_base.addRow("HDRI Rotation Y:", self.sld_hdri_rot)
@@ -2705,7 +2706,8 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.form_base.addRow("HDRI Saturation:", self.sld_hdri_sat)
 
         self.spin_hdri_temp = IntSlider(2500, 12000, 6500)
-        self.form_base.addRow("HDRI Temperature (K):", self.spin_hdri_temp)
+        self.spin_hdri_temp.setToolTip("Color temperature in kelvin.")
+        self.form_base.addRow("HDRI Temp. (K):", self.spin_hdri_temp)
 
         self.sld_hdri_tint = FloatSlider(-1.0, 1.0, 0.0)
         self.form_base.addRow("HDRI Tint:", self.sld_hdri_tint)
@@ -2759,6 +2761,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         )
         
         lay_azim_compass = QtWidgets.QHBoxLayout()
+        lay_azim_compass.addStretch(1)
         lay_azim_compass.addWidget(self.compass_widget)
         lay_azim_compass.addWidget(self.altitude_widget)
         lay_azim_compass.addStretch(1)
@@ -2770,7 +2773,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
             "Off: the sun sits at the Solar Direction shown by the compass.\n"
             "On: the Y rotation of the active Scene Viewer is added, so the sun turns with the view.")
         form_sky.addRow("Align to View:", self.chk_sky_follow_view)
-        form_sky.addRow("", lay_azim_compass)
+        form_sky.addRow(lay_azim_compass)   # spans both columns: it must not add to the width of the labels
 
         self.sld_sun_int = FloatSlider(0.0, 50.0, 1.0)
         self.sld_sun_size = FloatSlider(0.01, 10.0, 0.53)
@@ -2818,19 +2821,23 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         lay_rgb_amb.addLayout(lay_amb_r)
         lay_rgb_amb.addLayout(lay_amb_g)
         lay_rgb_amb.addLayout(lay_amb_b)
-        form_sky.addRow("Ambient Tint (Sky/Fog):", lay_rgb_amb)
+        form_sky.addRow("Ambient Tint:", lay_rgb_amb)
 
         self.sld_turbidity = FloatSlider(1.0, 10.0, 3.0)
         self.sld_sky_int = FloatSlider(0.0, 30.0, 1.0)
-        form_sky.addRow("Turbidity (Classic):", self.sld_turbidity)
+        self.sld_turbidity.setToolTip("Haze of the Basic Projection (classic) sky.")
+        form_sky.addRow("Turbidity:", self.sld_turbidity)
         form_sky.addRow("Sky Intensity:", self.sld_sky_int)
         self.sld_hz_blur = FloatSlider(0.0, 45.0, 5.0)
-        form_sky.addRow("Horizon Blur (Classic):", self.sld_hz_blur)
+        self.sld_hz_blur.setToolTip("Horizon blur of the Basic Projection (classic) sky.")
+        form_sky.addRow("Horizon Blur:", self.sld_hz_blur)
         
         self.sld_atm_rayleigh = FloatSlider(0.0, 5.0, 1.0)
         self.sld_atm_mie = FloatSlider(0.0, 5.0, 1.0)
-        form_sky.addRow("Atmosphere Blue (Rayleigh):", self.sld_atm_rayleigh)
-        form_sky.addRow("Atmosphere Haze (Mie):", self.sld_atm_mie)
+        self.sld_atm_rayleigh.setToolTip("Rayleigh scattering: the blue of the volumetric atmosphere.")
+        form_sky.addRow("Rayleigh (blue):", self.sld_atm_rayleigh)
+        self.sld_atm_mie.setToolTip("Mie scattering: the haze of the volumetric atmosphere.")
+        form_sky.addRow("Mie (haze):", self.sld_atm_mie)
 
         layout_lights.addWidget(self.grp_sky)
         layout_lights.addStretch(1)
@@ -2958,8 +2965,9 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         else:
             lbl_no_gallery = QtWidgets.QLabel(
                 "The material catalog widget is not available in this Houdini build.\n"
-                "Use 'Assign MaterialX / USD File...' below instead.")
+                "Use 'Assign File...' below instead.")
             lbl_no_gallery.setAlignment(QtCore.Qt.AlignCenter)
+            lbl_no_gallery.setWordWrap(True)
             lay_catalog.addWidget(lbl_no_gallery)
 
         self.lbl_mat_status = QtWidgets.QLabel(
@@ -2981,7 +2989,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.combo_geo_source.currentIndexChanged.connect(self.on_geo_source_changed)
         self.btn_refresh_geo = QtWidgets.QPushButton("Refresh")
         self.btn_refresh_geo.clicked.connect(self.refresh_geo_sources)
-        row_geo.addWidget(QtWidgets.QLabel("Geometry Source:"))
+        row_geo.addWidget(QtWidgets.QLabel("Geometry:"))
         row_geo.addWidget(self.combo_geo_source, 1)
         row_geo.addWidget(self.btn_refresh_geo)
         lay_targets.addLayout(row_geo)
@@ -2992,13 +3000,14 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         lay_targets.addWidget(self.tree_mat_targets, 1)
 
         row_mat_buttons = QtWidgets.QHBoxLayout()
-        self.btn_assign_file = QtWidgets.QPushButton("Assign MaterialX / USD File...")
-        self.btn_assign_file.setToolTip("Pick a .mtlx or USD file and bind its material to the selected prims.")
+        self.btn_assign_file = QtWidgets.QPushButton("Assign File...")
+        self.btn_assign_file.setToolTip("Assign MaterialX / USD file: pick a .mtlx or USD file and bind its material to the selected prims.")
         self.btn_assign_file.clicked.connect(self.on_assign_material_file)
-        self.btn_unassign = QtWidgets.QPushButton("Remove Assignment")
+        self.btn_unassign = QtWidgets.QPushButton("Remove")
+        self.btn_unassign.setToolTip("Remove the material assignment of the selected prims.")
         self.btn_unassign.clicked.connect(self.on_unassign_material)
-        self.btn_open_linker = QtWidgets.QPushButton("Open Material Linker")
-        self.btn_open_linker.setToolTip("Select the Material Linker node to edit the rules in Houdini's own panel.")
+        self.btn_open_linker = QtWidgets.QPushButton("Linker")
+        self.btn_open_linker.setToolTip("Open Material Linker: select the node to edit the rules in Houdini's own panel.")
         self.btn_open_linker.clicked.connect(self.on_open_material_linker)
         row_mat_buttons.addWidget(self.btn_assign_file)
         row_mat_buttons.addWidget(self.btn_unassign)
@@ -3116,12 +3125,14 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.grp_aov_output.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         self.form_aov_output = QtWidgets.QFormLayout(self.grp_aov_output)
 
-        self.chk_aov_multilayer = QtWidgets.QCheckBox("Store AOVs in one multilayer EXR when possible")
+        self.chk_aov_multilayer = QtWidgets.QCheckBox("One multilayer EXR")
         self.chk_aov_multilayer.setChecked(True)
+        self.chk_aov_multilayer.setToolTip("Store all the AOVs in one multilayer EXR when possible; unticked, one file per pass.")
         self.form_aov_output.addRow("Combine:", self.chk_aov_multilayer)
 
-        self.chk_aov_half_precision = QtWidgets.QCheckBox("Use 16-bit (half) when supported")
+        self.chk_aov_half_precision = QtWidgets.QCheckBox("16-bit (half) passes")
         self.chk_aov_half_precision.setChecked(False)
+        self.chk_aov_half_precision.setToolTip("Use 16-bit (half) floats for the passes other than the beauty, when supported.")
         self.form_aov_output.addRow("Precision:", self.chk_aov_half_precision)
 
         layout_aov.addWidget(self.grp_aov_output)
@@ -3438,6 +3449,8 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self._live_timer.timeout.connect(self._live_build)
         self._connect_live_update([tab_main, tab_lights, tab_volumetrics, tab_filters, tab_aov, tab_out])
         self.chk_live_update.toggled.connect(self.on_live_toggled)
+
+        self._compact_combos()
 
     # ----------------------------------------
     # LIFECYCLE
@@ -4574,6 +4587,18 @@ class KarmaBuilderUI(QtWidgets.QDialog):
     # Live update. Off: nothing happens until Build is pressed (slow machines). On: a change of any value
     # rebuilds the network after a short pause, so a slider can be dragged without a build per step.
     LIVE_UPDATE_DELAY_MS = 350
+
+    # ------------------------------------------------------------
+    # A combo box asks for the width of its longest item, which sets the width of a whole tab. Give it a short
+    # minimum instead and let the popup be as wide as its longest entry.
+    def _compact_combos(self):
+        for combo in self.findChildren(QtWidgets.QComboBox):
+            combo.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(9)
+            # an explicit minimum wins over the size Qt computes from the longest item
+            combo.setMinimumWidth(104)
+            if combo.count():
+                combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 28)
 
     # ------------------------------------------------------------
     def _connect_live_update(self, pages):
