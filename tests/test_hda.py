@@ -1,5 +1,5 @@
 # The BSM Karma Builder HDA: built from the sources, installable, passes its input through, and its
-# embedded loader runs the tool. Also fails when the committed hda/bsm_karma_builder.hda is out of date.
+# embedded loader runs the tool. Also fails when the committed bsm_karma_builder.hda is out of date.
 #
 # Revision : 10-10-2026 | Auteur : BSM
 import json
@@ -10,7 +10,7 @@ import types
 from _common import ROOT, Checker, load_tool, scratch_dir
 
 hou, k = load_tool()
-sys.path.insert(0, os.path.join(ROOT, "tools"))
+sys.path.insert(0, ROOT)
 import build_hda
 
 t = Checker("hda")
@@ -101,7 +101,7 @@ except RuntimeError:
 t.check("a source that fails to run is not left half loaded", raised and "bsm_karma_hda" not in sys.modules)
 
 # --- the committed asset is current ---
-committed = os.path.join(ROOT, "hda", "bsm_karma_builder.hda")
+committed = os.path.join(ROOT, "bsm_karma_builder.hda")
 if os.path.isfile(committed):
     committed_defs = hou.hda.definitionsInFile(committed)
     stale = []
@@ -113,9 +113,9 @@ if os.path.isfile(committed):
                            ("PythonModule", source("tools", "hda_python_module.py"))):
             if committed_sections[name].contents() != text:
                 stale.append(name)
-    t.check("hda/bsm_karma_builder.hda is up to date (rebuild with: hython tools/build_hda.py)", not stale, stale)
+    t.check("bsm_karma_builder.hda is up to date (rebuild with: hython build_hda.py)", not stale, stale)
 else:
-    t.check("hda/bsm_karma_builder.hda exists (build it with: hython tools/build_hda.py)", False)
+    t.check("bsm_karma_builder.hda exists (build it with: hython build_hda.py)", False)
 
 # la version du header est écrite à la main, elle doit suivre SCRIPT_VERSION
 header = source("bsm_karma.py").split('\n')[:8]
