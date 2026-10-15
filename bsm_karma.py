@@ -750,6 +750,10 @@ def _get_or_create_node(parent, node_type, node_name):
     n = parent.node(node_name)
     if n is None:
         n = parent.createNode(node_type, node_name)
+    elif not _is_tool_node_candidate(n, node_name) and _base_node_type_name(n) != node_type:
+        # a user's node that only shares the name: never rewire, retag or delete it
+        raise hou.OperationFailed("{} exists and is a '{}', not a '{}': rename it or delete it.".format(
+            n.path(), _base_node_type_name(n), node_type))
     _mark_tool_node(n)
     return n
 
@@ -2447,6 +2451,11 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         
         form_sky.addRow("Solar Altitude:", self.sld_sky_elev)
         form_sky.addRow("Solar Direction:", self.sld_sky_azim)
+        self.chk_sky_follow_view = QtWidgets.QCheckBox("Add the viewport heading to the direction at each build")
+        self.chk_sky_follow_view.setToolTip(
+            "Off: the sun sits at the Solar Direction shown by the compass.\n"
+            "On: the Y rotation of the active Scene Viewer is added, so the sun turns with the view.")
+        form_sky.addRow("Align to View:", self.chk_sky_follow_view)
         form_sky.addRow("", lay_azim_compass)
 
         self.sld_sun_int = FloatSlider(0.0, 50.0, 1.0)
@@ -2805,22 +2814,6 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.chk_aov_half_precision = QtWidgets.QCheckBox("Use 16-bit (half) when supported")
         self.chk_aov_half_precision.setChecked(False)
         self.form_aov_output.addRow("Precision:", self.chk_aov_half_precision)
-
-        self.chk_aov_custom_output = QtWidgets.QCheckBox("Override AOV output path")
-        self.chk_aov_custom_output.setChecked(False)
-        self.chk_aov_custom_output.stateChanged.connect(self.update_aov_ui)
-        self.form_aov_output.addRow("Custom Path:", self.chk_aov_custom_output)
-
-        self.w_aov_out_path = QtWidgets.QWidget()
-        lay_aov_out = QtWidgets.QHBoxLayout(self.w_aov_out_path)
-        lay_aov_out.setContentsMargins(0, 0, 0, 0)
-        self.line_aov_out = QtWidgets.QLineEdit("$HIP/render/aov/frame_$F4.exr")
-        self.btn_browse_aov_out = QtWidgets.QPushButton("...")
-        self.btn_browse_aov_out.setMaximumWidth(40)
-        self.btn_browse_aov_out.clicked.connect(self.browse_aov_output)
-        lay_aov_out.addWidget(self.line_aov_out)
-        lay_aov_out.addWidget(self.btn_browse_aov_out)
-        self.form_aov_output.addRow("AOV Output Path:", self.w_aov_out_path)
 
         layout_aov.addWidget(self.grp_aov_output)
         layout_aov.addStretch(1)
@@ -3283,12 +3276,6 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         if path:
             self.line_out.setText(hou.text.expandString(path))
             self.sync_output_extension()
-
-    # --------------------------------------------------
-    def browse_aov_output(self):
-        path = hou.ui.selectFile(start_directory="$HIP", title="AOV Output Path", pattern="*.exr", chooser_mode=hou.fileChooserMode.Write)
-        if path:
-            self.line_aov_out.setText(hou.text.expandString(path))
 
     # ------------------------------------------------------------
     def browse_cloud_mat(self):
@@ -3931,12 +3918,6 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.grp_aov_passes.setEnabled(enabled)
         self.grp_aov_output.setEnabled(enabled)
 
-        show_custom_path = enabled and self.chk_aov_custom_output.isChecked()
-        lbl = self.form_aov_output.labelForField(self.w_aov_out_path)
-        if lbl is not None:
-            lbl.setVisible(show_custom_path)
-        self.w_aov_out_path.setVisible(show_custom_path)
-
 
     # ------------------------------------------------------------
     def update_environment_tab(self):
@@ -4076,16 +4057,15 @@ class KarmaBuilderUI(QtWidgets.QDialog):
 
     # --------------------------------------------------------
     def _collect_config(self):
-        # Camera Heading Extraction for Sun alignment
+        # opt-in: the heading of the active viewer is added to the sun direction
         view_y_rot = 0.0
-        try:
-            if hasattr(hou.ui, "paneTabOfType"):
-                sv = hou.ui.paneTabOfType(hou.paneTabType.SceneViewer)
-                if sv:
-                    view_mat = sv.curViewport().viewTransform()
-                    view_y_rot = view_mat.extractRotates()[1]
-        except Exception:
-            pass
+        if self.chk_sky_follow_view.isChecked():
+            try:
+                viewer = self._get_active_scene_viewer()
+                if viewer is not None:
+                    view_y_rot = viewer.curViewport().viewTransform().extractRotates()[1]
+            except (hou.Error, AttributeError):
+                pass
             
         is_env_mode = (self.combo_scene_mode.currentText() == "Environment")
         return {
@@ -4155,8 +4135,6 @@ class KarmaBuilderUI(QtWidgets.QDialog):
             "aov_id": self.chk_aov_id.isChecked(),
             "aov_multilayer": self.chk_aov_multilayer.isChecked(),
             "aov_half_precision": self.chk_aov_half_precision.isChecked(),
-            "aov_use_custom_output": self.chk_aov_custom_output.isChecked(),
-            "aov_output_path": self.line_aov_out.text(),
             "diffuse_limit": self.sld_diffuse_limit.value(),
             "reflection_limit": self.sld_reflection_limit.value(),
             "transmission_limit": self.sld_transmission_limit.value(),
@@ -4178,14 +4156,20 @@ class KarmaBuilderUI(QtWidgets.QDialog):
     def on_build(self):
         self.sync_output_extension()
         config = self._collect_config()
-        with hou.undos.group("BSM Karma - Build"):
-            setup_karma_environment(config, self.log_message)
+        try:
+            with hou.undos.group("BSM Karma - Build"):
+                setup_karma_environment(config, self.log_message)
+        except hou.OperationFailed as exc:
+            self.log_message("[ERROR] Build stopped: {}".format(exc))
+            return False
         self.refresh_stage_cameras()
         self.refresh_material_targets()
+        return True
 
     # ------------------------------------
     def on_render_disk(self):
-        self.on_build()
+        if not self.on_build():
+            return
         rp = hou.node("/stage/render_to_disk")
         if rp:
             out_dir = os.path.dirname(hou.text.expandString(self.line_out.text()))
@@ -4195,7 +4179,8 @@ class KarmaBuilderUI(QtWidgets.QDialog):
 
     # ------------------------------------------------------------
     def on_render_mplay(self):
-        self.on_build()
+        if not self.on_build():
+            return
         rp = hou.node("/stage/render_to_disk")
         if rp:
             self.log_message("▶ Launching Render to MPlay...")
