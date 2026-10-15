@@ -68,6 +68,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self._karma_scene_viewer = None
         self._parm_pane_tab = None
         self._material_source_changed = False
+        self._mx_dialog = None
         self._snapshot_source_image = QtGui.QImage()
         self._snapshot_compare_image = QtGui.QImage()
         self._snapshot_slot_target = "A"
@@ -184,10 +185,17 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self._parm_pane_tab = None
 
         step("viewport drop", self._viewport_drop.disarm)
+        step("download window", self._close_downloader)
         step("catalog source", self._restore_material_source)
         step("snapshots", self._clear_snapshot_images)
         step("target list", lambda: self.tree_mat_targets.set_prims([], {}))
         step("temp files", self._remove_temp_files)
+
+    # ------------------------------------------------------------
+    def _close_downloader(self):
+        dialog, self._mx_dialog = self._mx_dialog, None
+        if dialog is not None:
+            dialog.close()
 
     # ------------------------------------------------------------
     def _remove_temp_files(self):

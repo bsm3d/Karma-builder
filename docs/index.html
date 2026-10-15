@@ -310,6 +310,16 @@ bsm_karma.main()</code></pre></li>
   <tr><td>USD / MaterialX File&hellip;</td><td>Any <code>.mtlx</code>, <code>.usd</code>, <code>.usda</code>, <code>.usdc</code> or <code>.usdz</code> file. A <code>.mtlx</code> is wrapped in a small temporary USD layer so the gallery can show it.</td></tr>
 </table>
 <p>Press <strong>Connect</strong> to switch source. The catalog is shared by the whole Houdini session; when the window closes, the default catalog is restored.</p>
+<h4>Download materials</h4>
+<p>The <strong>Download...</strong> button, next to <em>Connect</em>, opens a window that runs the <code>materialxmaterials</code> tool for you, so no command line is needed. It downloads in the background, Houdini stays usable, and <strong>Stop</strong> ends it.</p>
+<table>
+  <tr><th>Source</th><th>What you give</th></tr>
+  <tr><td>ambientCG</td><td>The material name (for example <code>WoodFloor038</code>), the resolution (1K to 8K) and the image format. The archive is unpacked into a folder of its name.</td></tr>
+  <tr><td>Poly Haven</td><td>The asset id (for example <code>polystyrene</code>) and the resolution.</td></tr>
+  <tr><td>PhysicallyBased</td><td>The shading model, or all of them. It writes material values, without textures.</td></tr>
+</table>
+<p>The window needs a Python that has <code>materialxmaterials</code>; Houdini's own Python is not used. It looks for one (the <code>py</code> launcher, then <code>python</code> and <code>python3</code> of the PATH) and says what it found. If the package is missing, <strong>Install materialxmaterials</strong> runs <code>pip install --user materialxmaterials</code>. <strong>Open Website</strong> opens the source to find a material name. When the run ends, the <code>.mtlx</code> files of the folder are listed (the new ones selected); <strong>Use in Catalog</strong>, or a double click, shows that file's materials in the catalog above, like the <em>USD / MaterialX File...</em> source.</p>
+<p>The default folder is <code>bsm_karma/mtlx</code> in your Houdini preferences; the folder, the Python and the source are remembered. Names are limited to letters, digits, <code>_</code>, <code>.</code> and <code>-</code> and cannot start with a dash. Archives are checked before they are unpacked: a path that leaves the folder, a backtick in a file name or a very large archive is refused. The materials come from the internet: check their licence, and treat the files like any file you did not make.</p>
 <h4>Views of the catalog</h4>
 <p>The <strong>View</strong> list above the catalog switches how the same materials are shown.</p>
 <table>
@@ -535,6 +545,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>build</code></td><td><code>setup_karma_environment</code>: the whole build, cleanup and geometry merge.</td></tr>
   <tr><td><code>gauges</code>, <code>previews</code>, <code>widgets</code></td><td>Gauge fields and sliders; sun compass, altitude and atmosphere drawings; combo box and prim tree.</td></tr>
   <tr><td><code>clouds2d</code></td><td>The 2D cloud picture: noise, PNG file, cache.</td></tr>
+  <tr><td><code>mxdownload</code></td><td>The download window for ambientCG, Poly Haven and PhysicallyBased materials.</td></tr>
   <tr><td><code>matviews</code>, <code>viewport_drop</code></td><td>Thumbnail, list and category views of the catalog; drops on the Solaris viewport.</td></tr>
   <tr><td><code>window</code></td><td>The dialog: it assembles the tabs, collects the settings and runs the build.</td></tr>
   <tr><td><code>tab_scene</code>, <code>tab_lighting</code>, <code>tab_atmosphere</code>, <code>tab_materials</code>, <code>tab_render</code>, <code>tab_passes</code>, <code>tab_export</code>, <code>tab_log</code></td><td>One file per tab of the window: its layout and its handlers.</td></tr>

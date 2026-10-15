@@ -12,6 +12,7 @@ from .debuglog import _debug, _guarded_slot
 from .linker import (_get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain, _insert_material_linker_in_chain,
                      _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_edit_node, _material_linker_node)
 from .matviews import MaterialBrowser
+from .mxdownload import MaterialDownloadDialog
 from .nodeutil import _is_tool_node_candidate, _paused_cooking
 from .styles import _C
 from .viewport_drop import ViewportDropFilter, viewer_selection
@@ -35,9 +36,14 @@ class MaterialsTab:
         self.combo_mat_source.currentIndexChanged.connect(self.update_material_source_ui)
         self.btn_mat_connect = QtWidgets.QPushButton("Connect")
         self.btn_mat_connect.clicked.connect(self.on_connect_material_library)
+        self.btn_mat_download = QtWidgets.QPushButton("Download...")
+        self.btn_mat_download.setToolTip("Download MaterialX materials from ambientCG, Poly Haven or PhysicallyBased "
+                                         "with the materialxmaterials tool, then show them in this catalog.")
+        self.btn_mat_download.clicked.connect(self.on_open_material_downloader)
         row_source.addWidget(QtWidgets.QLabel("Source:"))
         row_source.addWidget(self.combo_mat_source, 1)
         row_source.addWidget(self.btn_mat_connect)
+        row_source.addWidget(self.btn_mat_download)
         lay_catalog.addLayout(row_source)
 
         self.w_mat_download = QtWidgets.QWidget()
@@ -242,15 +248,9 @@ class MaterialsTab:
                     pattern="*.mtlx *.usd *.usda *.usdc *.usdz")
                 if not path:
                     return
-                path = _expand_plain_path(path)
-                source_file = _material_catalog_file(path)
-                if source_file != path:
-                    self._hdri_temp_files.append(source_file)  # removed when the dialog is released
-                data_source = hou.AssetGalleryDataSource(source_file, "%type:Material")
-                if not data_source.isValid():
-                    self._set_material_status("Houdini could not open {} as a material source.".format(path))
+                data_source, hint = self._material_file_source(_expand_plain_path(path))
+                if data_source is None:
                     return
-                hint = "Materials found in {}".format(path)
             hou.ui.setSharedAssetGalleryDataSource(data_source, "material")
             self._material_source_changed = True
             self._amd_folder = folder if source == self.MATERIAL_SOURCES[0] else None
@@ -263,6 +263,62 @@ class MaterialsTab:
             self.log_message("[WARN] Material catalog connection failed ({}): {}".format(source, exc))
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
+
+    # ------------------------------------------------------------
+    # The catalog source of a .mtlx or USD file, and the line that says what it shows; (None, "") when Houdini cannot
+    # open it.
+    def _material_file_source(self, path):
+        source_file = _material_catalog_file(path)
+        if source_file != path:
+            self._hdri_temp_files.append(source_file)  # removed when the dialog is released
+        data_source = hou.AssetGalleryDataSource(source_file, "%type:Material")
+        if not data_source.isValid():
+            self._set_material_status("Houdini could not open {} as a material source.".format(path))
+            return None, ""
+        return data_source, "Materials found in {}".format(path)
+
+    # ------------------------------------------------------------
+    # A file chosen in the download window: show it in the catalog like the "USD / MaterialX File..." source.
+    @_guarded_slot
+    def _show_material_file(self, path):
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            data_source, hint = self._material_file_source(_expand_plain_path(path))
+            if data_source is None:
+                return
+            hou.ui.setSharedAssetGalleryDataSource(data_source, "material")
+            self._material_source_changed = True
+            self._amd_folder = None
+            self.combo_mat_source.setCurrentIndex(2)
+            self._set_material_status(hint)
+            if self.mat_browser is not None:
+                self.mat_browser.refresh()
+            self.log_message("[OK] Material catalog connected: {}".format(path))
+        except (hou.Error, OSError, ValueError, AttributeError) as exc:
+            self._set_material_status("Could not open the file: {}".format(exc))
+            self.log_message("[WARN] Downloaded material not shown ({}): {}".format(path, exc))
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_open_material_downloader(self):
+        dialog = self._mx_dialog
+        if dialog is not None:
+            try:
+                dialog.raise_()
+                dialog.activateWindow()
+                return
+            except RuntimeError:
+                self._mx_dialog = None   # closed meanwhile
+        pref = hou.text.expandString("$HOUDINI_USER_PREF_DIR")
+        base = pref if pref and not pref.startswith("$") else os.path.dirname(self._default_material_download_dir())
+        folder = os.path.join(base, "bsm_karma", "mtlx").replace("\\", "/")
+        dialog = MaterialDownloadDialog(folder, parent=self)
+        dialog.fileChosen.connect(self._show_material_file)
+        dialog.destroyed.connect(lambda *_: setattr(self, "_mx_dialog", None))
+        self._mx_dialog = dialog
+        dialog.show()
 
     # ------------------------------------------------------------
     def _geo_source_candidates(self):

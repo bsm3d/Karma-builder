@@ -101,6 +101,9 @@ was downloaded or tried here):
     MaterialX project  https://github.com/AcademySoftwareFoundation/MaterialX
                        Example materials in resources/Materials. SideFX ships the same examples with Houdini.
 
+The Materials tab has a Download... button that does the same from a window (Python with materialxmaterials needed,
+the window can install it).
+
 Downloading with materialxmaterials (pip install materialxmaterials; on Windows, if the command is not found, use
 "python -m materialxMaterials" instead of "materialxMaterials"). Options below were read from its --help, the
 downloads themselves were not run here:
