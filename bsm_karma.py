@@ -6,12 +6,16 @@
 # ************************************************************
 
 import atexit
+import functools
 import os
+import platform
 import re
 import hashlib
+import sys
 import tempfile
 import shutil
 import subprocess
+import traceback
 import uuid
 import math
 import hou
@@ -20,6 +24,154 @@ import json
 from hutil.Qt import QtWidgets, QtCore, QtGui
 
 SCRIPT_VERSION = "2026.10.10.5"
+
+
+# ============================================
+# DEBUG LOG
+# ============================================
+# Everything the tool does goes to a text file: the log messages, the build configuration, the parameters that were
+# not found, the node graph after a build and the traceback of any error. Send that file when something fails.
+# Folder: the one holding bsm_karma.py; for the HDA (no file on disk) or a read-only folder, the user preferences
+# folder (bsm_karma/), else the temp folder. BSM_KARMA_DEBUG=0 in the environment starts with the log off.
+
+DEBUG_LOG_NAME = "bsm_karma_debug.log"
+DEBUG_LOG_MAX_BYTES = 1000000
+_debug_state = {"enabled": os.environ.get("BSM_KARMA_DEBUG", "1") != "0", "path": None, "broken": False}
+
+
+# ------------------------------------------------------------
+def _debug_candidate_folders():
+    folders = []
+    source = globals().get("__file__") or ""
+    if os.path.isfile(source):
+        folders.append(os.path.dirname(os.path.abspath(source)))
+    try:
+        pref_dir = hou.text.expandString("$HOUDINI_USER_PREF_DIR")
+        if pref_dir and not pref_dir.startswith("$"):
+            folders.append(os.path.join(pref_dir, "bsm_karma"))
+    except Exception:
+        pass
+    folders.append(os.path.join(tempfile.gettempdir(), "bsm_karma"))
+    return folders
+
+
+# ------------------------------------------------------------
+# Path of the log file: the first folder that can be written to.
+def debug_log_path():
+    if _debug_state["path"] and os.path.isdir(os.path.dirname(_debug_state["path"])):
+        return _debug_state["path"]
+    for folder in _debug_candidate_folders():
+        try:
+            os.makedirs(folder, exist_ok=True)
+            probe = os.path.join(folder, DEBUG_LOG_NAME)
+            with open(probe, "a", encoding="utf-8"):
+                pass
+            _debug_state["path"] = probe
+            return probe
+        except OSError:
+            continue
+    return None
+
+
+# ------------------------------------------------------------
+# One backup is kept: bsm_karma_debug.log.1
+def _debug_rotate(path):
+    try:
+        if os.path.getsize(path) > DEBUG_LOG_MAX_BYTES:
+            os.replace(path, path + ".1")
+    except OSError:
+        pass
+
+
+# ------------------------------------------------------------
+# Never raises: a log that cannot be written must not break the tool.
+def _debug(message, level="DEBUG"):
+    if not _debug_state["enabled"] or _debug_state["broken"]:
+        return
+    try:
+        path = debug_log_path()
+        if path is None:
+            _debug_state["broken"] = True
+            return
+        _debug_rotate(path)
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        with open(path, "a", encoding="utf-8", errors="replace") as handle:
+            handle.write("{} [{}] {}\n".format(stamp, level, message))
+    except Exception:
+        _debug_state["broken"] = True
+
+
+# ------------------------------------------------------------
+def _debug_exception(where):
+    _debug("exception in {}:\n{}".format(where, traceback.format_exc().rstrip()), "ERROR")
+
+
+# ------------------------------------------------------------
+def _debug_node_label(node):
+    try:
+        return "{} ({})".format(node.path(), node.type().nameWithCategory())
+    except Exception:
+        return "<node gone>"
+
+
+# ------------------------------------------------------------
+def _debug_session_header():
+    try:
+        houdini = "{} ({})".format(hou.applicationVersionString(), hou.applicationName())
+    except Exception:
+        houdini = "unknown"
+    try:
+        binding = QtCore.__name__.split(".")[0]
+        qt_version = QtCore.qVersion()
+    except Exception:
+        binding, qt_version = "unknown", "unknown"
+    _debug("=" * 72, "SESSION")
+    _debug("BSM Karma Builder {} | Houdini {}".format(SCRIPT_VERSION, houdini), "SESSION")
+    _debug("Python {} | {} (Qt {}) | {}".format(
+        sys.version.split()[0], binding, qt_version, platform.platform()), "SESSION")
+    _debug("script: {}".format(globals().get("__file__") or "<embedded>"), "SESSION")
+    _debug("hip file: {}".format(hou.hipFile.path()), "SESSION")
+
+
+# ------------------------------------------------------------
+# The node graph of /stage: what the next build found or left behind.
+def _debug_stage_dump(stage):
+    if not _debug_state["enabled"] or stage is None:
+        return
+    try:
+        lines = []
+        for node in sorted(stage.children(), key=lambda n: n.name()):
+            sources = ", ".join(n.name() if n is not None else "-" for n in node.inputs()) or "-"
+            tagged = "tool" if _is_tool_node_candidate(node, node.name()) else "user"
+            lines.append("  {:<26} {:<34} <- {:<34} [{}]".format(
+                node.name(), node.type().nameWithCategory(), sources, tagged))
+        _debug("/stage after the build:\n" + "\n".join(lines))
+    except Exception:
+        _debug_exception("_debug_stage_dump")
+
+
+# ------------------------------------------------------------
+# For the buttons: an error inside a slot is written to the log (with its traceback) and shown in the Log tab,
+# instead of surfacing as a raw traceback of the Houdini console. The signal arguments are trimmed to what the
+# slot accepts, a decorated method can still be connected to clicked(bool).
+def _guarded_slot(func):
+    takes_all = bool(func.__code__.co_flags & 0x04)
+    accepted = max(0, func.__code__.co_argcount - 1)
+
+    @functools.wraps(func)
+    def wrapper(self, *args):
+        try:
+            return func(self, *(args if takes_all else args[:accepted]))
+        except Exception as exc:
+            _debug_exception(func.__name__)
+            traceback.print_exc()
+            try:
+                self.log_message("[ERROR] {} failed: {}: {} (details in the debug log)".format(
+                    func.__name__, type(exc).__name__, exc))
+            except Exception:
+                pass
+            return None
+    return wrapper
 
 
 # ============================================
@@ -708,8 +860,10 @@ def _pset(node, name, value, log_callback, quiet=False):
                 p.set(str(value))
             return True
         except hou.PermissionError:
+            _debug("locked parm {}.{}".format(_debug_node_label(node), name))
             if not quiet: log_callback(f"  [WARN] Locked parm: '{name}' on {node.name()}")
             return False
+    _debug("no parm '{}' on {}".format(name, _debug_node_label(node)))
     return False
 
 
@@ -2217,6 +2371,7 @@ def setup_karma_environment(cfg, log_callback):
     _create_render_rop(stage, ks, cfg, log_callback)
 
     _layout_tool_nodes(stage)
+    _debug_stage_dump(stage)
 
     # le node karma settings reste le node actif et sélectionné après un build
     if ks:
@@ -2253,6 +2408,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         # child of the main window: without this a closed dialog lives until Houdini exits
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
+        _debug_session_header()
         self._released = False
         self._pending_logs = []
         self._amd_folder = None
@@ -3036,6 +3192,25 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         btn_clear_log.clicked.connect(self.txt_log.clear)
         layout_logs.addWidget(btn_clear_log)
 
+        row_debug = QtWidgets.QHBoxLayout()
+        self.chk_debug_file = QtWidgets.QCheckBox("Write a debug log file")
+        self.chk_debug_file.setToolTip(
+            "Writes every message, the build settings, the missing parameters and the errors with their\n"
+            "traceback to bsm_karma_debug.log. Send this file when something fails.")
+        self.chk_debug_file.setChecked(_debug_state["enabled"])
+        self.chk_debug_file.toggled.connect(self.on_debug_toggled)
+        self.btn_open_log_folder = QtWidgets.QPushButton("Open Folder")
+        self.btn_open_log_folder.setToolTip("Show the folder of the debug log file.")
+        self.btn_open_log_folder.clicked.connect(self.on_open_log_folder)
+        row_debug.addWidget(self.chk_debug_file, 1)
+        row_debug.addWidget(self.btn_open_log_folder)
+        layout_logs.addLayout(row_debug)
+        self.lbl_debug_path = QtWidgets.QLabel()
+        self.lbl_debug_path.setWordWrap(True)
+        self.lbl_debug_path.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.lbl_debug_path.setStyleSheet("color: {};".format(_C["text_muted"]))
+        layout_logs.addWidget(self.lbl_debug_path)
+
         tabs.addTab(_wrap_tab(tab_logs), "Log")
 
         # --- TAB ABOUT ---
@@ -3120,6 +3295,8 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self._set_snapshot_slot_target("A")
         self._update_snapshot_slots_ui()
 
+        self._update_debug_path_label()
+
     # ----------------------------------------
     # LIFECYCLE
     # ----------------------------------------
@@ -3158,6 +3335,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
             except Exception as exc:
                 self._release_errors.append("{}: {}".format(label, exc))
 
+        _debug("window closed")
         step("timer", self._hdri_preview_timer.stop)
 
         step("viewport panel", lambda: self._close_pane_tab(self._karma_scene_viewer))
@@ -3390,6 +3568,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.lbl_mat_status.setText(text)
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def on_connect_material_library(self):
         source = self.combo_mat_source.currentText()
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
@@ -3560,6 +3739,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.refresh_material_targets()
 
     # ------------------------------------------------------------------------
+    @_guarded_slot
     def on_material_asset_dropped(self, payload, paths_text):
         prim_paths = [p for p in paths_text.splitlines() if p]
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
@@ -3579,6 +3759,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self._assign_material_assets(assets, prim_paths)
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def on_assign_material_file(self):
         prim_paths = self.tree_mat_targets.selected_paths()
         if not prim_paths:
@@ -3610,6 +3791,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self._assign_material_assets(assets, prim_paths)
 
     # --------------------------------------------------------------------------------
+    @_guarded_slot
     def on_unassign_material(self):
         prim_paths = self.tree_mat_targets.selected_paths()
         linker = _material_linker_node(hou.node("/stage"))
@@ -3622,6 +3804,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.refresh_material_targets()
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def on_open_material_linker(self):
         linker = _material_linker_node(hou.node("/stage"))
         if linker is None:
@@ -3637,6 +3820,37 @@ class KarmaBuilderUI(QtWidgets.QDialog):
     def log_message(self, message):
         now = datetime.datetime.now().strftime("%H:%M:%S")
         self.txt_log.append(f"[{now}] {message}")
+        _debug(message, "LOG")
+
+    # ------------------------------------------------------------
+    def _update_debug_path_label(self):
+        path = debug_log_path() if _debug_state["enabled"] else None
+        if not _debug_state["enabled"]:
+            self.lbl_debug_path.setText("Debug log file: off.")
+        elif path is None or _debug_state["broken"]:
+            self.lbl_debug_path.setText("Debug log file: no writable folder found, nothing is written.")
+        else:
+            self.lbl_debug_path.setText("Debug log file: {}".format(path))
+
+    # ------------------------------------------------------------
+    def on_debug_toggled(self, enabled):
+        if enabled:
+            _debug_state["broken"] = False
+            _debug_state["enabled"] = True
+            _debug_session_header()
+            _debug("debug log switched on")
+        else:
+            _debug("debug log switched off")
+            _debug_state["enabled"] = False
+        self._update_debug_path_label()
+
+    # ------------------------------------------------------------
+    def on_open_log_folder(self):
+        path = debug_log_path()
+        if path is None:
+            self.log_message("[WARN] No writable folder for the debug log.")
+            return
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(os.path.dirname(path)))
 
     # --------------------------------------------------------
     # Presets: texte embarqué par l'HDA, sinon le JSON à côté du script, sinon un jeu minimal.
@@ -3839,6 +4053,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         return deleted, skipped
 
     # ----------------------------------------------------------------------
+    @_guarded_slot
     def on_clear_all(self):
         nodes_by_path = self._collect_tool_stage_nodes()
         if not nodes_by_path:
@@ -4188,9 +4403,11 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         }
 
     # ------------------------------------------------------------------------
+    @_guarded_slot
     def on_build(self):
         self.sync_output_extension()
         config = self._collect_config()
+        _debug("build settings: " + json.dumps(config, sort_keys=True, default=str))
         try:
             with hou.undos.group("BSM Karma - Build"):
                 setup_karma_environment(config, self.log_message)
@@ -4202,6 +4419,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         return True
 
     # ------------------------------------
+    @_guarded_slot
     def on_render_disk(self):
         if not self.on_build():
             return
@@ -4213,6 +4431,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
             rp.parm("execute").pressButton()
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def on_render_mplay(self):
         if not self.on_build():
             return
@@ -4394,6 +4613,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         return desktop.paneTabOfType(hou.paneTabType.SceneViewer)
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def on_apply_viewport_engine(self):
         engine = self.combo_viewport_engine.currentText().strip().lower()
         self.combo_engine.setCurrentText(engine)
@@ -4506,6 +4726,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
     def _apply_camera_to_viewport(self, scene_viewer, viewport):
         self._lock_viewport_to_camera(scene_viewer, viewport, self._render_camera_prim_path())
 
+    @_guarded_slot
     def on_look_through_camera(self):
         stage = hou.node("/stage")
         if self._current_camera_choice() == CAMERA_CREATE_LABEL and (stage is None or stage.node(GENERATED_CAMERA_NAME) is None):
@@ -4527,6 +4748,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
             self.log_message("[WARN] Could not lock the viewport to {}.".format(prim_path or "the render camera"))
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def on_capture_viewport_snapshot(self):
         img = self._capture_viewport_snapshot_image()
         if img is None:
@@ -4783,6 +5005,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.lbl_snapshot_preview.setPixmap(pixmap)
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def on_save_viewport_snapshot(self):
         if not self._snapshot_any_image():
             self.log_message("[WARN] No snapshot to save.")
@@ -4835,6 +5058,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
             self.log_message("[WARN] Failed to save snapshot: {}".format(path))
 
     # ----------------------------------------------------------------------
+    @_guarded_slot
     def on_open_karma_settings(self):
         self.on_build()
         desktop = hou.ui.curDesktop()
@@ -4845,6 +5069,7 @@ class KarmaBuilderUI(QtWidgets.QDialog):
         self.log_message("[OK] Karma settings panel opened.")
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def on_open_viewport(self):
         self.on_build()
 

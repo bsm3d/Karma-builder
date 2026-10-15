@@ -356,9 +356,21 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>[OK]</code></td><td>An action finished.</td></tr>
   <tr><td><code>[INFO]</code></td><td>Something was removed, skipped or decided for you.</td></tr>
   <tr><td><code>[WARN]</code></td><td>Something could not be done. The build usually continues. Typical cause: a parameter or node type that does not exist in your Houdini version.</td></tr>
-  <tr><td><code>[ERROR]</code></td><td>The build stopped, for example because a node of yours has the same name as a tool node.</td></tr>
+  <tr><td><code>[ERROR]</code></td><td>The build or an action stopped, for example because a node of yours has the same name as a tool node. The traceback is in the <a href="#debug-log">debug log file</a>.</td></tr>
 </table>
 <p>Each build starts with a line giving the Houdini version. <strong>About</strong> shows the version of the tool and the license.</p>
+<h4 id="debug-log">Debug log file</h4>
+<p>Below the Log, <strong>Write a debug log file</strong> (on by default) copies everything to a text file, <code>bsm_karma_debug.log</code>. It is more complete than the Log tab and is the file to send when something fails. It records:</p>
+<ul>
+  <li>a header for each session: tool version, Houdini version, Python, Qt binding, operating system, script path and the open .hip file;</li>
+  <li>every message of the Log tab;</li>
+  <li>the full settings of each build;</li>
+  <li>each parameter that was not found or was locked on a node (the usual sign of a Houdini version difference);</li>
+  <li>the node graph of <code>/stage</code> after each build, with the type of each node, its inputs, and whether it belongs to the tool;</li>
+  <li>the traceback of any error raised by a button. The button's error also appears in the Log tab as <code>[ERROR]</code>, and the window keeps working.</li>
+</ul>
+<p><strong>Where the file is written:</strong> in the folder of <code>bsm_karma.py</code>. The HDA has no file on disk, so it writes to <code>bsm_karma</code> inside your Houdini user preferences folder; if that folder cannot be written, the system temp folder is used. The Log tab shows the exact path, and <strong>Open Folder</strong> shows the folder. When the file passes 1 MB it is renamed to <code>bsm_karma_debug.log.1</code> (one backup is kept) and a new one starts.</p>
+<p>To start with the log off, set the environment variable <code>BSM_KARMA_DEBUG=0</code> before launching Houdini. The file only contains paths, node names and settings, but check it before sharing it if your scene paths are confidential.</p>
 
 <h2 id="presets">Presets</h2>
 <p>Presets are stored in <code>bsm_karma_presets.json</code> (embedded in the HDA). Editing the file adds or changes entries without touching the code; if the file is missing or broken, the tool falls back to one built-in entry of each kind (the Log reports a broken file).</p>
@@ -426,6 +438,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td>The light I moved went back</td><td>Update to this version: lights are now positioned only when they are created, so an existing light keeps the position you gave it.</td></tr>
   <tr><td>Sky intensity looks too strong with fog or clouds</td><td>Intentional: it is multiplied by 4 to compensate for the light the volumes absorb. Lower <em>Sky Intensity</em> if needed.</td></tr>
   <tr><td>Every frame overwrites the previous one</td><td>The output path has no frame token. Use <code>$F4</code> in the name, for example <code>frame_$F4.exr</code>.</td></tr>
+  <tr><td>An error I cannot explain</td><td>Open the <a href="#debug-log">debug log file</a> (Log tab, <strong>Open Folder</strong>) and send it, with the Houdini version.</td></tr>
   <tr><td>The HDA still shows old behavior</td><td>It holds a copy of the code. Rebuild it with <code>hython build_hda.py</code> and reinstall it.</td></tr>
 </table>
 
@@ -438,6 +451,7 @@ bsm_karma.main()</code></pre></li>
   <tr><td><code>build_hda.py</code></td><td>Builds the HDA with <code>hython</code>.</td></tr>
   <tr><td><code>hda_python_module.py</code></td><td>The PythonModule of the HDA: loads the embedded code and opens the window.</td></tr>
   <tr><td><code>ast_equiv.py</code></td><td>Maintainer helper: proves that a style pass did not change the code.</td></tr>
+  <tr><td><code>bsm_karma_debug.log</code></td><td>Written by the tool next to <code>bsm_karma.py</code> (see <a href="#debug-log">Debug log file</a>). Ignored by git.</td></tr>
   <tr><td><code>Informations/</code></td><td>License texts and AI transparency notice.</td></tr>
   <tr><td><code>Screenshots/</code></td><td>Images used in the documentation.</td></tr>
 </table>
