@@ -37,7 +37,7 @@ $HOUDINI_USER_PREF_DIR/packages/bsm_karma.json with:
         ]
     }
 
-and restart Houdini. Do not keep both a copy in scripts/python and this package: Houdini would load one of them
+and restart Houdini (this package route was not tried here). Do not keep both a copy in scripts/python and this package: Houdini would load one of them
 and you would not know which.
 
 
