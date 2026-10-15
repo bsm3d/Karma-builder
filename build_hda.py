@@ -129,8 +129,10 @@ def build(output):
     definition.addSection("LICENSE.txt", read_text("LICENSE"))
     definition.addSection("Help", HELP)
     definition.addSection("Tools.shelf", TOOLS_SHELF)
-    icon_path = os.path.join("Karma builder", "icone_Bsm_Karma.png")
-    if os.path.isfile(os.path.join(ROOT, icon_path)):
+    # the icon sits at the root of the repository; the old "Karma builder" folder is still looked at
+    icon_path = next((p for p in ("icone_Bsm_Karma.png", os.path.join("Karma builder", "icone_Bsm_Karma.png"))
+                      if os.path.isfile(os.path.join(ROOT, p))), "")
+    if icon_path:
         definition.addSection("icon.png", read_bytes(icon_path))
         definition.setIcon("opdef:/{}?icon.png".format(asset.type().nameWithCategory()))
     definition.setVersion(version)
