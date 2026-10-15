@@ -10,7 +10,7 @@ from .build import setup_karma_environment
 from .catalog import _CATALOG_WRAPPERS
 from .config import FORM_LABEL_GAP, SCRIPT_VERSION
 from .debuglog import _debug, _debug_session_header, _guarded_slot
-from .live import LiveUpdateMixin
+from .live import LiveUpdateMixin, _structure_of
 from .snapshots import SnapshotMixin
 from .styles import BSM_STYLE, _C, _btn_style
 from .tab_atmosphere import AtmosphereTab
@@ -60,6 +60,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         _debug_session_header()
         self._released = False
         self._live_building = False
+        self._live_structure = None
         self._live_seen = set()
         self._pending_logs = []
         self._amd_folder = None
@@ -377,6 +378,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         except hou.Error as exc:
             self.log_message("[ERROR] Build stopped: {}".format(exc))
             return False
+        self._live_structure = _structure_of(config)
         return True
 
     # ------------------------------------------------------------------------

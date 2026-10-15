@@ -106,6 +106,12 @@ STAGE_TARGET_LIMIT = 5000
 FORM_LABEL_GAP = 14
 
 
+# Settings that add, remove or rewire nodes, or switch the render engine. A running Karma viewport restarts on
+# these and can freeze Houdini for minutes, so Live Update leaves them to the Build button.
+LIVE_STRUCTURE_KEYS = ("scene_mode", "env_type", "sky_mode", "enable_fog", "enable_clouds", "enable_aovs", "engine",
+                       "camera_choice", "geo_source", "cloud_material_path")
+
+
 # Edit Material LOP: edits an existing USD material as a VOP network. Read on H22.0.466: a multiparm 'materials'
 # whose first entry is enable1, matpath1 (the material), load1 (button) and matnode1. The tool always uses entry 1.
 MATERIAL_EDIT_NODE = "material_edit"

@@ -110,7 +110,9 @@ class SceneTab:
 
         self.chk_live_update = QtWidgets.QCheckBox("Rebuild on change")
         self.chk_live_update.setToolTip(
-            "On: any change updates the nodes after a short pause, no need to press Build.\n"
+            "On: a change of a value updates the nodes after a short pause, no need to press Build.\n"
+            "A change that adds or removes nodes (scene mode, sky rendering, fog, clouds, AOVs, engine, camera,\n"
+            "geometry source) waits for Build: it can freeze a running Karma viewport.\n"
             "Off: the network only changes when you press Build (better on a slower machine).")
         form_main.addRow("Live Update:", self.chk_live_update)
 

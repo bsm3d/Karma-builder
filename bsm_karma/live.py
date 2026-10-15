@@ -2,8 +2,22 @@
 # Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
 
 from hutil.Qt import QtWidgets
+from .config import LIVE_STRUCTURE_KEYS
 from .debuglog import _debug, _guarded_slot
 from .gauges import GaugeBar
+
+
+# ------------------------------------------------------------
+LIVE_STRUCTURE_LABELS = {
+    "scene_mode": "Scene Mode", "env_type": "Environment", "sky_mode": "Sky Rendering", "enable_fog": "Fog",
+    "enable_clouds": "Clouds", "enable_aovs": "AOVs", "engine": "Engine", "camera_choice": "Camera",
+    "geo_source": "Geometry Source", "cloud_material_path": "Cloud Material Path",
+}
+
+
+# ------------------------------------------------------------
+def _structure_of(config):
+    return {key: config.get(key) for key in LIVE_STRUCTURE_KEYS}
 
 # ------------------------------------------------------------
 class LiveUpdateMixin:
@@ -77,9 +91,35 @@ class LiveUpdateMixin:
             _debug(message, "LOG")
 
     # ------------------------------------------------------------
+    # What differs from the last Build in the settings that change the node structure ([] when nothing does).
+    def _live_structure_changes(self):
+        built = self._live_structure
+        if built is None:
+            return ["no Build yet"]
+        now = _structure_of(self._collect_config())
+        return [key for key in LIVE_STRUCTURE_KEYS if now[key] != built.get(key)]
+
+    # ------------------------------------------------------------
+    def _live_pause(self, reasons):
+        if reasons == ["no Build yet"]:
+            text = "[INFO] Live Update waits for a first Build: press Build Environment Only."
+        else:
+            text = ("[INFO] Live Update paused: {} changed. That adds or removes nodes, which can freeze a running "
+                    "Karma viewport. Press Build Environment Only; Live Update then goes on.".format(
+                ", ".join(LIVE_STRUCTURE_LABELS.get(key, key) for key in reasons)))
+        if text not in self._live_seen:
+            self._live_seen.add(text)
+            self.log_message(text)
+        _debug("live update paused: {}".format(reasons))
+
+    # ------------------------------------------------------------
     @_guarded_slot
     def _live_build(self):
         if self._live_building or not self.chk_live_update.isChecked():
+            return
+        reasons = self._live_structure_changes()
+        if reasons:
+            self._live_pause(reasons)
             return
         self._live_building = True
         try:
