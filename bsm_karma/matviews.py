@@ -61,7 +61,8 @@ def walk_model(model, limit=MATERIAL_VIEW_LIMIT):
                 return
             index = model.index(row, 0, parent)
             text = str(index.data(QtCore.Qt.DisplayRole) or "")
-            if model.hasChildren(index) and model.rowCount(index) > 0:
+            if model.hasChildren(index) or model.canFetchMore(index):
+                # a folder; one that is not loaded yet shows nothing here, opening it in Thumbnails loads it
                 visit(index, trail + [text])
             else:
                 found.append((text, list(trail), QtCore.QPersistentModelIndex(index)))

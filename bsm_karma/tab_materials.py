@@ -7,12 +7,12 @@ import tempfile
 from hutil.Qt import QtWidgets, QtCore
 from .util import _expand_plain_path
 from .catalog import _amd_library_reachable, _bound_material_name, _list_materials_in_file, _material_catalog_file, _parse_catalog_drop, _stage_target_prims
-from .config import _PRIM_PATH_RE, STAGE_TARGET_LIMIT
+from .config import _PRIM_PATH_RE, MATERIAL_EDIT_PATH_PARM, STAGE_TARGET_LIMIT
 from .debuglog import _debug, _guarded_slot
 from .linker import (_get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain, _insert_material_linker_in_chain,
-                     _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_linker_node)
+                     _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_edit_node, _material_linker_node)
 from .matviews import MaterialBrowser
-from .nodeutil import _is_tool_node_candidate
+from .nodeutil import _is_tool_node_candidate, _paused_cooking
 from .styles import _C
 from .viewport_drop import ViewportDropFilter, viewer_selection
 from .widgets import MaterialTargetTree, PopupRefreshComboBox, wrap_tab
@@ -406,6 +406,9 @@ class MaterialsTab:
 
     # ------------------------------------------------------------
     def _assign_payload(self, payload, prim_paths):
+        if not prim_paths:
+            self.log_message("[INFO] No prim to assign to.")
+            return
         assets = self._assets_from_payload(payload)
         if assets:
             self._assign_material_assets(assets, prim_paths)
@@ -478,6 +481,7 @@ class MaterialsTab:
     @_guarded_slot
     def _on_catalog_context_menu(self, global_pos):
         menu = QtWidgets.QMenu(self)
+        menu.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         act_assign = menu.addAction("Assign to Selection")
         menu.addSeparator()
         act_edit = menu.addAction("Edit Material (Material Linker)")
@@ -505,30 +509,55 @@ class MaterialsTab:
         if len(assets) > 1:
             self.log_message("[INFO] {} materials selected, editing the first one.".format(len(assets)))
         asset = assets[0]
+        if network and not self._confirm_replace_edited_material(asset["label"]):
+            return
         problems = []
         with hou.undos.group("BSM Karma - Edit Material"):
-            linker = self._ensure_material_linker()
-            if linker is None:
-                return
-            try:
-                material_path = _linker_add_reference(linker, asset["file_path"], asset["prim_path"], asset["label"])
-            except ValueError as exc:
-                self.log_message("[WARN] Material not opened: {}".format(exc))
-                return
-            node = linker
-            if network:
+            with _paused_cooking(self.log_message):
+                linker = self._ensure_material_linker()
+                if linker is None:
+                    return
                 try:
-                    node = _get_or_create_material_edit(hou.node("/stage"))
-                    _insert_material_edit_in_chain(linker, node)
+                    material_path = _linker_add_reference(linker, asset["file_path"], asset["prim_path"], asset["label"])
+                except ValueError as exc:
+                    self.log_message("[WARN] Material not opened: {}".format(exc))
+                    return
+                node = linker
+                if network:
+                    try:
+                        node = _get_or_create_material_edit(hou.node("/stage"))
+                        _insert_material_edit_in_chain(linker, node)
+                    except hou.Error as exc:
+                        self.log_message("[WARN] Edit Material node unavailable ({}), opening the Material Linker instead.".format(exc))
+                        node = linker
+            # the Load button reads the stage: cooking is back on for it
+            if network and node is not linker:
+                try:
                     problems = _material_edit_load(node, material_path)
                 except hou.Error as exc:
-                    self.log_message("[WARN] Edit Material node unavailable ({}), opening the Material Linker instead.".format(exc))
-                    node = linker
+                    problems = ["Load failed: {}".format(exc)]
         for problem in problems:
             self.log_message("[WARN] {}".format(problem))
         self.log_message("[OK] {} ready to edit in {}.".format(material_path, node.path()))
         self._focus_node(node, dive=network and not problems)
         self.refresh_material_targets()
+
+    # ------------------------------------------------------------
+    # The Edit Material node holds one material at a time: loading another one replaces the network being edited.
+    def _confirm_replace_edited_material(self, label):
+        edit = _material_edit_node(hou.node("/stage"))
+        if edit is None or not edit.children():
+            return True
+        current = edit.parm(MATERIAL_EDIT_PATH_PARM)
+        current = current.evalAsString() if current is not None else ""
+        if not current or current.rsplit("/", 1)[-1] == label:
+            return True
+        reply = QtWidgets.QMessageBox.question(
+            self, "Edit Material",
+            "{} is editing {}.\n\nOpening {} replaces it, and the edits made in that network are lost "
+            "(Ctrl+Z brings them back).\n\nContinue?".format(edit.name(), current, label),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel, QtWidgets.QMessageBox.Cancel)
+        return reply == QtWidgets.QMessageBox.Yes
 
     # ------------------------------------------------------------
     # Select the node, make it current (the parameter pane follows) and show it in a network editor.

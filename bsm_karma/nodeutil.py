@@ -79,7 +79,7 @@ def _safe_connect(node, prev):
 # network is being built, cooking is paused (manual update), then put back: one cook at the end. A session that
 # was already in manual mode is left alone.
 @contextlib.contextmanager
-def _paused_cooking():
+def _paused_cooking(log_callback=None):
     previous = None
     try:
         current = hou.updateModeSetting()
@@ -96,6 +96,8 @@ def _paused_cooking():
                 hou.setUpdateMode(previous)
             except (hou.Error, AttributeError) as exc:
                 _debug("update mode not restored: {}".format(exc))
+                if log_callback is not None:
+                    log_callback("[WARN] Houdini's update mode could not be put back: set it to Auto Update yourself (status bar).")
 
 
 # ------------------------------------------------------------

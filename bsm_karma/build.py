@@ -74,9 +74,18 @@ def _cleanup_environment_nodes(stage, cfg, log_callback):
 
 
 # --------------------------------------------------------------------------------
+# A node the build no longer needs: removed now, or, when a list is given, at the end of the build (see below).
+def _drop_node(stage, name, log_callback, reason, removals):
+    if removals is None:
+        _remove_tool_node(stage, name, log_callback, reason)
+    else:
+        removals.append((name, reason))
+
+
+# --------------------------------------------------------------------------------
 # Merge the geometry LOP with the environment so materials can bind to it.
 # No source selected: the chain is left as it was and an old merge is removed.
-def _merge_geometry_source(stage, env_tip, cfg, log_callback):
+def _merge_geometry_source(stage, env_tip, cfg, log_callback, removals=None):
     geo_path = (cfg.get("geo_source") or "").strip()
     geo_node = hou.node(geo_path) if geo_path else None
 
@@ -89,7 +98,7 @@ def _merge_geometry_source(stage, env_tip, cfg, log_callback):
     if not usable:
         if geo_path:
             log_callback("[WARN] Geometry source not usable: {}".format(geo_path))
-        _remove_tool_node(stage, "geo_merge", log_callback)
+        _drop_node(stage, "geo_merge", log_callback, "", removals)
         return env_tip
 
     merge = _get_or_create_node(stage, "merge", "geo_merge")
@@ -154,7 +163,7 @@ def _build_lighting(stage, cam, cfg, log_callback, skipped):
 # --------------------------------------------------------------------------------
 # Material library, Material Linker, Edit Material, AOVs, render settings and ROP, each wired after the previous one.
 # Returns the Karma Render Settings node.
-def _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped):
+def _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped, removals):
     try:
         mat = _create_material_library(stage, env_tip, cfg, log_callback)
     except hou.Error as exc:
@@ -179,7 +188,7 @@ def _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped):
             skipped.append("AOVs")
             upstream = mat
     else:
-        _remove_tool_node(stage, "standard_aovs", log_callback, "AOVs disabled")
+        _drop_node(stage, "standard_aovs", log_callback, "AOVs disabled", removals)
         upstream = mat
     ks = _create_render_settings(stage, cam_path, upstream, cfg, log_callback)
     try:
@@ -202,14 +211,18 @@ def setup_karma_environment(cfg, log_callback):
     except (hou.Error, TypeError, IndexError):
         pass
     skipped = []
-    with _paused_cooking():
+    removals = []
+    with _paused_cooking(log_callback):
         stage = _get_or_create_stage()
         child_count = len(stage.children())
         cam, cam_path = _resolve_render_camera(stage, cfg, log_callback)
 
         env_tip = _build_lighting(stage, cam, cfg, log_callback, skipped)
-        env_tip = _merge_geometry_source(stage, env_tip, cfg, log_callback)
-        ks = _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped)
+        env_tip = _merge_geometry_source(stage, env_tip, cfg, log_callback, removals)
+        ks = _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped, removals)
+        # their consumers are rewired by now
+        for name, reason in removals:
+            _remove_tool_node(stage, name, log_callback, reason)
         _cleanup_environment_nodes(stage, cfg, log_callback)
 
         # a live update only re-places the nodes when it created or removed some, and never takes the selection
