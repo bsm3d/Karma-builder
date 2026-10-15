@@ -2,3 +2,4 @@
 bsm_karma_debug.log
 bsm_karma_debug.log.1
 __pycache__/
+*.pyc
