@@ -7,7 +7,7 @@ from hutil.Qt import QtWidgets, QtCore
 from .debuglog import _guarded_slot
 from .gauges import ClickSlider
 from .styles import _C, _btn_style, _slider_stylesheet
-from .util import _normalize_output_path_extension
+from .util import _expand_plain_path, _normalize_output_path_extension
 from .widgets import wrap_tab
 
 # ------------------------------------------------------------
@@ -192,6 +192,7 @@ class ExportTab:
         self.lbl_snapshot_preview.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_snapshot_preview.setScaledContents(False)
         self.lbl_snapshot_preview.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+        self.lbl_snapshot_preview.setTextFormat(QtCore.Qt.PlainText)
         self.lbl_snapshot_preview.setObjectName("snapshotPreview")
         lay_snapshot_stack.addWidget(self.lbl_snapshot_preview)
         lay_viewport_tools.addWidget(self.w_snapshot_preview)
@@ -207,7 +208,11 @@ class ExportTab:
         pattern = "*.exr" if self.combo_output_format.currentText() == "EXR" else "*.png"
         path = hou.ui.selectFile(start_directory="$HIP", title="Output Path", pattern=pattern, chooser_mode=hou.fileChooserMode.Write)
         if path:
-            self.line_out.setText(hou.text.expandString(path))
+            try:
+                self.line_out.setText(_expand_plain_path(path))
+            except ValueError as exc:
+                self.log_message("[WARN] Output path not changed: {}".format(exc))
+                return
             self.sync_output_extension()
             self._schedule_live_update()
 
@@ -243,7 +248,11 @@ class ExportTab:
             return
         rp = hou.node("/stage/render_to_disk")
         if rp:
-            out_dir = os.path.dirname(hou.text.expandString(self.line_out.text()))
+            try:
+                out_dir = os.path.dirname(_expand_plain_path(self.line_out.text()))
+            except ValueError as exc:
+                self.log_message("[WARN] Render to Disk not started: {}".format(exc))
+                return
             if out_dir: os.makedirs(out_dir, exist_ok=True)
             self.log_message("Launching Render to Disk...")
             rp.parm("execute").pressButton()

@@ -5,6 +5,7 @@ import hou
 import os
 import tempfile
 from hutil.Qt import QtWidgets, QtCore
+from .util import _expand_plain_path
 from .catalog import _amd_library_reachable, _bound_material_name, _list_materials_in_file, _material_catalog_file, _parse_catalog_drop, _stage_target_prims
 from .config import STAGE_TARGET_LIMIT
 from .debuglog import _debug, _guarded_slot
@@ -58,11 +59,13 @@ class MaterialsTab:
                 "The material catalog is not available in this Houdini build ({}).\n"
                 "Use 'Assign File...' below instead.".format(self._gallery_problem or "unknown reason"))
             lbl_no_gallery.setAlignment(QtCore.Qt.AlignCenter)
+            lbl_no_gallery.setTextFormat(QtCore.Qt.PlainText)
             lbl_no_gallery.setWordWrap(True)
             lay_catalog.addWidget(lbl_no_gallery)
 
         self.lbl_mat_status = QtWidgets.QLabel(
             "Showing Houdini's current material catalog. Pick another source and press Connect to switch.")
+        self.lbl_mat_status.setTextFormat(QtCore.Qt.PlainText)
         self.lbl_mat_status.setWordWrap(True)
         self.lbl_mat_status.setStyleSheet("color: {};".format(_C["text_muted"]))
         lay_catalog.addWidget(self.lbl_mat_status)
@@ -165,7 +168,10 @@ class MaterialsTab:
         path = hou.ui.selectFile(start_directory=self.line_mat_download.text(), title="Material Download Folder",
                                  file_type=hou.fileType.Directory, chooser_mode=hou.fileChooserMode.Read)
         if path:
-            self.line_mat_download.setText(hou.text.expandString(path).rstrip("/\\"))
+            try:
+                self.line_mat_download.setText(_expand_plain_path(path).rstrip("/\\"))
+            except ValueError as exc:
+                self._set_material_status("Folder not changed: {}".format(exc))
 
     # --------------------------------------------------
     def _set_material_status(self, text):
@@ -205,7 +211,7 @@ class MaterialsTab:
                     pattern="*.mtlx *.usd *.usda *.usdc *.usdz")
                 if not path:
                     return
-                path = hou.text.expandString(path)
+                path = _expand_plain_path(path)
                 source_file = _material_catalog_file(path)
                 if source_file != path:
                     self._hdri_temp_files.append(source_file)  # removed when the dialog is released
@@ -375,11 +381,11 @@ class MaterialsTab:
             pattern="*.mtlx *.usd *.usda *.usdc *.usdz")
         if not path:
             return
-        path = hou.text.expandString(path)
         try:
+            path = _expand_plain_path(path)
             materials = _list_materials_in_file(path)
         except Exception as exc:   # pxr raises Tf.ErrorException, which has no narrower base here
-            self.log_message("[WARN] Could not read {}: {}".format(path, exc))
+            self.log_message("[WARN] Could not read the material file: {}".format(exc))
             return
         if not materials:
             self.log_message("[WARN] No material found in {}".format(path))

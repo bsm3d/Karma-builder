@@ -10,8 +10,11 @@ from hutil.Qt import QtWidgets, QtCore, QtGui
 from .debuglog import _guarded_slot
 from .gauges import FloatSlider, IntSlider
 from .previews import SunAltitudeWidget, SunCompassWidget
-from .util import _private_temp_dir
+from .util import _expand_plain_path, _private_temp_dir
 from .widgets import wrap_tab
+
+HDRI_PREVIEW_MAX_BYTES = 400 * 1024 * 1024
+
 
 # ------------------------------------------------------------
 class LightingTab:
@@ -66,6 +69,7 @@ class LightingTab:
         self.lbl_hdri_preview.setMinimumHeight(110)
         self.lbl_hdri_preview.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_hdri_preview.setScaledContents(True)
+        self.lbl_hdri_preview.setTextFormat(QtCore.Qt.PlainText)
         self.lbl_hdri_preview.setObjectName("hdriPreview")
         self.form_base.addRow("HDRI Preview:", self.lbl_hdri_preview)
 
@@ -230,7 +234,11 @@ class LightingTab:
     def browse_hdri(self):
         path = hou.ui.selectFile(start_directory="$HIP", title="Select HDRI", pattern="*.exr *.hdr *.rat", chooser_mode=hou.fileChooserMode.Read)
         if path:
-            self.line_hdri_path.setText(hou.text.expandString(path))
+            try:
+                self.line_hdri_path.setText(_expand_plain_path(path))
+            except ValueError as exc:
+                self.log_message("[WARN] HDRI path not changed: {}".format(exc))
+                return
             self._do_hdri_preview()
             self._schedule_live_update()
 
@@ -350,9 +358,16 @@ class LightingTab:
             self._set_hdri_preview_message("No HDRI path")
             return
 
-        source_path = os.path.abspath(hou.text.expandString(source_path))
+        try:
+            source_path = os.path.abspath(_expand_plain_path(source_path))
+        except ValueError:
+            self._set_hdri_preview_message("Path refused: it contains an expression")
+            return
         if not os.path.isfile(source_path):
             self._set_hdri_preview_message("HDRI file not found")
+            return
+        if os.path.getsize(source_path) > HDRI_PREVIEW_MAX_BYTES:
+            self._set_hdri_preview_message("File too large for a preview")
             return
 
         pixmap = self._load_hdri_preview_pixmap(source_path)

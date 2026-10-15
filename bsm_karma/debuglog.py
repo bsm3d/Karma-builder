@@ -7,10 +7,10 @@ import hou
 import os
 import platform
 import sys
-import tempfile
 import traceback
 from hutil.Qt import QtCore
 from .config import SCRIPT_VERSION
+from .util import _private_temp_dir
 
 # Everything the tool does goes to a text file: the log messages, the build configuration, the parameters that were
 # not found, the node graph after a build and the traceback of any error. Send that file when something fails.
@@ -38,7 +38,11 @@ def _debug_candidate_folders():
             folders.append(os.path.join(pref_dir, "bsm_karma"))
     except (hou.Error, AttributeError):
         pass
-    folders.append(os.path.join(tempfile.gettempdir(), "bsm_karma"))
+    # last resort: a private folder of this session (a predictable name in the shared temp could be a planted link)
+    try:
+        folders.append(_private_temp_dir())
+    except OSError:
+        pass
     return folders
 
 

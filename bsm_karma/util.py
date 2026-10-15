@@ -71,6 +71,15 @@ def _has_expression(text):
     return "`" in str(text)
 
 
+# --------------------------------------------------
+# A file name can carry a backtick expression (an archive from anywhere may hold such names) and expandString
+# would run it as soon as the path is expanded. Whatever the user did not type goes through here first.
+def _expand_plain_path(path):
+    if _has_expression(path):
+        raise ValueError("the path contains a backtick expression, refused: {!r}".format(path))
+    return hou.text.expandString(path)
+
+
 _private_temp = None
 
 

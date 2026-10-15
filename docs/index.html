@@ -427,13 +427,26 @@ bsm_karma.main()</code></pre></li>
 </ul>
 
 <h2 id="security">Safety checks</h2>
-<p>A drag and drop, or the metadata of an online catalog, is data from outside. The tool treats it as untrusted:</p>
+<p>Houdini runs a backtick expression (for example <code>`system("...")`</code>) as soon as a string is expanded, so any text that did not come from your own typing is treated as untrusted: a drag and drop, the metadata of an online catalog, a file name, a path stored in a scene.</p>
+<h3>What the tool refuses or limits</h3>
 <ul>
-  <li>A material path, a label or a source that contains a backtick (a Houdini expression) is refused.</li>
-  <li>The AMD library can only write inside the download folder you connected in the Materials tab.</li>
+  <li>A material path, a label or a source that contains a backtick is refused.</li>
+  <li><strong>A file picked in a chooser</strong> (HDRI, output path, download folder, material file, snapshot) is refused if its <em>name</em> contains a backtick. A downloaded archive can hold such names. The HDRI preview also refuses a path with a backtick that was pasted in.</li>
+  <li>The AMD library can only write inside the download folder you connected in the Materials tab, and a package path that escapes it is refused.</li>
   <li>A catalog source must be one of Houdini's known sources, or an existing database or USD file.</li>
-  <li>Temporary files (HDRI previews, <code>.mtlx</code> wrappers, snapshots) go to a private folder created for the session and deleted when Houdini exits.</li>
-  <li>Camera paths coming from a scene are only sent to a command line when they are plain USD paths.</li>
+  <li>Text from outside is shown <strong>as plain text</strong>: in the Log and in the status labels. A catalog label cannot draw an image, a link or a fake line in the Log.</li>
+  <li>Temporary files (HDRI previews, <code>.mtlx</code> wrappers, snapshots) go to a private folder created for the session and deleted when Houdini exits. The debug log falls back to that same private folder, never to a predictable name in the shared temp folder.</li>
+  <li>A name that goes into a Houdini command line (camera path, viewport name) is only used when it contains plain characters.</li>
+  <li>External programs are called with an argument list, never through a shell. The HDRI preview skips files above 400 MB.</li>
+  <li><code>presets.json</code> can be edited by hand: an entry with a missing or non numeric value is left out and reported in the Log.</li>
+  <li>The tool contains no <code>eval</code>, <code>pickle</code>, <code>os.system</code> or shell call, and it sends nothing anywhere. The only network access is the AMD library you connect yourself (HTTPS, certificate checked, with a timeout).</li>
+</ul>
+<h3>What stays your decision</h3>
+<ul>
+  <li><strong>The HDA runs the Python it carries.</strong> Install an asset only from a source you trust, like any HDA. The loader serves the embedded modules and checks nothing else.</li>
+  <li><strong>Drag sources.</strong> A drop whose source is not the AMD library is accepted when it points to an existing database or USD file: another application could start such a drag. It can only make Houdini read a catalog file you already have.</li>
+  <li><strong>Image and USD files</strong> are read by Qt and by USD. A damaged file can still hit a bug in those libraries; open files you trust.</li>
+  <li><strong>The debug log holds paths</strong> (scene, files) and settings. Read it before sending it to someone.</li>
 </ul>
 
 <h2 id="troubleshooting">Troubleshooting</h2>

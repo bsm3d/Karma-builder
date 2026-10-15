@@ -5,5 +5,8 @@
 [TODO] tests/ - run the whole suite (run_tests.ps1, then -Gui) on H21 and H22, not run since the split into the bsm_karma package
 [TODO] bsm_karma_builder.hda - holds the old single-file code, rebuild with hython build_hda.py once the tool is stable
 [TODO] repository - Git setup and CI once the tool is finished
+[TODO] bsm_karma/catalog.py - drag sources other than AMD are only checked for suffix and existence; an allowlist (default catalog, connected file) needs the identifier of the shared catalog of each Houdini version
 [DONE] bsm_karma.py split into the bsm_karma package, one module per responsibility
 [DONE] broad except Exception narrowed, the five that must never raise are commented
+[DONE] security audit: backtick file names, plain text for outside text, private log fallback, hscript names, preview size cap, presets validation
+[DONE] guard rails: private gallery API, window start, isolated build steps, file choosers, HDA load

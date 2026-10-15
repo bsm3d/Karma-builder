@@ -86,6 +86,7 @@ class LogTab:
         row_debug.addWidget(self.btn_open_log_folder)
         layout_logs.addLayout(row_debug)
         self.lbl_debug_path = QtWidgets.QLabel()
+        self.lbl_debug_path.setTextFormat(QtCore.Qt.PlainText)
         self.lbl_debug_path.setWordWrap(True)
         self.lbl_debug_path.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
         self.lbl_debug_path.setStyleSheet("color: {};".format(_C["text_muted"]))
@@ -96,7 +97,11 @@ class LogTab:
     #----------------------------------------------------------------
     def log_message(self, message):
         now = datetime.datetime.now().strftime("%H:%M:%S")
-        self.txt_log.append(f"[{now}] {message}")
+        # plain text on purpose: append() would parse HTML, and the message may carry text from outside
+        # (catalog labels, node names), enough to forge lines or draw images in the Log
+        self.txt_log.moveCursor(QtGui.QTextCursor.End)
+        self.txt_log.insertPlainText(f"[{now}] {message}\n")
+        self.txt_log.ensureCursorVisible()
         _debug(message, "LOG")
 
     # ------------------------------------------------------------

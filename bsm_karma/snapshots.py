@@ -6,7 +6,7 @@ import hou
 import os
 from hutil.Qt import QtCore, QtGui
 from .debuglog import _guarded_slot
-from .util import _clamp, _private_temp_dir
+from .util import _clamp, _expand_plain_path, _private_temp_dir
 
 # ------------------------------------------------------------
 class SnapshotMixin:
@@ -336,7 +336,11 @@ class SnapshotMixin:
         if not path:
             return
 
-        path = hou.text.expandString(path)
+        try:
+            path = _expand_plain_path(path)
+        except ValueError as exc:
+            self.log_message("[WARN] Snapshot not saved: {}".format(exc))
+            return
         root, ext = os.path.splitext(path)
         if ext.lower() not in (".png", ".jpg", ".jpeg"):
             path = root + ".png"

@@ -1,6 +1,7 @@
 # viewport.py - BSM Karma Builder - Karma viewport, renderer and camera lock
 # Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
 
+import re
 import hou
 from .config import CAMERA_CREATE_LABEL, GENERATED_CAMERA_NAME, USD_CAMERA_PREFIX, _PRIM_PATH_RE
 from .debuglog import _guarded_slot
@@ -138,7 +139,8 @@ class ViewportMixin:
             if renderer_set:
                 break
 
-        if not renderer_set and viewport is not None:
+        # the viewport name goes into a command line: plain names only
+        if not renderer_set and viewport is not None and re.fullmatch(r"[A-Za-z0-9_.]+", str(viewport.name())):
             for renderer_name in renderer_candidates:
                 try:
                     hou.hscript('viewrenderer -V "{}" "{}"'.format(viewport.name(), renderer_name))

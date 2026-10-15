@@ -24,6 +24,20 @@ from .tab_scene import SceneTab
 from .util import _normalized_path
 from .viewport import ViewportMixin
 
+
+# presets.json can be edited by hand: an entry with a missing or non numeric value is left out, with a note
+def _valid_presets(entries, required, kind, notes):
+    valid = {}
+    for name, entry in (entries.items() if isinstance(entries, dict) else ()):
+        numbers = isinstance(entry, dict) and all(
+            isinstance(entry.get(key), (int, float)) and not isinstance(entry.get(key), bool) for key in required)
+        if numbers:
+            valid[name] = entry
+        else:
+            notes.append("{} preset '{}' ignored: it needs numbers for {}".format(kind, name, ", ".join(required)))
+    return valid
+
+
 # --------------------------------------------------------
 # bug trouvé et fixé: super(Classe, self) casse après importlib.reload (TypeError sur l'ancien dialogue),
 # d'où super() sans argument partout :)
@@ -224,10 +238,11 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
                     with open(preset_file, 'r', encoding='utf-8') as f:
                         data = json.load(f)
             if data is not None:
-                self.presets = data.get("render_qualities", {})
-                self.sky_presets = data.get("sky_presets", {})
-                self.fog_presets = data.get("fog_presets", {})
-                self.cloud_presets = data.get("cloud_presets", {})
+                notes = self._pending_logs
+                self.presets = _valid_presets(data.get("render_qualities", {}), ("rx", "ry", "spl"), "quality", notes)
+                self.sky_presets = _valid_presets(data.get("sky_presets", {}), ("elv", "s_int", "turb", "sk_int", "hz"), "sky", notes)
+                self.fog_presets = _valid_presets(data.get("fog_presets", {}), ("dens", "h", "rad", "phase"), "fog", notes)
+                self.cloud_presets = _valid_presets(data.get("cloud_presets", {}), ("dens", "alt", "scale"), "cloud", notes)
                 return
         except (OSError, ValueError, AttributeError) as e:
             # The log tab does not exist yet while the dialog is being built: keep the message for later.

@@ -147,6 +147,46 @@ try:
 finally:
     hou.hscript = real_hscript
 
+# --- a file NAME can carry the expression: refused before expandString sees it ---
+import types
+import bsm_karma.debuglog as debuglog_module
+import bsm_karma.util as util_module
+import bsm_karma.window as window_module
+
+name_marker = os.path.join(work, "pwned_name.txt").replace("\\", "/")
+if os.path.exists(name_marker):
+    os.remove(name_marker)
+evil_name = work + '/a`system("echo x > {}")`.mtlx'.format(name_marker)
+try:
+    util_module._expand_plain_path(evil_name)
+    refused = False
+except ValueError:
+    refused = True
+t.check("a backtick in a chosen file name is refused", refused and not os.path.exists(name_marker))
+t.check("a normal path still expands", util_module._expand_plain_path("$HIP/shot.exr").endswith("shot.exr"))
+
+# --- a viewport name goes into a command line: plain names only ---
+sent = []
+real_hscript = hou.hscript
+hou.hscript = lambda cmd: sent.append(cmd)
+try:
+    odd_viewport = types.SimpleNamespace(name=lambda: 'persp1" ; echo x ; "')
+    k.KarmaBuilderUI._set_viewport_renderer(None, types.SimpleNamespace(), odd_viewport, "xpu")
+    t.check("a viewport name with quotes never reaches hscript", not sent, sent)
+finally:
+    hou.hscript = real_hscript
+
+# --- presets.json is editable by hand: malformed entries are left out ---
+notes = []
+kept = window_module._valid_presets({"Ok": {"rx": 640, "ry": 360, "spl": 8}, "NoSamples": {"rx": 1, "ry": 1}, "Text": {"rx": "a", "ry": 1, "spl": 1}},
+                                    ("rx", "ry", "spl"), "quality", notes)
+t.check("malformed preset entries are dropped and reported", list(kept) == ["Ok"] and len(notes) == 2, notes)
+
+# --- the debug log never falls back to a predictable folder of the shared temp ---
+shared = os.path.join(os.environ.get("TEMP") or os.environ.get("TMPDIR") or "/tmp", "bsm_karma")
+t.check("debug log fallback is not a predictable shared folder",
+        os.path.normcase(os.path.normpath(shared)) not in [os.path.normcase(os.path.normpath(f)) for f in debuglog_module._debug_candidate_folders()])
+
 # --- static guard: nothing dynamic in the tool itself ---
 package_dir = os.path.join(ROOT, "bsm_karma")
 source = "\n".join(open(os.path.join(package_dir, name), encoding="utf-8").read()
