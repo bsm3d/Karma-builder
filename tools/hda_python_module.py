@@ -90,6 +90,14 @@ def load_tool(definition):
 # ------------------------------------------------------------
 # Opens the Karma Builder dialog (or brings a second launch in place of the first).
 def open_builder(node):
-    module = load_tool(node.type().definition())
+    try:
+        module = load_tool(node.type().definition())
+    except Exception:   # a damaged or incomplete asset: tell the user, leave nothing half loaded
+        import hou
+        import traceback
+        forget_package()
+        hou.ui.displayMessage("BSM Karma Builder could not load its code from this asset.\nRebuild it with: hython build_hda.py",
+                              details=traceback.format_exc(), severity=hou.severityType.Error)
+        return None
     module.main()
     return module

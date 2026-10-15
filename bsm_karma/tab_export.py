@@ -202,6 +202,7 @@ class ExportTab:
         self._config_tabs.append(tab_out)
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def browse_output(self):
         pattern = "*.exr" if self.combo_output_format.currentText() == "EXR" else "*.png"
         path = hou.ui.selectFile(start_directory="$HIP", title="Output Path", pattern=pattern, chooser_mode=hou.fileChooserMode.Write)

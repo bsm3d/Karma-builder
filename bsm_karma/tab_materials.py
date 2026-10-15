@@ -160,6 +160,7 @@ class MaterialsTab:
         if not has_gallery:
             self.w_mat_download.setVisible(False)
 
+    @_guarded_slot
     def browse_material_download_dir(self):
         path = hou.ui.selectFile(start_directory=self.line_mat_download.text(), title="Material Download Folder",
                                  file_type=hou.fileType.Directory, chooser_mode=hou.fileChooserMode.Read)
@@ -252,6 +253,7 @@ class MaterialsTab:
         self.combo_geo_source.blockSignals(False)
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def refresh_geo_sources(self):
         self._fill_geo_source_combo()
         self.refresh_stage_cameras()
@@ -283,6 +285,7 @@ class MaterialsTab:
             return None
 
     # --------------------------------------------------------
+    @_guarded_slot
     def refresh_material_targets(self, *_):
         stage = self._material_stage()
         if stage is None:

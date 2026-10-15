@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 from hutil.Qt import QtWidgets, QtCore, QtGui
+from .debuglog import _guarded_slot
 from .gauges import FloatSlider, IntSlider
 from .previews import SunAltitudeWidget, SunCompassWidget
 from .util import _private_temp_dir
@@ -225,6 +226,7 @@ class LightingTab:
             if "amb_b" in p: self.sp_amb_b.setValue(p["amb_b"])
 
     # ------------------------------------------------------------------------
+    @_guarded_slot
     def browse_hdri(self):
         path = hou.ui.selectFile(start_directory="$HIP", title="Select HDRI", pattern="*.exr *.hdr *.rat", chooser_mode=hou.fileChooserMode.Read)
         if path:
@@ -341,6 +343,7 @@ class LightingTab:
         return preview_pixmap
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def _do_hdri_preview(self):
         source_path = self.line_hdri_path.text().strip()
         if not source_path:

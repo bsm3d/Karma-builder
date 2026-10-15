@@ -112,6 +112,7 @@ def setup_karma_environment(cfg, log_callback):
             log_callback("[WARN] Written for Houdini 21 and 22: some Karma parameters may be missing in this version.")
     except (hou.Error, TypeError, IndexError):
         pass
+    skipped = []
     stage = _get_or_create_stage()
     child_count = len(stage.children())
     cam, cam_path = _resolve_render_camera(stage, cfg, log_callback)
@@ -130,13 +131,15 @@ def setup_karma_environment(cfg, log_callback):
         if cfg["enable_fog"]:
             try:
                 fog = _create_fog_branch(stage, cam, cfg, log_callback)
-            except hou.OperationFailed as exc:
+            except hou.Error as exc:
                 log_callback("[WARN] Fog skipped: {}".format(exc))
+                skipped.append("fog")
         if cfg["enable_clouds"]:
             try:
                 cloud = _create_cloud_branch(stage, cam, cfg, log_callback)
-            except hou.OperationFailed as exc:
+            except hou.Error as exc:
                 log_callback("[WARN] Clouds skipped (a node type may be missing in this Houdini): {}".format(exc))
+                skipped.append("clouds")
         env_tip = _create_environment_merge(stage, env_base, fog, cloud)
         
     elif mode == "Studio":
@@ -164,7 +167,12 @@ def setup_karma_environment(cfg, log_callback):
 
     env_tip = _merge_geometry_source(stage, env_tip, cfg, log_callback)
 
-    mat = _create_material_library(stage, env_tip, cfg, log_callback)
+    try:
+        mat = _create_material_library(stage, env_tip, cfg, log_callback)
+    except hou.Error as exc:
+        log_callback("[WARN] Material library skipped: {}".format(exc))
+        skipped.append("material library")
+        mat = env_tip
 
     linker = _material_linker_node(stage)
     if linker is not None:
@@ -172,12 +180,21 @@ def setup_karma_environment(cfg, log_callback):
         mat = linker
 
     if cfg["enable_aovs"]:
-        upstream = _create_aov_chain(stage, mat, cfg, log_callback)
+        try:
+            upstream = _create_aov_chain(stage, mat, cfg, log_callback)
+        except hou.Error as exc:
+            log_callback("[WARN] AOVs skipped: {}".format(exc))
+            skipped.append("AOVs")
+            upstream = mat
     else:
         _remove_tool_node(stage, "standard_aovs", log_callback, "AOVs disabled")
         upstream = mat
     ks = _create_render_settings(stage, cam_path, upstream, cfg, log_callback)
-    _create_render_rop(stage, ks, cfg, log_callback)
+    try:
+        _create_render_rop(stage, ks, cfg, log_callback)
+    except hou.Error as exc:
+        log_callback("[WARN] Render ROP skipped: {}".format(exc))
+        skipped.append("render ROP")
 
     # a live update only re-places the nodes when it created or removed some, and never takes the selection
     if not live or len(stage.children()) != child_count:
@@ -190,7 +207,10 @@ def setup_karma_environment(cfg, log_callback):
         if not live:
             ks.setSelected(True, True)
         
-    log_callback(f"[OK] Karma Ready. Engine: {cfg['engine'].upper()} | Env: {env_type}")
+    if skipped:
+        log_callback("[WARN] Built, but these steps were skipped: {}.".format(", ".join(skipped)))
+    else:
+        log_callback(f"[OK] Karma Ready. Engine: {cfg['engine'].upper()} | Env: {env_type}")
 
 
 # ------------------------------------------------------------

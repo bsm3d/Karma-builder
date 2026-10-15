@@ -2,6 +2,7 @@
 # Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
 
 import sys
+import traceback
 
 # importlib.reload(bsm_karma) only runs this file: drop the submodules so they are read again too
 if "bsm_karma_ui_dialog" in globals():
@@ -12,6 +13,7 @@ import hou
 from .build import setup_karma_environment
 from .catalog import (_amd_library_reachable, _bound_material_name, _catalog_source_problem, _list_materials_in_file,
                       _material_catalog_file, _parse_catalog_drop, _stage_target_prims)
+from .debuglog import _debug_exception, debug_log_path
 from .config import AMD_LIBRARY_URL, AMD_SOURCE_ID, SCRIPT_VERSION, USD_CAMERA_PREFIX
 from .environment import _stage_camera_prims
 from .linker import (_get_or_create_material_linker, _insert_material_linker_in_chain, _linker_add_reference,
@@ -54,7 +56,17 @@ def main(kwargs=None):
         except RuntimeError:
             pass  # the Qt object was already deleted
 
-    dialog = KarmaBuilderUI(hou.qt.mainWindow())
+    try:
+        dialog = KarmaBuilderUI(hou.qt.mainWindow())
+    except Exception:   # whatever went wrong while building the window: say where the details are, do not raise
+        _debug_exception("main")
+        traceback.print_exc()
+        try:
+            hou.ui.displayMessage("BSM Karma Builder could not open its window.\n\nDetails are in the debug log:\n{}".format(
+                debug_log_path()), severity=hou.severityType.Error)
+        except hou.Error:
+            pass
+        return
     dialog.destroyed.connect(lambda *_, dialog_id=id(dialog): _forget_dialog(dialog_id))
     bsm_karma_ui_dialog = dialog
     dialog.show()

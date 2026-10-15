@@ -345,7 +345,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
             "trange": 1 if self.combo_trange.currentText() == "Frame Range" else 0,
             "f_start": self.spin_fStart.value(),
             "f_end": self.spin_fEnd.value(),
-            "out_path": self.line_out.text()
+            "out_path": self.line_out.text().strip() or "$HIP/render/beauty/frame_$F4.exr"
         }
 
     # ------------------------------------------------------------------------
@@ -357,7 +357,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         try:
             with hou.undos.group(undo_name):
                 setup_karma_environment(config, log)
-        except hou.OperationFailed as exc:
+        except hou.Error as exc:
             self.log_message("[ERROR] Build stopped: {}".format(exc))
             return False
         return True

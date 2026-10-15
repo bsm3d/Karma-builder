@@ -148,6 +148,7 @@ class SceneTab:
         return data if data else CAMERA_CREATE_LABEL
 
     # --------------------------------------------------------------------------------
+    @_guarded_slot
     def refresh_stage_cameras(self, *_):
         current = self._current_camera_choice() if self.combo_camera.count() else CAMERA_CREATE_LABEL
         self.combo_camera.blockSignals(True)

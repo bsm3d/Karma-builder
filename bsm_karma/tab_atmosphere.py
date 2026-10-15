@@ -3,6 +3,7 @@
 
 import hou
 from hutil.Qt import QtWidgets
+from .debuglog import _guarded_slot
 from .gauges import FloatSlider, IntSlider
 from .previews import AtmosphereVisualWidget
 from .widgets import wrap_tab
@@ -125,6 +126,7 @@ class AtmosphereTab:
             )
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def browse_cloud_mat(self):
         path = hou.ui.selectNode(initial_node=hou.node("/stage"), title="Select Cloud Material Node or Library")
         if not path:

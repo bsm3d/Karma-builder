@@ -117,7 +117,10 @@ def _debug_session_header():
     _debug("Python {} | {} (Qt {}) | {}".format(
         sys.version.split()[0], binding, qt_version, platform.platform()), "SESSION")
     _debug("script: {}".format(globals().get("__file__") or "<embedded>"), "SESSION")
-    _debug("hip file: {}".format(hou.hipFile.path()), "SESSION")
+    try:
+        _debug("hip file: {}".format(hou.hipFile.path()), "SESSION")
+    except (hou.Error, AttributeError):
+        _debug("hip file: unknown", "SESSION")
 
 
 # ------------------------------------------------------------
@@ -138,7 +141,7 @@ def _guarded_slot(func):
             try:
                 self.log_message("[ERROR] {} failed: {}: {} (details in the debug log)".format(
                     func.__name__, type(exc).__name__, exc))
-            except RuntimeError:
-                pass  # the window is already deleted
+            except (RuntimeError, AttributeError):
+                pass  # the window is deleted, or not built far enough to have its log
             return None
     return wrapper
