@@ -1,0 +1,43 @@
+{
+    "_metadata": {
+        "title": "BSM Karma Builder PRO Config",
+        "author": "BSM",
+        "website": "",
+        "copyright": "© 2026 bsm3d.com. All rights reserved.",
+        "description": "External parameters dictionary. Modify this file directly to add new setups without touching the core script."
+    },
+
+    "render_qualities": {
+        "Draft (720p / 64s)":   {"rx": 1280, "ry":  720, "spl":   64},
+        "Low (1080p / 128s)":   {"rx": 1920, "ry": 1080, "spl":  128},
+        "Mid (1080p / 256s)":   {"rx": 1920, "ry": 1080, "spl":  256},
+        "High (4K / 512s)":     {"rx": 3840, "ry": 2160, "spl":  512},
+        "Ultra (4K / 1024s)":   {"rx": 3840, "ry": 2160, "spl": 1024}
+    },
+
+    "sky_presets": {
+        "Clear Sky (Midday)":     {"elv": 60.0, "s_int": 3.0, "turb": 2.8, "sk_int": 2.0, "hz": 2.0, "sun_t": 5500, "amb_r": 1.0, "amb_g": 1.0, "amb_b": 1.0, "atm_r": 1.0, "atm_m": 0.5},
+        "Sunrise / Dawn":         {"elv":  8.0, "s_int": 1.5, "turb": 3.0, "sk_int": 1.5, "hz": 4.0, "sun_t": 3500, "amb_r": 0.9, "amb_g": 0.7, "amb_b": 0.9, "atm_r": 1.5, "atm_m": 2.0},
+        "Golden Hour":            {"elv": 15.0, "s_int": 2.0, "turb": 3.2, "sk_int": 1.6, "hz": 8.0, "sun_t": 4000, "amb_r": 1.0, "amb_g": 0.8, "amb_b": 0.6, "atm_r": 1.2, "atm_m": 1.5},
+        "Sunset / Dusk":          {"elv":  2.0, "s_int": 1.0, "turb": 3.8, "sk_int": 1.2, "hz": 12.0,"sun_t": 3000, "amb_r": 0.8, "amb_g": 0.5, "amb_b": 0.7, "atm_r": 2.0, "atm_m": 3.0},
+        "Overcast / Hazy":        {"elv": 45.0, "s_int": 0.5, "turb": 3.5, "sk_int": 1.5, "hz": 15.0,"sun_t": 6500, "amb_r": 0.9, "amb_g": 0.9, "amb_b": 0.95,"atm_r": 1.0, "atm_m": 4.5},
+        "Storm / Heavy Overcast": {"elv": 45.0, "s_int": 0.1, "turb": 4.0, "sk_int": 0.8, "hz": 20.0,"sun_t": 7000, "amb_r": 0.8, "amb_g": 0.85, "amb_b": 0.9, "atm_r": 0.8, "atm_m": 5.0},
+        "Night / Moonlight":      {"elv": -10.0,"s_int": 0.2, "turb": 2.5, "sk_int": 0.2, "hz": 2.0, "sun_t": 8500, "amb_r": 0.3, "amb_g": 0.4, "amb_b": 0.8, "atm_r": 0.5, "atm_m": 1.0}
+    },
+
+    "fog_presets": {
+        "Light Mist":       {"dens": 0.05, "h": 20.0, "rad": 150.0, "phase": 0.2, "ns": 0.1, "na": 0.2},
+        "Thick Ground Fog": {"dens": 0.40, "h": 10.0, "rad": 100.0, "phase": 0.6, "ns": 0.3, "na": 0.5},
+        "Creepy Swamp":     {"dens": 0.20, "h": 15.0, "rad": 120.0, "phase": 0.4, "ns": 0.5, "na": 0.8}
+    },
+
+    "cloud_presets": {
+        "High Cirrus":    {"dens": 0.05, "alt": 300.0, "scale": 350.0, "div": 4, "clip": 0.30},
+        "Low Cumulus":    {"dens": 0.20, "alt": 80.0,  "scale": 150.0, "div": 5, "clip": 0.45},
+        "Stormy":         {"dens": 0.50, "alt": 100.0, "scale": 250.0, "div": 6, "clip": 0.40},
+        "Stratus (low)":  {"dens": 0.30, "alt": 500.0, "scale": 200.0, "div": 5, "clip": 0.45},
+        "Cumulus (mid)":  {"dens": 0.40, "alt": 1200.0,"scale": 250.0, "div": 6, "clip": 0.40},
+        "Altocumulus":    {"dens": 0.15, "alt": 3500.0,"scale": 300.0, "div": 5, "clip": 0.35},
+        "Cirrostratus":   {"dens": 0.05, "alt": 10000.0,"scale":400.0, "div": 4, "clip": 0.30}
+    }
+}
