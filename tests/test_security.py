@@ -148,9 +148,11 @@ finally:
     hou.hscript = real_hscript
 
 # --- static guard: nothing dynamic in the tool itself ---
-source = open(os.path.join(ROOT, "bsm_karma.py"), encoding="utf-8").read()
+package_dir = os.path.join(ROOT, "bsm_karma")
+source = "\n".join(open(os.path.join(package_dir, name), encoding="utf-8").read()
+                   for name in sorted(os.listdir(package_dir)) if name.endswith(".py"))
 dangerous = re.findall(r"\beval\(|\bexec\(|os\.system|shell\s*=\s*True|\bpickle\b|__import__|\bmarshal\b", source)
-t.check("bsm_karma.py has no eval, exec, os.system, shell=True, pickle or __import__", not dangerous, dangerous)
+t.check("the bsm_karma package has no eval, exec, os.system, shell=True, pickle or __import__", not dangerous, dangerous)
 t.check("subprocess is only called with an argument list", not re.search(r"subprocess\.(run|Popen|call|check_output)\(\s*[\"'f]", source))
 
 t.done()

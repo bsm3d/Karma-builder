@@ -1,7 +1,8 @@
 # Builds the BSM Karma Builder HDA from the project files: hython build_hda.py [output.hda]
 #
-# The asset is a LOP node that passes its input through and carries the tool as sections (bsm_karma.py, presets,
-# loader, license, icon). It is rebuilt from the sources each time, bsm_karma.py stays the single source of truth.
+# The asset is a LOP node that passes its input through and carries the tool as sections (one per module of the
+# bsm_karma package, presets, loader, license, icon). It is rebuilt from the sources each time, the package stays
+# the single source of truth.
 #
 # Revision : 10-10-2026 | Auteur : BSM
 import os
@@ -10,39 +11,38 @@ import sys
 
 import hou
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-# the project root holds bsm_karma.py: the script's own folder when the files sit side by side, else its parent (tools/)
-ROOT = HERE if os.path.isfile(os.path.join(HERE, "bsm_karma.py")) else os.path.dirname(HERE)
-DEFAULT_OUTPUT = os.path.join(ROOT, "bsm_karma_builder.hda" if ROOT == HERE else os.path.join("hda", "bsm_karma_builder.hda"))
+ROOT = os.path.dirname(os.path.abspath(__file__))
+PACKAGE = "bsm_karma"
+DEFAULT_OUTPUT = os.path.join(ROOT, "bsm_karma_builder.hda")
 
 OP_NAME = "bsm::karma_builder::1.0"
 OP_LABEL = "BSM Karma Builder"
+SOURCE_PREFIX = "bsm_karma_src_"
 
 # ------------------------------------------------------------
-# First existing candidate, each one a path relative to ROOT: the project is laid out either flat or with tools/.
-def find_file(*candidates):
-    for rel in candidates:
-        if os.path.isfile(os.path.join(ROOT, rel)):
-            return os.path.join(ROOT, rel)
-    raise FileNotFoundError("none of {} under {}".format(", ".join(candidates), ROOT))
-
-
-# ------------------------------------------------------------
-def read_text(*candidates):
-    with open(find_file(*candidates), encoding="utf-8", newline="") as handle:
+def read_text(*parts):
+    with open(os.path.join(ROOT, *parts), encoding="utf-8", newline="") as handle:
         return handle.read().replace("\r\n", "\n")
 
 
 # ----------------------------------------
-def read_bytes(*candidates):
-    with open(find_file(*candidates), "rb") as handle:
+def read_bytes(*parts):
+    with open(os.path.join(ROOT, *parts), "rb") as handle:
         return handle.read()
+
+
+# ------------------------------------------------------------
+# One section per module of the package: bsm_karma_src_<name>, the package file itself being "__init__".
+def package_sources():
+    folder = os.path.join(ROOT, PACKAGE)
+    return {name[:-3]: read_text(PACKAGE, name) for name in sorted(os.listdir(folder)) if name.endswith(".py")}
+
 
 #------------------------------------------------------------
 def script_version():
-    match = re.search(r'^SCRIPT_VERSION = "([^"]+)"', read_text("bsm_karma.py"), re.MULTILINE)
+    match = re.search(r'^SCRIPT_VERSION = "([^"]+)"', read_text(PACKAGE, "config.py"), re.MULTILINE)
     if not match:
-        raise RuntimeError("SCRIPT_VERSION not found in bsm_karma.py")
+        raise RuntimeError("SCRIPT_VERSION not found in {}/config.py".format(PACKAGE))
     return match.group(1)
 
 
@@ -122,10 +122,11 @@ def build(output):
     ptg.append(hou.LabelParmTemplate("requirements", "Requires", column_labels=("Houdini 21 or 22, Solaris and Karma",)))
     definition.setParmTemplateGroup(ptg)
 
-    definition.addSection("bsm_karma_py", read_text("bsm_karma.py"))
-    definition.addSection("bsm_karma_presets_json", read_text("bsm_karma_presets.json"))
-    definition.addSection("PythonModule", read_text("hda_python_module.py", os.path.join("tools", "hda_python_module.py")))
-    definition.addSection("LICENSE.txt", read_text("LICENSE.txt", "LICENSE", os.path.join("Informations", "LICENSE.txt")))
+    for name, code in package_sources().items():
+        definition.addSection(SOURCE_PREFIX + name, code)
+    definition.addSection("bsm_karma_presets_json", read_text(PACKAGE, "presets.json"))
+    definition.addSection("PythonModule", read_text("tools", "hda_python_module.py"))
+    definition.addSection("LICENSE.txt", read_text("LICENSE"))
     definition.addSection("Help", HELP)
     definition.addSection("Tools.shelf", TOOLS_SHELF)
     icon_path = os.path.join("Karma builder", "icone_Bsm_Karma.png")

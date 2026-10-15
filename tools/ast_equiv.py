@@ -1,6 +1,6 @@
 # Checks that a style pass changed no code: compares the AST of files with their version at a git revision.
 #
-# usage: python ast_equiv.py [REV] [files...]     (default: HEAD, every .py file of the project)
+# usage: python tools/ast_equiv.py [REV] [files...]     (default: HEAD, every .py file of the project)
 #
 # Docstrings are ignored on both sides. Comments never reach the AST, so any change to a name, a value or a
 # string shows up as a difference. Exit code 1 when a file differs.
@@ -11,9 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-# the project root holds bsm_karma.py: this folder when the files sit side by side, else its parent (tools/)
-ROOT = HERE if (HERE / "bsm_karma.py").is_file() else HERE.parent
+ROOT = Path(__file__).resolve().parent.parent
 
 # ------------------------------------------------------------
 def strip_docstrings(tree):

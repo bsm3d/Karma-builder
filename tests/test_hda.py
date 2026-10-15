@@ -24,9 +24,13 @@ def source(*parts):
         return handle.read().replace("\r\n", "\n")
 
 
+# one section per module of the package
+MODULES = sorted(name[:-3] for name in os.listdir(os.path.join(ROOT, "bsm_karma")) if name.endswith(".py"))
+
+
 built, version = build_hda.build(hda_path)
 t.check("the HDA file is built", os.path.isfile(built) and os.path.getsize(built) > 50000, os.path.getsize(built))
-t.check("tool version read from bsm_karma.py", version == k.SCRIPT_VERSION, version)
+t.check("tool version read from bsm_karma/config.py", version == k.SCRIPT_VERSION, version)
 hou.hda.installFile(built)
 node_type = hou.nodeType(hou.lopNodeTypeCategory(), build_hda.OP_NAME)
 t.check("installed as a LOP node type", node_type is not None, build_hda.OP_NAME)
@@ -34,9 +38,11 @@ definition = node_type.definition()
 
 # --- sections carry the tool ---
 sections = definition.sections()
-t.check("sources are embedded verbatim",
-        sections["bsm_karma_py"].contents() == source("bsm_karma.py")
-        and sections["bsm_karma_presets_json"].contents() == source("bsm_karma_presets.json")
+t.check("every module of the package is embedded verbatim",
+        all(sections["bsm_karma_src_" + name].contents() == source("bsm_karma", name + ".py") for name in MODULES),
+        [name for name in MODULES if "bsm_karma_src_" + name not in sections])
+t.check("presets and loader are embedded verbatim",
+        sections["bsm_karma_presets_json"].contents() == source("bsm_karma", "presets.json")
         and sections["PythonModule"].contents() == source("tools", "hda_python_module.py"))
 t.check("license is embedded", "PolyForm Noncommercial License 1.0.0" in sections["LICENSE.txt"].contents())
 t.check("help and tab menu sections present", "Help" in sections and "Tools.shelf" in sections)
@@ -65,7 +71,7 @@ t.check("a second load reuses the module", module.load_tool(definition) is tool)
 
 stub = types.SimpleNamespace(_pending_logs=[])
 tool.KarmaBuilderUI._load_presets(stub)  # plain function call: no dialog needed
-expected = json.loads(source("bsm_karma_presets.json"))
+expected = json.loads(source("bsm_karma", "presets.json"))
 t.check("presets come from the embedded text", stub.sky_presets == expected["sky_presets"] and stub.presets == expected["render_qualities"]
         and not stub._pending_logs, stub._pending_logs)
 
@@ -87,7 +93,7 @@ class FakeSection:
 
 # ----------------------------------------
 def fake_definition(code):
-    return types.SimpleNamespace(sections=lambda: {"bsm_karma_py": FakeSection(code), "bsm_karma_presets_json": FakeSection("{}")})
+    return types.SimpleNamespace(sections=lambda: {"bsm_karma_src___init__": FakeSection(code), "bsm_karma_presets_json": FakeSection("{}")})
 
 
 newer = module.load_tool(fake_definition("MARKER = 2\n"))
@@ -109,16 +115,18 @@ if os.path.isfile(committed):
         stale.append("no definition")
     else:
         committed_sections = committed_defs[0].sections()
-        for name, text in (("bsm_karma_py", source("bsm_karma.py")), ("bsm_karma_presets_json", source("bsm_karma_presets.json")),
-                           ("PythonModule", source("tools", "hda_python_module.py"))):
-            if committed_sections[name].contents() != text:
+        expected_sections = [("bsm_karma_src_" + name, source("bsm_karma", name + ".py")) for name in MODULES]
+        expected_sections += [("bsm_karma_presets_json", source("bsm_karma", "presets.json")),
+                              ("PythonModule", source("tools", "hda_python_module.py"))]
+        for name, text in expected_sections:
+            if name not in committed_sections or committed_sections[name].contents() != text:
                 stale.append(name)
     t.check("bsm_karma_builder.hda is up to date (rebuild with: hython build_hda.py)", not stale, stale)
 else:
     t.check("bsm_karma_builder.hda exists (build it with: hython build_hda.py)", False)
 
 # la version du header est écrite à la main, elle doit suivre SCRIPT_VERSION
-header = source("bsm_karma.py").split('\n')[:8]
-t.check("file header carries the current version", any("Version : " + k.SCRIPT_VERSION in line for line in header), header[4])
+header = source("bsm_karma", "config.py").split('\n')[:8]
+t.check("file header carries the current version", any("Version : " + k.SCRIPT_VERSION in line for line in header), header[1])
 
 t.done()

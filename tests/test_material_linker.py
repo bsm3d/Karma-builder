@@ -82,7 +82,8 @@ for bad in ("C:/data/a@b/red.mtlx", "C:/data/red\n.mtlx"):
     t.check("catalog wrapper refuses a path that would break the USD reference", rejected, repr(bad))
 t.check("a USD file is passed through untouched", k._material_catalog_file("C:/data/mats.usda") == "C:/data/mats.usda")
 
-k.AMD_LIBRARY_URL = "http://127.0.0.1:9/api"  # a closed local port: unreachable at once, no real network involved
+import bsm_karma.catalog as catalog_module
+catalog_module.AMD_LIBRARY_URL = "http://127.0.0.1:9/api"  # a closed local port: unreachable at once, no real network involved
 ok, reason = k._amd_library_reachable(timeout=3.0)
 t.check("unreachable AMD library is reported with a reason, not a hang", ok is False and bool(reason), reason)
 

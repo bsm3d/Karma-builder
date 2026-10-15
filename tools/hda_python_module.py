@@ -1,23 +1,66 @@
 # PythonModule of the BSM Karma Builder HDA (hou.phm() on the node).
 #
-# The asset carries bsm_karma.py and the presets as sections. They run in their own module, bsm_karma_hda,
-# so they never clash with a bsm_karma.py that is on the Python path.
+# The asset carries every module of the bsm_karma package and the presets as sections. An import hook serves
+# them as the package bsm_karma_hda, so the relative imports of the tool work as on disk and nothing clashes
+# with a bsm_karma package that is on the Python path.
 #
-# Revision : 10-10-2026 | Auteur : BSM
+# Revision : 15-10-2026 | Auteur : BSM
 import hashlib
+import importlib
+import importlib.abc
+import importlib.util
 import sys
-import types
 
 MODULE_NAME = "bsm_karma_hda"
+SOURCE_PREFIX = "bsm_karma_src_"
+
+
+# ------------------------------------------------------------
+# Gives the embedded sources to the import system.
+class SectionLoader(importlib.abc.Loader):
+
+    def __init__(self, sources):
+        self.sources = sources
+
+    def create_module(self, spec):
+        return None
+
+    # --------------------------------------------------
+    def exec_module(self, module):
+        key = "__init__" if module.__name__ == MODULE_NAME else module.__name__[len(MODULE_NAME) + 1:]
+        module.__file__ = "{}.py (embedded in the BSM Karma Builder HDA)".format(key)
+        exec(compile(self.sources[key], key + ".py", "exec"), module.__dict__)
+
+
+# ------------------------------------------------------------
+class SectionFinder(importlib.abc.MetaPathFinder):
+
+    def __init__(self, loader):
+        self.loader = loader
+
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == MODULE_NAME:
+            return importlib.util.spec_from_loader(fullname, self.loader, is_package=True)
+        if fullname.startswith(MODULE_NAME + ".") and fullname[len(MODULE_NAME) + 1:] in self.loader.sources:
+            return importlib.util.spec_from_loader(fullname, self.loader)
+        return None
+
+
+# ------------------------------------------------------------
+def forget_package():
+    for name in [n for n in sys.modules if n == MODULE_NAME or n.startswith(MODULE_NAME + ".")]:
+        del sys.modules[name]
+    sys.meta_path[:] = [f for f in sys.meta_path if not isinstance(f, SectionFinder)]
 
 
 # --------------------------------------------------
-# The tool module for the embedded source. The code runs once per distinct source: a second press reuses it,
-# a newer version of the asset replaces it.
+# The tool module for the embedded sources. The code runs once per distinct set of sources: a second press
+# reuses it, a newer version of the asset replaces it.
 def load_tool(definition):
     sections = definition.sections()
-    code = sections["bsm_karma_py"].contents()
-    digest = hashlib.sha1(code.encode("utf-8"), usedforsecurity=False).hexdigest()
+    sources = {name[len(SOURCE_PREFIX):]: sections[name].contents() for name in sections if name.startswith(SOURCE_PREFIX)}
+    presets = sections["bsm_karma_presets_json"].contents()
+    digest = hashlib.sha1(repr(sorted(sources.items()) + [presets]).encode("utf-8"), usedforsecurity=False).hexdigest()
 
     module = sys.modules.get(MODULE_NAME)
     if module is not None and getattr(module, "_hda_source_digest", None) == digest:
@@ -31,17 +74,16 @@ def load_tool(definition):
                 old_dialog.close()
             except RuntimeError:
                 pass  # the Qt object is already gone
+    forget_package()
 
-    module = types.ModuleType(MODULE_NAME)
-    module.__file__ = "bsm_karma.py (embedded in the BSM Karma Builder HDA)"
-    module.EMBEDDED_PRESETS = sections["bsm_karma_presets_json"].contents()
-    module._hda_source_digest = digest
-    sys.modules[MODULE_NAME] = module
+    sys.meta_path.insert(0, SectionFinder(SectionLoader(sources)))
     try:
-        exec(compile(code, "bsm_karma.py", "exec"), module.__dict__)
+        module = importlib.import_module(MODULE_NAME)
     except Exception:
-        del sys.modules[MODULE_NAME]
+        forget_package()
         raise
+    module.EMBEDDED_PRESETS = presets
+    module._hda_source_digest = digest
     return module
 
 
