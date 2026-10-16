@@ -76,7 +76,7 @@ TOOLS_SHELF = """<?xml version="1.0" encoding="UTF-8"?>
 <shelfDocument>
   <tool name="$HDA_DEFAULT_TOOL" label="$HDA_LABEL" icon="$HDA_ICON">
     <toolMenuContext name="neteditor">
-      <contextNetType>LOP</contextNetType>
+      <contextOpType>$HDA_TABLE_AND_NAME</contextOpType>
     </toolMenuContext>
     <toolSubmenu>BSM</toolSubmenu>
     <script scriptType="python"><![CDATA[import loptoolutils
