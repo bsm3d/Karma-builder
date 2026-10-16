@@ -55,6 +55,7 @@ def base_config(out_dir):
         camera_choice="Create New Camera", new_cam_focal=50.0, new_cam_from_viewport=False, viewport_matrix=None,
         area_int=10.0, hdri_int=1.0, hdri_path="$HIP/x.exr", hdri_ev=0, hdri_rot=0, hdri_sat=1, hdri_temp=6500,
         hdri_tint=0,
+        lamp_key_temp=6500, lamp_key_tint=0, lamp_fill_temp=6500, lamp_fill_tint=0, lamp_rim_temp=6500, lamp_rim_tint=0,
         enable_fog=False, fog_density=.25, fog_height=30, fog_radius=120, fog_phase=.4, fog_noise_scale=.1,
         fog_noise_amp=.5,
         enable_clouds=False, cloud_density=.2, cloud_altitude=140, cloud_scale=180, cloud_precision=5, cloud_clip=.35,

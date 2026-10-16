@@ -71,6 +71,21 @@ class LightingTab:
         self.form_base.addRow("HDRI Preview:", self.lbl_hdri_preview)
 
         layout_lights.addWidget(grp_base)
+
+        # the lamps of the Studio, 3 Points and Interior modes
+        self.grp_lamps = QtWidgets.QGroupBox("Lamp Colors")
+        self.grp_lamps.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
+        self.form_lamps = QtWidgets.QFormLayout(self.grp_lamps)
+        for lamp, label in (("key", "Key"), ("fill", "Fill"), ("rim", "Rim")):
+            temp = IntSlider(2500, 12000, 6500)
+            temp.setToolTip("Color temperature of the lamp in kelvin: low is warm (orange), high is cool (blue). 6500 is neutral.")
+            tint = FloatSlider(-1.0, 1.0, 0.0)
+            tint.setToolTip("Shift between green (negative) and magenta (positive).")
+            setattr(self, "spin_lamp_{}_temp".format(lamp), temp)
+            setattr(self, "sld_lamp_{}_tint".format(lamp), tint)
+            self.form_lamps.addRow("{} Temp. (K):".format(label), temp)
+            self.form_lamps.addRow("{} Tint:".format(label), tint)
+        layout_lights.addWidget(self.grp_lamps)
         
         self.grp_sky = QtWidgets.QGroupBox("Karma Physical Sky")
         self.grp_sky.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
@@ -282,6 +297,15 @@ class LightingTab:
 
         self.chk_enable_fog.setEnabled(is_env_mode)
         self.chk_enable_clouds.setEnabled(is_env_mode)
+
+        # lamps: Studio has a key, 3 Points a key, a fill and a rim, Interior one window light (the key)
+        self.grp_lamps.setVisible(mode in ["Studio", "3 Points", "Interior"])
+        key_name = "Window" if mode == "Interior" else "Key"
+        self.form_lamps.labelForField(self.spin_lamp_key_temp).setText("{} Temp. (K):".format(key_name))
+        self.form_lamps.labelForField(self.sld_lamp_key_tint).setText("{} Tint:".format(key_name))
+        for lamp in ("fill", "rim"):
+            for widget in (getattr(self, "spin_lamp_{}_temp".format(lamp)), getattr(self, "sld_lamp_{}_tint".format(lamp))):
+                self._set_form_field_visible(self.form_lamps, widget, mode == "3 Points")
 
         # the preset is applied when it is picked (sync_from_*), not at every refresh: that wiped the sliders
         self.grp_sky.setVisible(is_physical)

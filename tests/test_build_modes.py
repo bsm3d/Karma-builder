@@ -113,6 +113,30 @@ t.check("clouds off: no 2D layer either", stage.node("cloud_layer_2d") is None)
 build(scene_mode="Studio", env_type="HDRI Image", enable_clouds=True, cloud_type=1)
 t.check("clouds only exist in Environment mode", stage.node("cloud_layer_2d") is None)
 
+# --- lamp colors: temperature and tint of the lamps of Studio, 3 Points and Interior ---
+def lamp_rgb(name):
+    node = stage.node(name)
+    for parm_tuple in node.parmTuples():
+        if len(parm_tuple) == 3 and parm_tuple.name().lower().startswith("xn__inputscolor"):
+            return tuple(parm_tuple.eval())
+    return None
+
+
+build(scene_mode="Studio", env_type="HDRI Image", lamp_key_temp=3000)
+warm = lamp_rgb("studio_key")
+build(scene_mode="Studio", env_type="HDRI Image", lamp_key_temp=10000)
+cool = lamp_rgb("studio_key")
+t.check("Studio: a low key temperature gives a warm lamp, a high one a cool lamp", warm and cool and warm[0] > warm[2] and cool[2] > cool[0], (warm, cool))
+build(scene_mode="Studio", env_type="HDRI Image", lamp_key_tint=1.0)
+t.check("Studio: a positive tint raises red and blue over green", lamp_rgb("studio_key")[1] < lamp_rgb("studio_key")[0], lamp_rgb("studio_key"))
+build(scene_mode="3 Points", env_type="HDRI Image", lamp_key_temp=3000, lamp_fill_temp=10000, lamp_rim_temp=6500)
+key, fill, rim = lamp_rgb("key_light"), lamp_rgb("fill_light"), lamp_rgb("rim_light")
+t.check("3 Points: each lamp has its own color", key[0] > key[2] and fill[2] > fill[0] and abs(rim[0] - rim[2]) < 0.1, (key, fill, rim))
+build(scene_mode="Interior", env_type="Physical Sky", lamp_key_temp=3000)
+window = lamp_rgb("window_portal")
+t.check("Interior: the window light takes the key color", window[0] > window[2], window)
+t.check("lamp colors: no warning", not [l for l in logs if "WARN" in l], [l for l in logs if "WARN" in l])
+
 build(engine="cpu", sky_mode=1, sky_atm_rayleigh=2.0, sky_atm_mie=3.0)
 t.check("CPU uses path traced convergence", val("karma_settings", "convergence_mode") == "Path Traced")
 t.check("rayleigh scale", abs(val("physical_sky", "rayleighscale") - 6e-05) < 1e-12, val("physical_sky", "rayleighscale"))

@@ -14,6 +14,7 @@
 [TODO] Install.bat, tools/install_windows.ps1, MainMenuCommon.xml, toolbar/bsm_karma.shelf - installer tested with PowerShell 7 on fake Documents folders only; in Houdini 22 check that the package JSON (PYTHONPATH prepend, path) loads, that the BSM menu appears and that the BSM Karma shelf is listed under the + of the shelf tabs
 [TODO] build_hda.py - Tools.shelf now uses the viewer and network contexts (was neteditor): rebuild the HDA and check the Tab menu entry BSM > BSM Karma Builder in /stage on H22 and H21
 [TODO] bsm_karma/matviews.py - Houdini's gallery model is a flat QAbstractListModel (hasChildren is private on it, found on H22), so the Categories view shows one group 'All materials'. Read the 'material model:' line of the debug log (class, rows, roles of row 0) to see where a category could come from, then group by it
+[TODO] Interior mode - the window is an ordinary area light, not a Portal Light LOP wired to the dome light (Houdini 21+ has one, see the Portal lights page of the docs): add it, with Render Light Geometry, once the parameter names are known on H22
 [DONE] bsm_karma.py split into the bsm_karma package, one module per responsibility
 [DONE] broad except Exception narrowed, the five that must never raise are commented
 [DONE] security audit: backtick file names, plain text for outside text, private log fallback, hscript names, preview size cap, presets validation

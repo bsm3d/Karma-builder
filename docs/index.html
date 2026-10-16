@@ -192,7 +192,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
     <td>The dome runs at 20% of <em>Dome Intensity</em>. Relative to <em>Main Area Intensity</em>, the key is 100%, the fill 40% and the rim 150%.</td></tr>
   <tr><td><strong>Interior</strong></td>
     <td><code>physical_sky</code> <em>or</em> <code>env_hdri</code>, plus <code>window_portal</code> (area light)</td>
-    <td>A sky seen through a window, with an area light standing in for it.</td></tr>
+    <td>The sky (or HDRI) is the light that comes in; an area light stands in for the window. The sky is still in the scene, so it also shows wherever the camera sees outside, for example through openings in your walls. With no walls, it shows everywhere.</td></tr>
 </table>
 <p>When you change mode, the nodes of the previous mode that are no longer needed are removed.</p>
 
@@ -256,6 +256,8 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 </table>
 <p>The HDRI controls are only shown when the mode uses an HDRI (Studio, 3 Points, or Environment/Interior with <em>HDRI Image</em>). The preview shows the whole picture in a frame that follows the width of the tab (2:1 for a lat-long image, at most 240 px high), whatever the size of the file. It uses Qt for the usual formats, the tool's own readers for Radiance <code>.hdr</code> and OpenEXR (no compression, RLE, ZIP), and falls back to Houdini's <code>iconvert</code> for the rest (PIZ and other compressions, RAT). If none works the preview says why, for example <em>Preview unavailable: OpenEXR compression PIZ ...; iconvert not found</em>; the render is not affected.</p>
 
+<h4>Lamp Colors</h4>
+<p>Shown in Studio, 3 Points and Interior. Each lamp has a <em>Temp. (K)</em> slider (low is warm, high is cool, 6500 is neutral white) and a <em>Tint</em> slider (green to magenta). Studio has one lamp (the key), 3 Points has the key, the fill and the rim, Interior has the window light (the key sliders, named <em>Window</em>). A color change is applied by Live Update like any value.</p>
 <h4>Karma Physical Sky</h4>
 <p>Shown when the mode uses a physical sky.</p>
 <table>

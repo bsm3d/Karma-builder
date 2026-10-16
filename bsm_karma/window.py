@@ -314,6 +314,12 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
             "hdri_sat": self.sld_hdri_sat.value(),
             "hdri_temp": self.spin_hdri_temp.value(),
             "hdri_tint": self.sld_hdri_tint.value(),
+            "lamp_key_temp": self.spin_lamp_key_temp.value(),
+            "lamp_key_tint": self.sld_lamp_key_tint.value(),
+            "lamp_fill_temp": self.spin_lamp_fill_temp.value(),
+            "lamp_fill_tint": self.sld_lamp_fill_tint.value(),
+            "lamp_rim_temp": self.spin_lamp_rim_temp.value(),
+            "lamp_rim_tint": self.sld_lamp_rim_tint.value(),
             "enable_fog": is_env_mode and self.chk_enable_fog.isChecked(),
             "fog_density": self.sld_fog_density.value(),
             "fog_height": self.sld_fog_height.value(),
@@ -397,7 +403,18 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
             log("[ERROR] Build stopped: {}".format(exc))
             return False
         self._live_structure = _structure_of(config)
+        self._set_build_hint("")
         return True
+
+    # ------------------------------------------------------------
+    # The Build button says what is waiting for it: a change that Live Update does not apply by itself.
+    def _set_build_hint(self, changed_labels):
+        if changed_labels:
+            self.btn_build.setText("Build to apply: {}".format(changed_labels))
+            self.btn_build.setToolTip("Live Update does not add or remove nodes by itself. Press to apply the change.")
+        else:
+            self.btn_build.setText("Build Environment Only")
+            self.btn_build.setToolTip("")
 
     # ------------------------------------------------------------------------
     @_guarded_slot

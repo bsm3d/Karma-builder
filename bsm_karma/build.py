@@ -4,7 +4,7 @@
 import hou
 from .config import TOOL_STAGE_DELETE_ORDER
 from .debuglog import _debug, _debug_exception, _debug_state
-from .environment import _create_area_light, _create_cloud_branch, _create_cloud_layer_2d, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _resolve_render_camera
+from .environment import _lamp_color, _create_area_light, _create_cloud_branch, _create_cloud_layer_2d, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _resolve_render_camera
 from .linker import _material_edit_node, _material_linker_node
 from .nodeutil import (_get_or_create_node, _get_or_create_stage, _is_tool_node_candidate, _layout_tool_nodes, _paused_cooking,
                        _remove_tool_node, _safe_connect)
@@ -151,20 +151,25 @@ def _build_lighting(stage, cam, cfg, log_callback, skipped):
 
     if mode == "Studio":
         dome = _create_dome_light(stage, cam, cfg["hdri_int"], cfg["hdri_path"], log_callback, name="studio_hdri", hdri_opts=cfg)
-        return _create_area_light(stage, dome, cfg["area_int"], log_callback, name="studio_key", pos=(3, 4, 3), rot=(-45, 30, 0))
+        return _create_area_light(stage, dome, cfg["area_int"], log_callback, name="studio_key", pos=(3, 4, 3), rot=(-45, 30, 0),
+                                  color=_lamp_color(cfg, "key"))
 
     if mode == "3 Points":
         dome = _create_dome_light(stage, cam, float(cfg["hdri_int"])*0.2, cfg["hdri_path"], log_callback, name="fill_hdri", hdri_opts=cfg)
-        key = _create_area_light(stage, dome, float(cfg["area_int"]), log_callback, name="key_light", pos=(3, 4, 3), rot=(-45, 30, 0))
-        fill = _create_area_light(stage, key, float(cfg["area_int"])*0.4, log_callback, name="fill_light", pos=(-4, 2, 2), rot=(-20, -45, 0))
-        return _create_area_light(stage, fill, float(cfg["area_int"])*1.5, log_callback, name="rim_light", pos=(-2, 3, -4), rot=(-30, -150, 0))
+        key = _create_area_light(stage, dome, float(cfg["area_int"]), log_callback, name="key_light", pos=(3, 4, 3), rot=(-45, 30, 0),
+                                 color=_lamp_color(cfg, "key"))
+        fill = _create_area_light(stage, key, float(cfg["area_int"])*0.4, log_callback, name="fill_light", pos=(-4, 2, 2), rot=(-20, -45, 0),
+                                  color=_lamp_color(cfg, "fill"))
+        return _create_area_light(stage, fill, float(cfg["area_int"])*1.5, log_callback, name="rim_light", pos=(-2, 3, -4), rot=(-30, -150, 0),
+                                  color=_lamp_color(cfg, "rim"))
 
     if mode == "Interior":
         if env_type == "Physical Sky":
             env_base = _create_physical_sky(stage, cam, cfg, log_callback)
         else:
             env_base = _create_dome_light(stage, cam, cfg["hdri_int"], cfg["hdri_path"], log_callback, name="env_hdri", hdri_opts=cfg)
-        return _create_area_light(stage, env_base, float(cfg["area_int"]), log_callback, name="window_portal", pos=(5, 2, 0), rot=(0, 90, 0))
+        return _create_area_light(stage, env_base, float(cfg["area_int"]), log_callback, name="window_portal", pos=(5, 2, 0), rot=(0, 90, 0),
+                                  color=_lamp_color(cfg, "key"))
 
     return cam
 

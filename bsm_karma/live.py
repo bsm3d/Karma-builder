@@ -74,6 +74,7 @@ class LiveUpdateMixin:
             self._schedule_live_update()
         else:
             self._live_timer.stop()
+            self._set_build_hint("")
 
     # ------------------------------------------------------------
     def _schedule_live_update(self, *_):
@@ -110,6 +111,7 @@ class LiveUpdateMixin:
         if text not in self._live_seen:
             self._live_seen.add(text)
             self.log_message(text)
+        self._set_build_hint("" if reasons == ["no Build yet"] else ", ".join(LIVE_STRUCTURE_LABELS.get(key, key) for key in reasons))
         _debug("live update paused: {}".format(reasons))
 
     # ------------------------------------------------------------
@@ -121,6 +123,7 @@ class LiveUpdateMixin:
         if reasons:
             self._live_pause(reasons)
             return
+        self._set_build_hint("")
         self._live_building = True
         try:
             self._run_build(self._live_log, "BSM Karma - Live Update", live=True)

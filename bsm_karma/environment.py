@@ -136,10 +136,20 @@ def _create_dome_light(stage, prev, intensity, texture_path, log_callback, name=
 
 
 # ------------------------------------------------------------
-def _create_area_light(stage, prev, intensity, log_callback, name="area_light", pos=(3.0, 4.0, 3.0), rot=(-45.0, 30.0, 0.0)):
+# Color of a lamp from its temperature and tint sliders (lamp = "key", "fill" or "rim"; the window light of the Interior
+# mode is the key). 6500 K and no tint is the neutral white the lamps had before.
+def _lamp_color(cfg, lamp):
+    rgb = _kelvin_to_rgb(float(cfg.get("lamp_{}_temp".format(lamp), 6500.0)))
+    return _apply_tint(rgb, float(cfg.get("lamp_{}_tint".format(lamp), 0.0)))
+
+
+# ------------------------------------------------------------
+def _create_area_light(stage, prev, intensity, log_callback, name="area_light", pos=(3.0, 4.0, 3.0), rot=(-45.0, 30.0, 0.0), color=None):
     is_new = stage.node(name) is None
     area = _get_or_create_node(stage, "light", name)
     _set_usd_input(area, "intensity", float(intensity), log_callback)
+    if color is not None and not _set_light_color(area, color):
+        log_callback("[WARN] {}: no color parameter found, the lamp color was not set.".format(name))
     # size and placement only at creation: a light moved by hand must stay where it was put
     if is_new:
         _set_usd_input(area, "width", 1.5, log_callback)
