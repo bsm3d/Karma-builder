@@ -8,9 +8,16 @@ from .debuglog import _guarded_slot
 from .gauges import ClickSlider
 from .styles import _C, _btn_style, _slider_stylesheet
 from .util import _expand_plain_path, _normalize_output_path_extension
-from .widgets import wrap_tab
+from .widgets import fit_spin, wrap_tab
+
 
 # ------------------------------------------------------------
+# the slot buttons show 'Slot A [Target]' under their picture: wide enough for it in the font in use
+def _slot_size(button):
+    return max(96, button.fontMetrics().horizontalAdvance("Slot A [Target]") + 16), 70
+
+
+# --------------------------------------------------
 class ExportTab:
 
     def _build_export_tab(self, tabs):
@@ -44,14 +51,14 @@ class ExportTab:
         self.spin_fStart.setValue(1)
         self.spin_fStart.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.spin_fStart.setAlignment(QtCore.Qt.AlignCenter)
-        self.spin_fStart.setFixedWidth(52)
+        fit_spin(self.spin_fStart, "-1000", 52)
 
         self.spin_fEnd = QtWidgets.QSpinBox()
         self.spin_fEnd.setRange(-1000, 10000)
         self.spin_fEnd.setValue(100)
         self.spin_fEnd.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.spin_fEnd.setAlignment(QtCore.Qt.AlignCenter)
-        self.spin_fEnd.setFixedWidth(52)
+        fit_spin(self.spin_fEnd, "10000", 52)
 
         self.lbl_to = QtWidgets.QLabel("to")
         self.lbl_to.setAlignment(QtCore.Qt.AlignCenter)
@@ -136,14 +143,14 @@ class ExportTab:
         self.btn_snapshot_slot_a.setCheckable(True)
         self.btn_snapshot_slot_a.clicked.connect(lambda *_: self._set_snapshot_slot_target("A"))
         self.btn_snapshot_slot_a.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
-        self.btn_snapshot_slot_a.setFixedSize(96, 70)
+        self.btn_snapshot_slot_a.setMinimumSize(*_slot_size(self.btn_snapshot_slot_a))
         self.btn_snapshot_slot_a.setIconSize(QtCore.QSize(88, 46))
 
         self.btn_snapshot_slot_b = QtWidgets.QToolButton()
         self.btn_snapshot_slot_b.setCheckable(True)
         self.btn_snapshot_slot_b.clicked.connect(lambda *_: self._set_snapshot_slot_target("B"))
         self.btn_snapshot_slot_b.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
-        self.btn_snapshot_slot_b.setFixedSize(96, 70)
+        self.btn_snapshot_slot_b.setMinimumSize(*_slot_size(self.btn_snapshot_slot_b))
         self.btn_snapshot_slot_b.setIconSize(QtCore.QSize(88, 46))
 
         self.chk_snapshot_safe = QtWidgets.QCheckBox("Safe Frame")

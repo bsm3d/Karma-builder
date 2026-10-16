@@ -3,7 +3,40 @@
 
 import hou
 from hutil.Qt import QtWidgets, QtCore, QtGui
+from .config import COLUMN_GAP, ROW_GAP
 from .util import _clamp
+
+
+# --------------------------------------------------------
+# Never narrower than its text needs: a fixed width written for one font cuts the label in another one.
+def fit_button(button, width=0, height=0):
+    hint = button.sizeHint()
+    button.setMinimumWidth(max(width, hint.width()))
+    if height:
+        button.setMinimumHeight(max(height, hint.height()))
+
+
+# --------------------------------------------------------
+def fit_spin(spin, widest_text, width=0):
+    spin.setMinimumWidth(max(width, spin.fontMetrics().horizontalAdvance(widest_text) + 24))
+
+
+# --------------------------------------------------------
+# Raises the spacing of every row and column layout under root to the least the tool needs. The layouts of the
+# gauges are left alone: they put a gauge and its tick labels at zero distance on purpose.
+def space_layouts(root):
+    from .gauges import FloatSlider, IntSlider
+    for layout in root.findChildren(QtWidgets.QBoxLayout):
+        try:
+            if isinstance(layout.parentWidget(), (FloatSlider, IntSlider)):
+                continue
+            across = layout.direction() in (QtWidgets.QBoxLayout.LeftToRight, QtWidgets.QBoxLayout.RightToLeft)
+            wanted = ROW_GAP if across else COLUMN_GAP
+            if layout.spacing() < wanted:
+                layout.setSpacing(wanted)
+        except RuntimeError:
+            # a wrapper of a layout Qt already deleted (a layout that was replaced while building)
+            continue
 
 
 # --------------------------------------------------------

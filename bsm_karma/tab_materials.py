@@ -84,8 +84,12 @@ class MaterialsTab:
         lay_catalog.addLayout(row_status)
         layout_materials.addWidget(grp_catalog, 3)
 
-        grp_targets = QtWidgets.QGroupBox("Assign to Geometry (drag a material onto a prim or the viewport)")
+        grp_targets = QtWidgets.QGroupBox("Assign to Geometry")
         lay_targets = QtWidgets.QVBoxLayout(grp_targets)
+        lbl_drag_hint = QtWidgets.QLabel("Drag a material from the catalog onto a prim of the list, or onto the viewport.")
+        lbl_drag_hint.setWordWrap(True)
+        lbl_drag_hint.setStyleSheet("color: {};".format(_C["text_muted"]))
+        lay_targets.addWidget(lbl_drag_hint)
 
         row_geo = QtWidgets.QHBoxLayout()
         self.combo_geo_source = PopupRefreshComboBox()

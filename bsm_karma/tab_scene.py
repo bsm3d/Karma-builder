@@ -9,7 +9,7 @@ from .environment import _lop_camera_nodes, _stage_camera_prims
 from .gauges import IntSlider
 from .nodeutil import _is_tool_node_candidate, _paused_cooking
 from .styles import _C, _btn_style
-from .widgets import PopupRefreshComboBox, wrap_tab
+from .widgets import PopupRefreshComboBox, fit_button, fit_spin, wrap_tab
 
 # ------------------------------------------------------------
 class SceneTab:
@@ -48,8 +48,8 @@ class SceneTab:
         self.spin_resY.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.spin_resX.setAlignment(QtCore.Qt.AlignCenter)
         self.spin_resY.setAlignment(QtCore.Qt.AlignCenter)
-        self.spin_resX.setFixedWidth(55)
-        self.spin_resY.setFixedWidth(55)
+        fit_spin(self.spin_resX, "8192", 55)
+        fit_spin(self.spin_resY, "8192", 55)
         res_layout.addWidget(self.spin_resX); res_layout.addWidget(QtWidgets.QLabel("x")); res_layout.addWidget(self.spin_resY); res_layout.addWidget(QtWidgets.QLabel("y")); res_layout.addStretch()
         form_main.addRow("Resolution:", res_layout)
         
@@ -71,11 +71,11 @@ class SceneTab:
         self.combo_camera.popupAboutToShow.connect(self.refresh_stage_cameras)
         self.combo_camera.currentIndexChanged.connect(self.update_camera_ui)
         self.btn_refresh_cameras = QtWidgets.QPushButton("Refresh")
-        self.btn_refresh_cameras.setFixedWidth(64)
-        self.btn_refresh_cameras.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        fit_button(self.btn_refresh_cameras, 64)
+        self.btn_refresh_cameras.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         self.btn_refresh_cameras.clicked.connect(self.refresh_stage_cameras)
         self.btn_look_through = QtWidgets.QPushButton("Look Through")
-        self.btn_look_through.setFixedWidth(92)
+        fit_button(self.btn_look_through, 92)
         self.btn_look_through.setToolTip("Lock a viewport to the render camera (builds first if needed).")
         self.btn_look_through.clicked.connect(self.on_look_through_camera)
         lay_camera_select.addWidget(self.combo_camera)

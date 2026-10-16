@@ -107,6 +107,57 @@ def step_setup():
     check("timer parented to the dialog", S["ui"]._hdri_preview_timer.parent() is S["ui"])
 
 
+# --------------------------------------------------------------------------------
+# Text that does not fit its widget, widgets that overlap and widgets pushed out of their tab, in the font and the
+# style of this Houdini. Combo boxes elide their text, so they are left out.
+def layout_problems(ui):
+    tabs = ui.findChild(QtWidgets.QTabWidget)
+    problems = []
+    for index in range(tabs.count()):
+        tabs.setCurrentIndex(index)
+        QtWidgets.QApplication.processEvents()
+        name = tabs.tabText(index)
+        scroll = tabs.widget(index)
+        if isinstance(scroll, QtWidgets.QScrollArea) and scroll.horizontalScrollBar().isVisible():
+            problems.append("{}: horizontal scroll bar, the tab needs {} px".format(name, scroll.widget().minimumSizeHint().width()))
+        shown = []
+        for w in scroll.findChildren(QtWidgets.QWidget):
+            chain, ok = w, True
+            while chain is not None and chain is not ui:
+                ok = ok and chain.isVisibleTo(ui)
+                chain = chain.parentWidget()
+            if ok and w.width() > 0:
+                shown.append(w)
+        for w in shown:
+            if isinstance(w, QtWidgets.QLabel) and not w.wordWrap() and w.textFormat() != QtCore.Qt.RichText and w.text():
+                if w.fontMetrics().horizontalAdvance(w.text()) > w.contentsRect().width() + 1:
+                    problems.append("{}: label '{}' is cut".format(name, w.text()[:40]))
+            elif isinstance(w, (QtWidgets.QPushButton, QtWidgets.QCheckBox, QtWidgets.QRadioButton, QtWidgets.QToolButton)) and w.text():
+                spare = 22 if isinstance(w, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)) else 12
+                if w.fontMetrics().horizontalAdvance(w.text().replace("&", "")) > w.width() - spare:
+                    problems.append("{}: button '{}' is cut".format(name, w.text()[:40]))
+        parents = {}
+        for w in shown:
+            parents.setdefault(w.parentWidget(), []).append(w)
+        for parent, kids in parents.items():
+            if parent is None or isinstance(parent, (QtWidgets.QAbstractScrollArea, QtWidgets.QTabBar)):
+                continue
+            for i in range(len(kids)):
+                for j in range(i + 1, len(kids)):
+                    common = kids[i].geometry().intersected(kids[j].geometry())
+                    if common.width() > 2 and common.height() > 2:
+                        problems.append("{}: {} overlaps {}".format(name, kids[i].metaObject().className(), kids[j].metaObject().className()))
+    return sorted(set(problems))
+
+
+# ------------------------------------
+def step_layout():
+    ui = S["ui"]
+    problems = layout_problems(ui)
+    check("no text cut, no overlapping widgets, no horizontal scroll bar in any tab", not problems, problems[:6])
+    ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(0)
+
+
 # ------------------------------------
 def step_cameras():
     ui, k = S["ui"], S["k"]
@@ -319,11 +370,11 @@ def step_quit():
 ALL = {
     "wait": (4000, lambda: say("waited")),
     "gallery": (1500, step_gallery), "gallery_close": (1500, step_gallery_close), "dlgclose": (1500, step_dlgclose),
-    "setup": (2500, step_setup), "cameras": (800, step_cameras), "panels": (800, step_panels),
+    "setup": (2500, step_setup), "layout": (800, step_layout), "cameras": (800, step_cameras), "panels": (800, step_panels),
     "catalog": (800, step_catalog_and_clear), "escape": (500, step_escape), "after": (1200, step_after_escape),
     "cycles": (500, step_cycles), "hda": (500, step_hda), "quit": (500, step_quit),
 }
-ORDER = os.environ.get("BSM_STEPS", "setup,cameras,panels,catalog,escape,after,cycles,hda,quit").split(",")
+ORDER = os.environ.get("BSM_STEPS", "setup,layout,cameras,panels,catalog,escape,after,cycles,hda,quit").split(",")
 STEPS = [ALL[name] for name in ORDER]
 
 

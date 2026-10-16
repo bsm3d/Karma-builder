@@ -108,6 +108,11 @@ STAGE_TARGET_LIMIT = 5000
 FORM_LABEL_GAP = 14
 
 
+# least room between two widgets of a row, and between two rows stacked in a column (the Houdini style can use less)
+ROW_GAP = 8
+COLUMN_GAP = 4
+
+
 # Settings that add, remove or rewire nodes, or switch the render engine. A running Karma viewport restarts on
 # these and can freeze Houdini for minutes, so Live Update leaves them to the Build button.
 LIVE_STRUCTURE_KEYS = ("scene_mode", "env_type", "sky_mode", "enable_fog", "enable_clouds", "cloud_type", "enable_aovs",

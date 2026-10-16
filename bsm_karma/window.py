@@ -23,6 +23,7 @@ from .tab_passes import PassesTab
 from .tab_render import RenderTab
 from .tab_scene import SceneTab
 from .util import _normalized_path
+from .widgets import space_layouts
 from .viewport import ViewportMixin
 
 
@@ -142,6 +143,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
 
         self._compact_combos()
         self._space_forms()
+        space_layouts(self)
 
     # ----------------------------------------
     def _close_pane_tab(self, pane_tab):
@@ -424,3 +426,5 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
             combo.setMinimumWidth(104)
             if combo.count():
                 combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 28)
+        # the camera row also holds two buttons: its combo gives way first (the text is elided)
+        self.combo_camera.setMinimumWidth(70)

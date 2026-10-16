@@ -26,6 +26,7 @@ class LogTab:
         title_font.setBold(True)
         lbl_title.setFont(title_font)
         lbl_title.setAlignment(QtCore.Qt.AlignCenter)
+        lbl_title.setWordWrap(True)
         layout_about.addWidget(lbl_title)
 
         lbl_build = QtWidgets.QLabel("Build {}\nrunning from {}\n{}".format(BUILD_ID, build_origin(), build_location()))
@@ -39,6 +40,7 @@ class LogTab:
 
         lbl_sub = QtWidgets.QLabel("Procedural Environment & Render Setup\nfor SideFX Houdini")
         lbl_sub.setAlignment(QtCore.Qt.AlignCenter)
+        lbl_sub.setWordWrap(True)
         lbl_sub.setStyleSheet("color: #aaa;")
         layout_about.addWidget(lbl_sub)
 
@@ -64,6 +66,7 @@ class LogTab:
 
         lbl_sch = QtWidgets.QLabel("PolyForm Noncommercial License 1.0.0")
         lbl_sch.setAlignment(QtCore.Qt.AlignCenter)
+        lbl_sch.setWordWrap(True)
         lbl_sch.setStyleSheet("color: #aaa; font-size: 12px;")
         layout_about.addWidget(lbl_sch)
 
