@@ -12,6 +12,7 @@ from .debuglog import _debug, _guarded_slot
 from .linker import (_get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain, _insert_material_linker_in_chain,
                      _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_edit_node, _material_linker_node)
 from .matviews import MaterialBrowser
+from .localmaterials import is_local_payload, local_assets, local_payload
 from .mxdownload import MaterialDownloadDialog
 from .nodeutil import _is_tool_node_candidate, _paused_cooking
 from .styles import _C
@@ -316,11 +317,10 @@ class MaterialsTab:
                 return
             except RuntimeError:
                 self._mx_dialog = None   # closed meanwhile
-        pref = hou.text.expandString("$HOUDINI_USER_PREF_DIR")
-        base = pref if pref and not pref.startswith("$") else os.path.dirname(self._default_material_download_dir())
-        folder = os.path.join(base, "bsm_karma", "mtlx").replace("\\", "/")
-        dialog = MaterialDownloadDialog(folder, parent=self)
+        dialog = MaterialDownloadDialog(self._default_download_folder(), parent=self)
         dialog.fileChosen.connect(self._show_material_file)
+        dialog.dragStarted.connect(self._arm_viewport_drop)
+        dialog.assignRequested.connect(self.on_downloaded_material_assign)
         dialog.destroyed.connect(lambda *_: setattr(self, "_mx_dialog", None))
         self._mx_dialog = dialog
         dialog.show()
@@ -450,6 +450,8 @@ class MaterialsTab:
 
     # ------------------------------------------------------------
     def _assets_from_payload(self, payload):
+        if is_local_payload(payload):
+            return self._local_assets_from_payload(payload)
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             # TODO: an AMD package downloads here on the UI thread (Houdini's own code), the window freezes while it runs
@@ -464,6 +466,38 @@ class MaterialsTab:
         if not assets:
             self.log_message("[INFO] No material found: pick a material (not a folder) in the catalog.")
         return assets
+
+    # ------------------------------------------------------------
+    # Files dragged from the download window. Only files of a download folder are taken: the drop could come from anywhere.
+    def _local_assets_from_payload(self, payload):
+        roots = [self._default_download_folder()]
+        dialog = self._mx_dialog
+        if dialog is not None:
+            try:
+                roots.append(dialog.download_folder())
+            except RuntimeError:
+                self._mx_dialog = None   # closed meanwhile
+        assets, failures = local_assets(payload, roots, lister=_list_materials_in_file)
+        for failure in failures:
+            self.log_message("[WARN] Material not available: {}".format(failure))
+        return assets
+
+    # ------------------------------------------------------------
+    def _default_download_folder(self):
+        pref = hou.text.expandString("$HOUDINI_USER_PREF_DIR")
+        base = pref if pref and not pref.startswith("$") else os.path.dirname(self._default_material_download_dir())
+        return os.path.join(base, "bsm_karma", "mtlx").replace("\\", "/")
+
+    # ------------------------------------------------------------
+    # A material of the download window, bound to the prims selected in the list or in the viewport.
+    @_guarded_slot
+    def on_downloaded_material_assign(self, path):
+        paths, origin = self._assignment_targets()
+        if not paths:
+            self.log_message("[INFO] Select prims in the Materials tab list, or in the Solaris viewport, then assign the material.")
+            return
+        self.log_message("[INFO] Assigning {} to {} prim(s) of {}.".format(os.path.basename(path), len(paths), origin))
+        self._assign_payload(local_payload([path]), paths)
 
     # ------------------------------------------------------------
     def _assign_payload(self, payload, prim_paths):

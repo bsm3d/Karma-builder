@@ -375,14 +375,14 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 <p>The <strong>Download...</strong> button opens a window that downloads MaterialX materials from <strong>ambientCG</strong> or <strong>Poly Haven</strong>. Nothing has to be installed: the tool makes the requests itself, with the <code>requests</code> module that ships with Houdini. The download runs in the background, Houdini stays usable, and <strong>Stop</strong> ends it.</p>
 <figure>
   <img src="screenshots/materials_download.png" alt="The download window" loading="lazy" width="560">
-  <figcaption>The download window after a run: the names of the site, the log, and the <code>.mtlx</code> files found in the folder.</figcaption>
+  <figcaption>The download window after a run: the names of the site, the log, and the downloaded materials with their thumbnails, ready to drag.</figcaption>
 </figure>
 <table>
   <tr><th>Source</th><th>What you give</th></tr>
   <tr><td>ambientCG</td><td>The material name (for example <code>WoodFloor038</code>), the resolution (1K to 8K) and the image format (PNG or JPG). The zip is saved, then unpacked into a folder of its name.</td></tr>
   <tr><td>Poly Haven</td><td>The asset id (for example <code>polystyrene</code>) and the resolution (1k to 8k). The <code>.mtlx</code> and its textures go to <code>&lt;id&gt;_materialx</code>. EXR textures are taken as PNG when the site has them, and the <code>.mtlx</code> is changed to match.</td></tr>
 </table>
-<p><strong>Load List</strong> asks the site for the names of its materials; the list can be filtered, and a click puts the name in the field. <strong>Open Website</strong> opens the source in your browser. When the run ends, the <code>.mtlx</code> files of the folder are listed (the new one selected); <strong>Use in Catalog</strong>, or a double click, shows that file's materials in the catalog above, like the <em>USD / MaterialX File...</em> source. The default folder is <code>bsm_karma/mtlx</code> in your Houdini preferences; the folder and the source are remembered.</p>
+<p><strong>Load List</strong> asks the site for the names of its materials; the list can be filtered, and a click puts the name in the field. <strong>Open Website</strong> opens the source in your browser. When the run ends, the <code>.mtlx</code> files of the folder are listed with a thumbnail (the color map next to the file), the new one selected. <strong>Drag a material from that list onto a prim of the list in the Materials tab, or onto an object of the Solaris viewport</strong>: it is bound to that prim (to the whole selection when the prim you drop on is selected), exactly like a drag from the catalog. <strong>Assign to Selection</strong>, or a double click, binds it to the prims selected in the Materials tab list or in the viewport. Tick <strong>Assign to the selected prims when a download ends</strong> to bind a material as soon as it is unpacked: select the prims, type a name, press Download. <strong>Use in Catalog</strong> shows that file's materials in the catalog above, like the <em>USD / MaterialX File...</em> source. Only files of the download folder are taken from a drop. The default folder is <code>bsm_karma/mtlx</code> in your Houdini preferences; the folder and the source are remembered.</p>
 <p>What a server sends is not trusted: only https addresses on ambientCG and Poly Haven are used, one file may not exceed 800 MB, a path that leaves the folder, a backtick in a file name or a very large archive is refused, and names are limited to letters, digits, <code>_</code>, <code>.</code> and <code>-</code> (no leading dash). The materials come from the internet: check their licence, and treat the files like any file you did not make.</p>
 
 <h3 id="tab-render">Render</h3>
@@ -612,6 +612,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <tr><td><code>debuglog</code></td><td>The debug log file and the guard around the button handlers.</td></tr>
   <tr><td><code>nodeutil</code></td><td>Create, mark and set nodes; ownership checks; pausing cooking.</td></tr>
   <tr><td><code>environment</code></td><td>Camera, lights, physical sky, fog and clouds.</td></tr>
+  <tr><td><code>localmaterials</code></td><td>Downloaded material files dragged onto prims: the payload, the checks on the files, thumbnails.</td></tr>
   <tr><td><code>hdrireader</code></td><td>Readers of Radiance .hdr and OpenEXR files for the HDRI preview, which Qt cannot open.</td></tr>
   <tr><td><code>clouds2d</code></td><td>The 2D cloud picture: noise, EXR file, cache.</td></tr>
   <tr><td><code>buildinfo</code></td><td>The build id and where the code was loaded from.</td></tr>

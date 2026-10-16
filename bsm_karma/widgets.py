@@ -180,6 +180,26 @@ def _asset_mime_type():
 
 
 # ------------------------------------------------------------
+# The drag of the list of downloaded materials (localmaterials.py) has a type of its own.
+LOCAL_MATERIAL_MIME = "application/x-bsm-karma-materials"
+
+
+# ------------------------------------------------------------
+# A drop that holds a catalog material or a downloaded one.
+def _drop_accepted(mime_data):
+    return any(mime and mime_data.hasFormat(mime) for mime in (_asset_mime_type(), LOCAL_MATERIAL_MIME))
+
+
+# ------------------------------------------------------------
+# The text of that drop (UnicodeDecodeError when it is not text), None when it holds neither.
+def _drop_text(mime_data):
+    for mime in (_asset_mime_type(), LOCAL_MATERIAL_MIME):
+        if mime and mime_data.hasFormat(mime):
+            return bytes(mime_data.data(mime)).decode("utf-8")
+    return None
+
+
+# ------------------------------------------------------------
 def _drop_event_pos(event):
     # Qt6 has event.position(), Qt5 only event.pos()
     if hasattr(event, "position"):
@@ -263,8 +283,7 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
 
     # ----------------------------------------------------------------
     def _accepts(self, event):
-        mime_type = _asset_mime_type()
-        return bool(mime_type) and event.mimeData().hasFormat(mime_type)
+        return _drop_accepted(event.mimeData())
 
     # ------------------------------------------------------------
     def _set_hover(self, item):
@@ -310,8 +329,10 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
             return
         paths = self.selected_paths() if item.isSelected() else [item.data(0, self.PATH_ROLE)]
         try:
-            payload = bytes(event.mimeData().data(_asset_mime_type())).decode("utf-8")
+            payload = _drop_text(event.mimeData())
         except (UnicodeDecodeError, TypeError, ValueError):
+            payload = None
+        if payload is None:
             event.ignore()
             return
         event.acceptProposedAction()

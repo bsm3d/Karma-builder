@@ -5,7 +5,7 @@ import hou
 from hutil.Qt import QtWidgets, QtCore
 from .config import VIEWPORT_PICK_FLIP_Y
 from .debuglog import _debug
-from .widgets import _asset_mime_type
+from .widgets import _drop_accepted, _drop_text
 
 # a drag lasts a few seconds: the filter lets go on its own after this
 ARM_TIMEOUT_MS = 20000
@@ -171,8 +171,7 @@ class ViewportDropFilter(QtCore.QObject):
 
     # ------------------------------------------------------------
     def _handle(self, obj, event):
-        mime_type = _asset_mime_type()
-        if not mime_type or not event.mimeData().hasFormat(mime_type):
+        if not _drop_accepted(event.mimeData()):
             return False
         if not isinstance(obj, QtWidgets.QWidget) or obj is self._dialog or self._dialog.isAncestorOf(obj):
             return False
@@ -193,8 +192,10 @@ class ViewportDropFilter(QtCore.QObject):
         prim = pick_prim(viewer, x, y, height)
         _debug("viewport drop at ({:.0f}, {:.0f}) of {:.0f} high -> {!r}".format(x, y, height, prim))
         try:
-            payload = bytes(event.mimeData().data(mime_type)).decode("utf-8")
+            payload = _drop_text(event.mimeData())
         except (UnicodeDecodeError, TypeError, ValueError):
+            return False
+        if payload is None:
             return False
         event.acceptProposedAction()
         self.disarm()

@@ -147,7 +147,7 @@ Run **Uninstall.bat** (or delete `packages/bsm_karma.json` in the preferences fo
 
 ## Material sources
 
-The Materials tab reads catalogs; the **Download...** button there fetches free MaterialX materials without any extra install. Check the licence of what you use.
+The Materials tab reads catalogs; the **Download...** button there fetches free MaterialX materials without any extra install, lists them with thumbnails, and lets you drag a material onto a prim of the list or onto an object of the Solaris viewport (or tick *Assign to the selected prims when a download ends*). Check the licence of what you use.
 
 | Source | Address | Where in the tool |
 |---|---|---|

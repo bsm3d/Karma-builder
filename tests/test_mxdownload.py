@@ -207,5 +207,36 @@ except ValueError:
 mx.ZIP_MAX_FILES = limit
 t.check("archive refused: too many files", refused)
 
+# --- downloaded materials dragged onto prims: the payload, the checks, the material of a real file ---
+import bsm_karma.localmaterials as local
+download = os.path.join(work, "dl", "Red")
+os.makedirs(download)
+fixture = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "red.mtlx")
+shutil.copy(fixture, os.path.join(download, "Red.mtlx"))
+mtlx = os.path.join(download, "Red.mtlx").replace("\\", "/")
+roots = [os.path.join(work, "dl")]
+assets, failures = local.local_assets(local.local_payload([mtlx]), roots)
+t.check("a downloaded file gives its material (read as text)", len(assets) == 1 and assets[0]["label"] == "M_red"
+        and assets[0]["prim_path"] == "/MaterialX/Materials/M_red" and not failures, (assets, failures))
+real, why = local.local_assets(local.local_payload([mtlx]), roots, lister=k._list_materials_in_file)
+t.check("Houdini's USD reader gives the same prim path as the text reader", len(real) == 1 and real[0]["prim_path"] == assets[0]["prim_path"], (real, why, assets))
+outside_file = os.path.join(work, "Outside.mtlx")
+shutil.copy(fixture, outside_file)
+bad, why = local.local_assets(local.local_payload([outside_file]), roots)
+t.check("a file outside the download folder is refused", bad == [] and "outside" in why[0], why)
+bad, why = local.local_assets(local.local_payload([mtlx.replace("Red.mtlx", "`x`.mtlx")]), roots)
+t.check("a path with a backtick is refused", bad == [] and "expression" in why[0], why)
+bad, why = local.local_assets(local.local_payload(["Red.mtlx"]), roots)
+t.check("a relative path is refused", bad == [], why)
+doctype = os.path.join(download, "Bomb.mtlx")
+with open(doctype, "w") as handle:
+    handle.write('<!DOCTYPE x [<!ENTITY a "aaaa">]><materialx><surfacematerial name="B"/></materialx>')
+t.check("a .mtlx with a DOCTYPE is not read", local.mtlx_materials(doctype) == [])
+with open(os.path.join(download, "Red_Color.png"), "wb") as handle:
+    handle.write(b"\x89PNG")
+with open(os.path.join(download, "Red_NormalGL.png"), "wb") as handle:
+    handle.write(b"\x89PNG")
+t.check("the thumbnail picture is the color map", local.preview_picture(mtlx).endswith("Red_Color.png"), local.preview_picture(mtlx))
+
 shutil.rmtree(work, ignore_errors=True)
 t.done()
