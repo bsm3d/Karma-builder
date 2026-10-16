@@ -8,6 +8,7 @@
 import base64
 import hashlib
 import json
+import math
 import os
 import re
 import time
@@ -101,10 +102,11 @@ def parse_value(kind, text):
     try:
         if kind in ("color3", "vector2"):
             parts = [float(p) for p in str(text).split(",")]
-            return tuple(parts) if len(parts) == (3 if kind == "color3" else 2) else None
+            return tuple(parts) if len(parts) == (3 if kind == "color3" else 2) and all(math.isfinite(p) for p in parts) else None
         if kind == "boolean":
             return str(text).strip().lower() == "true"
-        return float(text)
+        number = float(text)
+        return number if math.isfinite(number) else None
     except ValueError:
         return None
 
@@ -178,9 +180,48 @@ def _scale_input_value(element, name, kind, factor, default):
 
 
 # ------------------------------------------------------------
+def _number_of(value):
+    return float(value) if isinstance(value, (int, float)) and math.isfinite(value) else None
+
+
+# ------------------------------------------------------------
+def _color_of(value):
+    if isinstance(value, (list, tuple)) and len(value) == 3 and all(_number_of(v) is not None for v in value):
+        return tuple(float(v) for v in value)
+    return None
+
+
+# ------------------------------------------------------------
+# The settings that the editor writes, out of whatever a file says it holds (a comment of any file can say anything): known
+# inputs and mods only, numbers that are finite, colors of three numbers.
+def clean_settings(settings):
+    settings = settings if isinstance(settings, dict) else {}
+    values, mods = {}, {}
+    given = settings.get("values")
+    for key, value in (given if isinstance(given, dict) else {}).items():
+        kind = INPUT_TYPES.get(key)
+        if kind == "color3":
+            value = _color_of(value)
+        elif kind == "boolean":
+            value = bool(value)
+        elif kind is not None:
+            value = _number_of(value)
+        if kind is not None and value is not None:
+            values[key] = value
+    given = settings.get("mods")
+    for key, value in (given if isinstance(given, dict) else {}).items():
+        if key in DEFAULT_MODS:
+            value = _color_of(value) if key == "tint" else _number_of(value)
+            if value is not None:
+                mods[key] = value
+    return {"values": values, "mods": mods}
+
+
+# ------------------------------------------------------------
 # settings = {"values": {input: value}, "mods": {tint, brightness, rough_scale, normal, disp, tiling}}. A value replaces
 # what drives the input (a texture too); the mods scale what stays a texture (1 is no change).
 def apply_settings(text, settings):
+    settings = clean_settings(settings)
     root = parse(text)
     surface = find_surface(root)
     if surface is None:
@@ -230,7 +271,7 @@ def read_embedded(text):
         return None
     try:
         data = json.loads(base64.b64decode(found.group(1)).decode("utf-8"))
-        return str(data["original"]), dict(data["settings"])
+        return str(data["original"]), clean_settings(data["settings"])
     except (ValueError, KeyError, TypeError):
         return None
 

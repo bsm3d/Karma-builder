@@ -197,11 +197,12 @@ class AtmosphereVisualWidget(QtWidgets.QWidget):
         painter.drawLine(0, cloud_y, w, cloud_y)
         
         if cloud_alpha > 0:
-            font.setPointSize(28)
-            painter.setFont(font)
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, max(150, cloud_alpha))))
+            painter.setPen(QtCore.Qt.NoPen)
+            painter.setBrush(QtGui.QColor(255, 255, 255, max(150, cloud_alpha)))
             for x in range(w // 2, w - 20, 80):
-                painter.drawText(x, cloud_y + 15, "☁")
+                painter.drawEllipse(x, cloud_y - 2, 22, 14)
+                painter.drawEllipse(x + 10, cloud_y - 9, 20, 18)
+                painter.drawEllipse(x + 20, cloud_y - 3, 20, 14)
             
         font = painter.font()
         font.setPointSize(9)

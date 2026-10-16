@@ -490,7 +490,8 @@ def _create_cloud_branch(stage, prev, cfg, log_callback):
         quick = _create_quick_cloud_material(stage, cloud_xform, cfg, log_callback)
         if quick is not None:
             upstream = quick
-            cloud_mat_path = quick.parm("primpath").evalAsString()
+            primpath = quick.parm("primpath")
+            cloud_mat_path = primpath.evalAsString() if primpath is not None else ""
     else:
         _remove_tool_node(stage, QUICK_CLOUD_NAME, log_callback, "a custom cloud material is used")
     if not cloud_mat_path or cloud_mat_path == DEFAULT_CLOUD_MATERIAL_PATH:

@@ -26,6 +26,11 @@ def _pset(node, name, value, log_callback, quiet=False):
             _debug("locked parm {}.{}".format(_debug_node_label(node), name))
             if not quiet: log_callback(f"  [WARN] Locked parm: '{name}' on {node.name()}")
             return False
+        except hou.OperationFailed as exc:
+            # attention -> a value the parm refuses (a menu token that does not exist in this version) must not stop the build
+            _debug("parm {}.{} refused {!r}: {}".format(_debug_node_label(node), name, value, exc))
+            if not quiet: log_callback(f"  [WARN] '{name}' on {node.name()} refused the value: {exc}")
+            return False
     _debug("no parm '{}' on {}".format(name, _debug_node_label(node)))
     return False
 
@@ -172,39 +177,6 @@ def _set_first_existing_parm_tuple(node, parm_names, values, log_callback):
             return True
         except (hou.Error, TypeError):
             continue
-    return False
-
-
-# ------------------------------------------------------------
-def _set_menu_parm_by_keywords(node, parm_names, keywords, log_callback):
-    keys = tuple(str(k).lower() for k in (keywords or ()))
-    if not keys:
-        return False
-
-    for parm_name in parm_names:
-        parm = node.parm(parm_name)
-        if parm is None:
-            continue
-        try:
-            items = list(parm.menuItems())
-            labels = list(parm.menuLabels())
-        except hou.Error:
-            continue
-
-        for idx, item in enumerate(items):
-            label = labels[idx] if idx < len(labels) else ""
-            blob = "{} {}".format(item, label).lower()
-            if not any(k in blob for k in keys):
-                continue
-
-            for candidate in (item, idx):
-                try:
-                    if parm.isLocked():
-                        parm.lock(False)
-                    parm.set(candidate)
-                    return True
-                except (hou.Error, TypeError):
-                    pass
     return False
 
 

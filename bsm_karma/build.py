@@ -249,7 +249,8 @@ def setup_karma_environment(cfg, log_callback):
     if skipped:
         log_callback("[WARN] Built, but these steps were skipped: {}.".format(", ".join(skipped)))
     else:
-        log_callback(f"[OK] Karma Ready. Engine: {cfg['engine'].upper()} | Env: {cfg.get('env_type', 'Physical Sky')}")
+        env = "" if cfg.get("scene_mode", "Environment") in ("Studio", "3 Points") else " | Env: {}".format(cfg.get("env_type", "Physical Sky"))
+        log_callback(f"[OK] Karma Ready. Engine: {cfg['engine'].upper()}{env}")
 
 
 # ------------------------------------------------------------

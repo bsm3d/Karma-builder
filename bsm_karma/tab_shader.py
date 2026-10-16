@@ -10,8 +10,8 @@ import os
 from hutil.Qt import QtWidgets, QtCore, QtGui
 from .basicmaterials import BASIC_MATERIALS, INPUT_DEFAULTS, basic_material_file, data_folder, safe_name
 from .debuglog import _debug, _guarded_slot
-from .gauges import FloatSlider
-from .linker import _linker_references, _linker_rules
+from .gauges import FloatSlider, IntSlider
+from .linker import _linker_references, _linker_rules, _material_linker_node
 from .localmaterials import local_payload
 from .pbrmaterial import (DEFAULT_OPTIONS as PBR_OPTIONS, DISP_SCALE_DEFAULT, IMAGE_SUFFIXES, NORMAL_FORMATS, SLOTS as PBR_SLOTS, default_spec,
                           guess_maps, normalize_spec, read_pbr_spec, write_pbr_file)
@@ -20,8 +20,6 @@ from .mtlxedit import DEFAULT_MODS, MtlxError, _prune, describe, original_and_se
 from .util import _expand_plain_path
 from .styles import _C
 from .widgets import LOCAL_MATERIAL_MIME, ColorButton, FlowLayout, _drop_event_pos, linear_to_display, wrap_tab
-from .gauges import IntSlider
-from .linker import _material_linker_node
 import random
 
 EDIT_DELAY_MS = 250
@@ -392,6 +390,7 @@ class ShaderTab:
             self._shader_loading = False
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def _pbr_option_edited(self, *_):
         if self._shader_loading or self._shader_target is None or not self._shader_target.get("pbr"):
             return
@@ -404,10 +403,13 @@ class ShaderTab:
         self._shader_timer.start()
 
     # ------------------------------------------------------------
+    @_guarded_slot
     def _pbr_map_edited(self, slot):
         if self._shader_loading or self._shader_target is None or not self._shader_target.get("pbr"):
             return
         text = self._pbr_edits[slot].text().strip()
+        if text == self._pbr_state["maps"].get(slot, ""):
+            return   # editingFinished also fires when the field only lost the focus
         if text:
             try:
                 text = _expand_plain_path(text).replace("\\", "/")

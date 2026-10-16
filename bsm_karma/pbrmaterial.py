@@ -9,6 +9,7 @@ import base64
 import copy
 import hashlib
 import json
+import math
 import os
 import re
 import xml.etree.ElementTree as ElementTree
@@ -57,33 +58,56 @@ def default_spec(name="PBR"):
 # ------------------------------------------------------------
 def _number(value, low, high, default):
     try:
-        return min(max(float(value), low), high)
+        number = float(value)
     except (TypeError, ValueError):
         return default
+    # nan and inf are not numbers a file can hold: MaterialX refuses the document
+    return min(max(number, low), high) if math.isfinite(number) else default
+
+
+# ------------------------------------------------------------
+# `size` numbers in a list or a tuple, each one a finite number inside the bounds; None when it is anything else.
+def _vector_of(value, size, low, high):
+    if not isinstance(value, (list, tuple)) or len(value) != size:
+        return None
+    numbers = []
+    for item in value:
+        number = _number(item, low, high, None)
+        if number is None:
+            return None
+        numbers.append(number)
+    return tuple(numbers)
+
+
+# ------------------------------------------------------------
+def _color(value, low, high):
+    return _vector_of(value, 3, low, high)
 
 
 # ------------------------------------------------------------
 def normalize_spec(spec):
-    clean = default_spec(str((spec or {}).get("name", "PBR")))
-    for key, value in ((spec or {}).get("values") or {}).items():
+    spec = spec if isinstance(spec, dict) else {}
+    name = spec.get("name")
+    clean = default_spec(name if isinstance(name, str) and name.strip() else "PBR")
+    values, maps, given = spec.get("values"), spec.get("maps"), spec.get("options")
+    for key, value in (values if isinstance(values, dict) else {}).items():
         if key not in INPUT_TYPES:
             continue
         kind = INPUT_TYPES[key]
         if kind == "color3":
-            try:
-                clean["values"][key] = tuple(_number(v, 0.0, 100.0, 0.0) for v in value)[:3] if len(value) == 3 else INPUT_DEFAULTS[key]
-            except TypeError:
-                continue
+            color = _color(value, 0.0, 100.0)
+            if color is not None:
+                clean["values"][key] = color
         elif kind == "boolean":
             clean["values"][key] = bool(value)
         else:
             clean["values"][key] = _number(value, 0.0, 1000.0, INPUT_DEFAULTS[key])
-    for slot, path in ((spec or {}).get("maps") or {}).items():
+    for slot, path in (maps if isinstance(maps, dict) else {}).items():
         if slot in SLOT_NAMES and isinstance(path, str) and path.strip():
             path = path.strip().replace("\\", "/")
             if not _has_expression(path) and os.path.isabs(path) and path.lower().endswith(IMAGE_SUFFIXES) and len(path) < 1024:
                 clean["maps"][slot] = path
-    given = (spec or {}).get("options") or {}
+    given = given if isinstance(given, dict) else {}
     options = clean["options"]
     if given.get("normal_format") in NORMAL_FORMATS:
         options["normal_format"] = given["normal_format"]
@@ -92,15 +116,12 @@ def normalize_spec(spec):
                            ("rough_scale", 0.0, 100.0), ("normal_strength", 0.0, 100.0), ("disp_scale", 0.0, 1000.0), ("disp_mid", 0.0, 1.0)):
         if key in given:
             options[key] = _number(given[key], low, high, DEFAULT_OPTIONS[key])
-    for key in ("offset", "tint"):
-        if key in given:
-            try:
-                size = 2 if key == "offset" else 3
-                values = tuple(_number(v, -1000.0, 1000.0, 0.0) if key == "offset" else _number(v, 0.0, 100.0, 1.0) for v in given[key])
-                if len(values) == size:
-                    options[key] = values
-            except TypeError:
-                pass
+    offset = _vector_of(given.get("offset"), 2, -1000.0, 1000.0)
+    if offset is not None:
+        options["offset"] = offset
+    tint = _vector_of(given.get("tint"), 3, 0.0, 100.0)
+    if tint is not None:
+        options["tint"] = tint
     return clean
 
 
@@ -290,9 +311,10 @@ def read_pbr_spec(text):
     if not found:
         return None
     try:
-        return normalize_spec(json.loads(base64.b64decode(found.group(1)).decode("utf-8")))
+        data = json.loads(base64.b64decode(found.group(1)).decode("utf-8"))
     except (ValueError, TypeError, UnicodeDecodeError):
         return None
+    return normalize_spec(data) if isinstance(data, dict) else None
 
 
 # ------------------------------------------------------------

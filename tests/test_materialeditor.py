@@ -192,6 +192,45 @@ stamp = os.path.getmtime(first)
 t.check("random: the same settings reuse the file", rnd.random_material_file(3, "Plastic", None, folder) == first and os.path.getmtime(first) == stamp)
 t.check("random: other ranges give another file", rnd.random_material_file(3, "Plastic", {"hue_from": 10.0}, folder) != first)
 
+# --- hostile or damaged files: a value that is not a number, settings that are not what the editor wrote
+import base64
+import json
+t.check("a value nan or inf in a file is not a value", edit.parse_value("float", "nan") is None and edit.parse_value("float", "inf") is None
+        and edit.parse_value("color3", "1, nan, 2") is None)
+nan_file = work + "/Nan.mtlx"
+with open(nan_file, "w", encoding="utf-8") as handle:
+    handle.write(basic.build_mtlx("Nan", {"metalness": 0.5}).replace('value="0.5"', 'value="nan"'))
+t.check("describe gives the default for a nan input", edit.describe(open(nan_file, encoding="utf-8").read())["inputs"]["metalness"]["value"] == 0.0)
+hostile = work + "/hostile"
+os.makedirs(hostile)
+with open(hostile + "/Steel.mtlx", "w", encoding="utf-8") as handle:
+    handle.write(basic.build_mtlx("Steel", basic.BASIC_MATERIALS["Steel"]))
+
+
+def hostile_variant(settings):
+    text = open(hostile + "/Steel.mtlx", encoding="utf-8").read()
+    head, _, rest = text.partition("\n")
+    encoded = base64.b64encode(json.dumps({"original": "Steel.mtlx", "settings": settings}).encode("utf-8")).decode("ascii")
+    path = hostile + "/Steel.bsm_deadbeef.mtlx"
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("{}\n<!-- bsm_karma {} -->\n{}".format(head, encoded, rest))
+    return path
+
+
+for label, settings in (("values that are not a dict", {"values": [1, 2], "mods": {}}), ("a nan value", {"values": {"metalness": float("nan")}, "mods": {}}),
+                        ("a color that is a string", {"values": {"base_color": "abc"}, "mods": {}}), ("mods that are not numbers", {"values": {}, "mods": {"tint": 5, "brightness": "x"}}),
+                        ("settings that are a list", [1]), ("an unknown input", {"values": {"bogus": 1.0}, "mods": {"bogus": 2}})):
+    try:
+        original, saved = edit.original_and_settings(hostile_variant(settings))
+        out = edit.apply_settings(open(original, encoding="utf-8").read(), saved)
+        t.check("embedded settings: " + label + " are cleaned, nothing raised", "nan" not in out.lower().replace("nan_", ""), saved)
+    except Exception as exc:
+        t.check("embedded settings: " + label + " are cleaned, nothing raised", False, "{}: {}".format(type(exc).__name__, exc))
+good = {"values": {"metalness": 0.25, "base_color": [0.1, 0.2, 0.3], "thin_walled": True}, "mods": {"tint": [0.5, 1.0, 1.0], "tiling": 2.0}}
+_, kept = edit.original_and_settings(hostile_variant(good))
+t.check("valid embedded settings come back as they were", kept["values"]["metalness"] == 0.25 and tuple(kept["values"]["base_color"]) == (0.1, 0.2, 0.3)
+        and kept["values"]["thin_walled"] is True and tuple(kept["mods"]["tint"]) == (0.5, 1.0, 1.0) and kept["mods"]["tiling"] == 2.0, kept)
+
 # --- Houdini: USD reads the files
 usd_reads_mtlx = False
 try:

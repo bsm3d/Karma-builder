@@ -95,6 +95,20 @@ t.check("options are bounded or default", hostile["options"]["tiling"] <= 1000.0
         and hostile["options"]["tint"] == (1.0, 1.0, 1.0) and hostile["options"]["normal_format"] == "OpenGL" and hostile["options"]["ao_strength"] == 0.0, hostile["options"])
 t.check("the name is a safe name", hostile["name"].replace("_", "").isalnum(), hostile["name"])
 t.check("a damaged comment is not a spec", pbr.read_pbr_spec("<!-- bsm_karma_pbr AAAA -->") is None)
+import base64
+import json
+for label, payload in (("a string", "abc"), ("a list", [1, 2]), ("a number", 5), ("null", None)):
+    marker = "<!-- bsm_karma_pbr {} -->".format(base64.b64encode(json.dumps(payload).encode("utf-8")).decode("ascii"))
+    t.check("a comment that holds " + label + " is not a spec", pbr.read_pbr_spec(marker) is None)
+odd = [pbr.normalize_spec(x) for x in ("x", 5, [1], None, {"values": [1], "maps": [2], "options": "x"}, {"values": "x", "maps": 3, "options": [1, 2]})]
+t.check("a spec that is not a dict, or whose parts are not dicts, gives the defaults", all(o == pbr.normalize_spec({}) for o in odd))
+t.check("a name that is empty or not a string gives the default name", pbr.normalize_spec({"name": None})["name"] == "PBR" and pbr.normalize_spec({"name": ""})["name"] == "PBR"
+        and pbr.normalize_spec({"name": 5})["name"] == "PBR")
+nan = float("nan")
+bad = pbr.normalize_spec({"values": {"metalness": nan, "base_color": (nan, 1, 1), "specular_IOR": float("inf")}, "options": {"rotation": nan, "tiling": float("inf"), "offset": (nan, 0)}})
+t.check("nan and inf are not numbers: the default comes back", bad["values"]["metalness"] == 0.0 and bad["values"]["specular_IOR"] == 1.5 and bad["options"]["rotation"] == 0.0
+        and bad["options"]["tiling"] == 1.0 and bad["options"]["offset"] == (0.0, 0.0) and all(v == v for v in bad["values"]["base_color"]), bad)
+t.check("so no nan in the file", "nan" not in pbr.build_pbr_mtlx(bad).replace("bsm_karma_pbr", "").lower().split("-->")[1])
 
 # --- MaterialX
 try:

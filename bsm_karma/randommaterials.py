@@ -8,6 +8,7 @@
 import colorsys
 import hashlib
 import json
+import math
 import os
 import random
 from .basicmaterials import build_mtlx, data_folder
@@ -27,7 +28,7 @@ def srgb_to_linear(value):
 def _clean_ranges(ranges):
     merged = dict(DEFAULT_RANGES)
     for key in DEFAULT_RANGES:
-        if key in (ranges or {}):
+        if key in (ranges or {}) and math.isfinite(float(ranges[key])):
             merged[key] = float(ranges[key])
     merged["sat_min"], merged["sat_max"] = sorted((min(max(merged["sat_min"], 0.0), 1.0), min(max(merged["sat_max"], 0.0), 1.0)))
     merged["val_min"], merged["val_max"] = sorted((min(max(merged["val_min"], 0.0), 1.0), min(max(merged["val_max"], 0.0), 1.0)))
