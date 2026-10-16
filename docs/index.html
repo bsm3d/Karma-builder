@@ -460,7 +460,7 @@ bsm_karma.main()</code></pre>
   <tr><td><code>[WARN]</code></td><td>Something could not be done. The build usually continues. Typical cause: a parameter or node type that does not exist in your Houdini version.</td></tr>
   <tr><td><code>[ERROR]</code></td><td>The build or an action stopped, for example because a node of yours has the same name as a tool node. The traceback is in the <a href="#debug-log">debug log file</a>.</td></tr>
 </table>
-<p>Each build starts with a line giving the Houdini version. <strong>About</strong> shows the version of the tool and the license.</p>
+<p>Each build starts with a line giving the Houdini version. <strong>About</strong> shows the version of the tool, the license, and <strong>which build is running</strong>: an id of 8 characters computed from the source of every module, and where the code was loaded from (a folder, a copy in <code>scripts/python</code>, or the HDA). The same id is in the title of the window, in the first line of the Log and in the debug log. It changes with every edit of the code, and it is the same for the same code wherever it runs from. <code>python tools/build_id.py</code> prints the id of the repository (Python only, no Houdini): if it matches the window, Houdini runs that code.</p>
 <figure><img src="screenshots/about.png" alt="The About tab" loading="lazy" width="600"></figure>
 <h4 id="debug-log">Debug log file</h4>
 <p>Below the Log, <strong>Write a debug log file</strong> (on by default) copies everything to a text file, <code>bsm_karma_debug.log</code>. It is more complete than the Log tab and is the file to send when something fails. It records:</p>
@@ -580,6 +580,7 @@ bsm_karma.main()</code></pre>
   <tr><td>Every frame overwrites the previous one</td><td>The output path has no frame token. Use <code>$F4</code> in the name, for example <code>frame_$F4.exr</code>.</td></tr>
   <tr><td>An error I cannot explain</td><td>Open the <a href="#debug-log">debug log file</a> (Log tab, <strong>Open Folder</strong>) and send it, with the Houdini version.</td></tr>
   <tr><td>The HDA still shows old behavior</td><td>It holds a copy of the code. Rebuild it with <code>hython build_hda.py</code> and reinstall it, and make sure an older copy is not installed as well.</td></tr>
+  <tr><td>I am not sure which version runs</td><td>Compare the build id in the title of the window with <code>python tools/build_id.py</code> run on the repository. Different ids mean another copy is loaded (an old <code>scripts/python</code> copy, an old HDA). See <a href="#tab-log">Log and About</a>.</td></tr>
 </table>
 
 <h2 id="files">Project files</h2>
@@ -592,6 +593,7 @@ bsm_karma.main()</code></pre>
   <tr><td><code>build_hda.py</code></td><td>Builds the HDA with <code>hython</code>.</td></tr>
   <tr><td><code>tools/hda_python_module.py</code></td><td>The PythonModule of the HDA: serves the embedded modules and opens the window.</td></tr>
   <tr><td><code>tools/bsm_karma.shelf</code></td><td>Ready-made shelf with the button.</td></tr>
+  <tr><td><code>tools/build_id.py</code></td><td>Prints the build id of the repository, to compare with the one shown in the window.</td></tr>
   <tr><td><code>tools/ast_equiv.py</code></td><td>Maintainer helper: compares the code with an earlier git revision, ignoring comments, to prove that a style pass changed nothing (<code>python tools/ast_equiv.py [REV]</code>).</td></tr>
   <tr><td><code>tests/</code></td><td>Tests run with <code>hython</code> (<code>tests/run_tests.ps1</code>), and the screenshot script.</td></tr>
   <tr><td><code>docs/</code></td><td>This documentation and its screenshots (<code>docs/screenshots</code>).</td></tr>
@@ -611,6 +613,7 @@ bsm_karma.main()</code></pre>
   <tr><td><code>nodeutil</code></td><td>Create, mark and set nodes; ownership checks; pausing cooking.</td></tr>
   <tr><td><code>environment</code></td><td>Camera, lights, physical sky, fog and clouds.</td></tr>
   <tr><td><code>clouds2d</code></td><td>The 2D cloud picture: noise, PNG file, cache.</td></tr>
+  <tr><td><code>buildinfo</code></td><td>The build id and where the code was loaded from.</td></tr>
   <tr><td><code>shelf</code></td><td>The automatic install: copy of the package, shelf file, shelf bar.</td></tr>
   <tr><td><code>rendering</code></td><td>Material library, AOVs, Karma Render Settings and the USD Render ROP.</td></tr>
   <tr><td><code>linker</code>, <code>catalog</code></td><td>Material Linker and Edit Material rules; catalog drops, trust checks and stage prims.</td></tr>

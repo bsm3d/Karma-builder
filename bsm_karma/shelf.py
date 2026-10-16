@@ -5,6 +5,7 @@ import hou
 import os
 import shutil
 from xml.sax.saxutils import escape
+from .buildinfo import BUILD_ID
 from .debuglog import _debug
 from .util import _has_expression
 
@@ -153,6 +154,7 @@ def install(show_message=True):
     pref_dir = preferences_folder()
     report = [install_package(source, pref_dir)]
     report += install_shelf(asset=False, source=source, pref_dir=pref_dir)
+    report.append("Build {} (the window title and the About tab show it).".format(BUILD_ID))
     report.append("Press the 'Karma Builder' button to open the tool.")
     text = "\n".join(report)
     print(text)

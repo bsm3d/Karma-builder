@@ -67,6 +67,7 @@ module = hou.node("/stage/builder").hdaModule()
 t.check("PythonModule exposes the loader", hasattr(module, "load_tool") and hasattr(module, "open_builder"))
 tool = module.load_tool(definition)
 t.check("the embedded tool runs", tool.SCRIPT_VERSION == version and callable(tool.main), tool.SCRIPT_VERSION)
+t.check("the asset carries the same build as the folder (same build id)", tool.BUILD_ID == k.BUILD_ID, (tool.BUILD_ID, k.BUILD_ID))
 t.check("it lives in its own module name", tool.__name__ == "bsm_karma_hda" and sys.modules.get("bsm_karma") is k)
 t.check("a second load reuses the module", module.load_tool(definition) is tool)
 

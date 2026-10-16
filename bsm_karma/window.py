@@ -8,6 +8,7 @@ import sys
 from hutil.Qt import QtWidgets, QtCore, QtGui
 from .build import setup_karma_environment
 from .catalog import _CATALOG_WRAPPERS
+from .buildinfo import BUILD_ID, build_summary
 from .config import FORM_LABEL_GAP, SCRIPT_VERSION
 from .debuglog import _debug, _debug_session_header, _guarded_slot
 from .live import LiveUpdateMixin, _structure_of
@@ -49,7 +50,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         if parent is None:
             parent = hou.qt.mainWindow()
         super().__init__(parent)
-        self.setWindowTitle("BSM Karma Builder {}".format(SCRIPT_VERSION))
+        self.setWindowTitle("BSM Karma Builder {} (build {})".format(SCRIPT_VERSION, BUILD_ID))
         self.resize(540, 600)
         self.setMinimumSize(440, 420)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
@@ -130,6 +131,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self._update_snapshot_slots_ui()
 
         self._update_debug_path_label()
+        self.log_message("[INFO] {}".format(build_summary(SCRIPT_VERSION)))
 
         # live update is wired last: the values set while the window is built must not trigger a build
         self._live_timer = QtCore.QTimer(self)

@@ -9,6 +9,7 @@ import platform
 import sys
 import traceback
 from hutil.Qt import QtCore
+from .buildinfo import build_summary
 from .config import SCRIPT_VERSION
 from .util import _private_temp_dir
 
@@ -121,6 +122,7 @@ def _debug_session_header():
     _debug("Python {} | {} (Qt {}) | {}".format(
         sys.version.split()[0], binding, qt_version, platform.platform()), "SESSION")
     _debug("script: {}".format(globals().get("__file__") or "<embedded>"), "SESSION")
+    _debug(build_summary(SCRIPT_VERSION), "SESSION")
     try:
         _debug("hip file: {}".format(hou.hipFile.path()), "SESSION")
     except (hou.Error, AttributeError):

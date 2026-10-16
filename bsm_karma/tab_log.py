@@ -4,6 +4,7 @@
 import datetime
 import os
 from hutil.Qt import QtWidgets, QtCore, QtGui
+from .buildinfo import BUILD_ID, build_location, build_origin
 from .config import SCRIPT_VERSION
 from .debuglog import _debug, _debug_session_header, _debug_state, debug_log_path
 from .styles import _C
@@ -26,6 +27,15 @@ class LogTab:
         lbl_title.setFont(title_font)
         lbl_title.setAlignment(QtCore.Qt.AlignCenter)
         layout_about.addWidget(lbl_title)
+
+        lbl_build = QtWidgets.QLabel("Build {}\nrunning from {}\n{}".format(BUILD_ID, build_origin(), build_location()))
+        lbl_build.setAlignment(QtCore.Qt.AlignCenter)
+        lbl_build.setWordWrap(True)
+        lbl_build.setTextFormat(QtCore.Qt.PlainText)
+        lbl_build.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        lbl_build.setToolTip("Same id as tools/build_id.py gives for the repository: if they match, this is that code.")
+        lbl_build.setStyleSheet("color: #aaa;")
+        layout_about.addWidget(lbl_build)
 
         lbl_sub = QtWidgets.QLabel("Procedural Environment & Render Setup\nfor SideFX Houdini")
         lbl_sub.setAlignment(QtCore.Qt.AlignCenter)

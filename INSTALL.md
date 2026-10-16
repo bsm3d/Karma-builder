@@ -98,6 +98,23 @@ Working straight from the repository without copying: create `$HOUDINI_USER_PREF
 }
 ```
 
+## Which build is running?
+
+Every build of the tool has an id: 8 characters computed from the source of all its modules. It changes with any change of the code, and it is the same for the same code, wherever it runs from (a folder, `scripts/python` or the HDA). You find it:
+
+* in the **title of the window**: `BSM Karma Builder 2026.10.15.1 (build 34da9afd)`;
+* in the **About** tab, with where the code was loaded from (a folder, an installed copy in `scripts/python`, or the HDA);
+* in the first line of the **Log** and in the debug log;
+* in the Python Shell: `import bsm_karma; print(bsm_karma.build_info())`.
+
+To know whether that is the code of the repository you think you have, run on the repository (Python only, no Houdini needed):
+
+```powershell
+python tools/build_id.py
+```
+
+It prints `build 34da9afd | version ... | 33 modules | ...`. Same id as the window: same code. A different id means Houdini runs another copy: an older `scripts/python` copy, an old HDA, or a package file pointing elsewhere. Run `bsm_karma.install()` again, or rebuild the HDA, then restart the tool and compare again. The version number alone is not enough: it only changes when I bump it, the id changes with every edit.
+
 ## First start
 
 1. Click the button (or **Open Karma Builder** on the node). The window **BSM Karma Builder** opens.

@@ -11,6 +11,7 @@ if "bsm_karma_ui_dialog" in globals():
 
 import hou
 from .build import setup_karma_environment
+from .buildinfo import BUILD_ID, build_summary
 from .catalog import (_amd_library_reachable, _bound_material_name, _catalog_source_problem, _list_materials_in_file,
                       _material_catalog_file, _parse_catalog_drop, _stage_target_prims)
 from .debuglog import _debug_exception, debug_log_path
@@ -33,7 +34,7 @@ __all__ = [
     "_stage_camera_prims", "_get_or_create_material_linker", "_insert_material_linker_in_chain",
     "_get_or_create_material_edit", "_insert_material_edit_in_chain", "_material_edit_load", "_material_edit_node",
     "_linker_add_reference", "_linker_assign", "_linker_references", "_linker_rules", "_linker_unassign",
-    "_is_tool_node_candidate", "_private_temp_dir", "bsm_karma_ui_dialog", "install",
+    "_is_tool_node_candidate", "_private_temp_dir", "bsm_karma_ui_dialog", "install", "BUILD_ID", "build_info",
 ]
 
 # le dialogue est gardé en global pour qu'un second lancement ferme le premier;
@@ -51,8 +52,14 @@ def _forget_dialog(dialog_id):
 
 
 # ------------------------------------------------------------
+def build_info():
+    return build_summary(SCRIPT_VERSION)
+
+
+# ------------------------------------------------------------
 def main(kwargs=None):
     global bsm_karma_ui_dialog
+    print(build_info())
     if bsm_karma_ui_dialog is not None:
         try:
             bsm_karma_ui_dialog.close()
