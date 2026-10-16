@@ -9,8 +9,11 @@ from .debuglog import _debug, _guarded_slot
 from .gauges import FloatSlider
 from .linker import _linker_references, _linker_rules
 from .localmaterials import local_payload
+from .pbrmaterial import (DEFAULT_OPTIONS as PBR_OPTIONS, DISP_SCALE_DEFAULT, IMAGE_SUFFIXES, NORMAL_FORMATS, SLOTS as PBR_SLOTS, default_spec,
+                          guess_maps, normalize_spec, read_pbr_spec, write_pbr_file)
 from .randommaterials import DEFAULT_RANGES, KINDS, MAX_PER_DROP, random_color, random_material_file
-from .mtlxedit import DEFAULT_MODS, MtlxError, describe, original_and_settings, read_text, write_named, write_variant
+from .mtlxedit import DEFAULT_MODS, MtlxError, _prune, describe, original_and_settings, read_text, write_named, write_variant
+from .util import _expand_plain_path
 from .styles import _C
 from .widgets import LOCAL_MATERIAL_MIME, ColorButton, FlowLayout, _drop_event_pos, linear_to_display, wrap_tab
 from .gauges import IntSlider
@@ -156,6 +159,11 @@ def _preset_color(values):
 
 
 # ------------------------------------------------------------
+# the surface input that each map of the PBR material drives
+PBR_DRIVEN = {"base_color": "base_color", "specular_roughness": "roughness", "metalness": "metalness", "emission_color": "emission", "opacity": "opacity"}
+
+
+# ------------------------------------------------------------
 class ShaderTab:
 
     # ------------------------------------------------------------
@@ -200,6 +208,11 @@ class ShaderTab:
         hint.setStyleSheet("color: {};".format(_C["text_muted"]))
         lay_library.addWidget(hint)
         self._shader_grid = FlowLayout()
+        button = LibraryButton("PBR", (0.8, 0.8, 0.8), self._pbr_base_file)
+        button.setToolTip("The general purpose material, a Principled-like MaterialX material with texture slots. Click to assign it, "
+                          "then load a texture set in the PBR Texture Set group.")
+        self._connect_library_button(button)
+        self._shader_grid.addWidget(button)
         for name, values in BASIC_MATERIALS.items():
             button = LibraryButton(name, _preset_color(values), lambda n=name: basic_material_file(n))
             self._connect_library_button(button)
@@ -221,6 +234,8 @@ class ShaderTab:
         layout.addWidget(group_library)
 
         layout.addWidget(self._build_random_group())
+        self.grp_pbr = self._build_pbr_group()
+        layout.addWidget(self.grp_pbr)
         for title, weight, controls in GROUPS:
             layout.addWidget(self._build_shader_group(title, weight, controls))
         self.grp_shader_textures = self._build_shader_group("Textures of this material", None, TEXTURE_CONTROLS, mods=True)
@@ -298,6 +313,188 @@ class ShaderTab:
         return group
 
     # ------------------------------------------------------------
+    def _pbr_base_file(self):
+        return write_pbr_file(default_spec("PBR"), data_folder("materials_basic"), base=True)
+
+    # ------------------------------------------------------------
+    def _build_pbr_group(self):
+        group = QtWidgets.QGroupBox("PBR Texture Set")
+        layout = QtWidgets.QVBoxLayout(group)
+        row = QtWidgets.QHBoxLayout()
+        btn_load = QtWidgets.QPushButton("Load Texture Set...")
+        btn_load.setToolTip("Pick the folder of a texture set: the maps are found by their names (color, albedo, roughness, normal, ao, height...).")
+        btn_load.clicked.connect(self.on_pbr_load_set)
+        btn_clear = QtWidgets.QPushButton("Clear Maps")
+        btn_clear.clicked.connect(self.on_pbr_clear_maps)
+        row.addWidget(btn_load)
+        row.addWidget(btn_clear)
+        layout.addLayout(row)
+        form = QtWidgets.QFormLayout()
+        form.setHorizontalSpacing(14)
+        self._pbr_edits = {}
+        for slot, label, _kind in PBR_SLOTS:
+            edit = QtWidgets.QLineEdit()
+            edit.setPlaceholderText("none")
+            edit.editingFinished.connect(lambda s=slot: self._pbr_map_edited(s))
+            browse = QtWidgets.QPushButton("...")
+            browse.setMaximumWidth(32)
+            browse.clicked.connect(lambda _checked=False, s=slot: self._pbr_browse(s))
+            line = QtWidgets.QHBoxLayout()
+            line.addWidget(edit, 1)
+            line.addWidget(browse)
+            self._pbr_edits[slot] = edit
+            form.addRow(label + ":", line)
+        self.combo_pbr_normal = QtWidgets.QComboBox()
+        self.combo_pbr_normal.addItems(["OpenGL (Y up)", "DirectX (Y down)"])
+        self.combo_pbr_normal.setToolTip("How the normal map was made. Blender, Houdini and ambientCG (NormalGL) are OpenGL; 3ds Max and Unreal are DirectX.")
+        self.combo_pbr_normal.currentIndexChanged.connect(self._pbr_option_edited)
+        form.addRow("Normal Format:", self.combo_pbr_normal)
+        self.chk_pbr_gloss = QtWidgets.QCheckBox("The roughness map is a glossiness map")
+        self.chk_pbr_gloss.toggled.connect(self._pbr_option_edited)
+        form.addRow("", self.chk_pbr_gloss)
+        self.sld_pbr_ao = FloatSlider(0.0, 1.0, PBR_OPTIONS["ao_strength"])
+        self.sld_pbr_ao.setToolTip("How much the ambient occlusion map darkens the base color.")
+        self.sld_pbr_ao.valueChanged.connect(self._pbr_option_edited)
+        form.addRow("AO Strength:", self.sld_pbr_ao)
+        self.sld_pbr_off_x = FloatSlider(-1.0, 1.0, 0.0)
+        self.sld_pbr_off_x.valueChanged.connect(self._pbr_option_edited)
+        form.addRow("Offset U:", self.sld_pbr_off_x)
+        self.sld_pbr_off_y = FloatSlider(-1.0, 1.0, 0.0)
+        self.sld_pbr_off_y.valueChanged.connect(self._pbr_option_edited)
+        form.addRow("Offset V:", self.sld_pbr_off_y)
+        self.sld_pbr_rot = FloatSlider(-180.0, 180.0, 0.0, decimals=0)
+        self.sld_pbr_rot.setToolTip("Rotation of the textures, in degrees.")
+        self.sld_pbr_rot.valueChanged.connect(self._pbr_option_edited)
+        form.addRow("Rotation:", self.sld_pbr_rot)
+        layout.addLayout(form)
+        note = QtWidgets.QLabel("Tint, brightness, roughness, normal strength, displacement and tiling are in the Textures group below.")
+        note.setWordWrap(True)
+        note.setStyleSheet("color: {};".format(_C["text_muted"]))
+        layout.addWidget(note)
+        group.setVisible(False)
+        self._pbr_state = {"name": "PBR", "maps": {}, "options": {}}
+        return group
+
+    # ------------------------------------------------------------
+    def _set_pbr_widgets(self, state):
+        self._shader_loading = True
+        try:
+            for slot, edit in self._pbr_edits.items():
+                edit.setText(state["maps"].get(slot, ""))
+            options = state["options"]
+            self.combo_pbr_normal.setCurrentIndex(1 if options.get("normal_format") == "DirectX" else 0)
+            self.chk_pbr_gloss.setChecked(bool(options.get("gloss")))
+            self.sld_pbr_ao.setValue(float(options.get("ao_strength", 1.0)))
+            offset = options.get("offset", (0.0, 0.0))
+            self.sld_pbr_off_x.setValue(float(offset[0]))
+            self.sld_pbr_off_y.setValue(float(offset[1]))
+            self.sld_pbr_rot.setValue(float(options.get("rotation", 0.0)))
+        finally:
+            self._shader_loading = False
+
+    # ------------------------------------------------------------
+    def _pbr_option_edited(self, *_):
+        if self._shader_loading or self._shader_target is None or not self._shader_target.get("pbr"):
+            return
+        options = self._pbr_state["options"]
+        options["normal_format"] = NORMAL_FORMATS[1 if self.combo_pbr_normal.currentIndex() == 1 else 0]
+        options["gloss"] = self.chk_pbr_gloss.isChecked()
+        options["ao_strength"] = float(self.sld_pbr_ao.value())
+        options["offset"] = (float(self.sld_pbr_off_x.value()), float(self.sld_pbr_off_y.value()))
+        options["rotation"] = float(self.sld_pbr_rot.value())
+        self._shader_timer.start()
+
+    # ------------------------------------------------------------
+    def _pbr_map_edited(self, slot):
+        if self._shader_loading or self._shader_target is None or not self._shader_target.get("pbr"):
+            return
+        text = self._pbr_edits[slot].text().strip()
+        if text:
+            try:
+                text = _expand_plain_path(text).replace("\\", "/")
+            except ValueError as exc:
+                self.log_message("[WARN] Texture not taken: {}".format(exc))
+                self._pbr_edits[slot].setText(self._pbr_state["maps"].get(slot, ""))
+                return
+            checked = normalize_spec({"maps": {slot: text}})["maps"]
+            if slot not in checked:
+                self.log_message("[WARN] {}: not a map the editor takes (a full path to {}).".format(text, ", ".join(IMAGE_SUFFIXES)))
+                self._pbr_edits[slot].setText(self._pbr_state["maps"].get(slot, ""))
+                return
+            self._pbr_state["maps"][slot] = checked[slot]
+        else:
+            self._pbr_state["maps"].pop(slot, None)
+        self._after_pbr_maps_changed()
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def _pbr_browse(self, slot):
+        path = hou.ui.selectFile(start_directory=self._pbr_edits[slot].text() or "$HIP", title="Texture", file_type=hou.fileType.Image,
+                                 pattern=" ".join("*" + s for s in IMAGE_SUFFIXES), chooser_mode=hou.fileChooserMode.Read)
+        if path:
+            try:
+                self._pbr_edits[slot].setText(_expand_plain_path(path))
+            except ValueError as exc:
+                self.log_message("[WARN] Texture not taken: {}".format(exc))
+                return
+            self._pbr_map_edited(slot)
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_pbr_load_set(self, *_):
+        if self._shader_target is None or not self._shader_target.get("pbr"):
+            return
+        folder = hou.ui.selectFile(start_directory="$HIP", title="Texture Set Folder", file_type=hou.fileType.Directory,
+                                   chooser_mode=hou.fileChooserMode.Read)
+        if not folder:
+            return
+        try:
+            folder = _expand_plain_path(folder).rstrip("/\\")
+        except ValueError as exc:
+            self.log_message("[WARN] Folder not taken: {}".format(exc))
+            return
+        found = normalize_spec({"maps": guess_maps(folder)})["maps"]
+        if not found:
+            self.log_message("[INFO] No texture found in {} (png, jpg, tif, exr, tga).".format(folder))
+            return
+        self._pbr_state["maps"] = dict(found)
+        self._set_pbr_widgets(self._pbr_state)
+        self.log_message("[OK] {} map(s) found: {}.".format(len(found), ", ".join(sorted(found))))
+        self._after_pbr_maps_changed()
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_pbr_clear_maps(self, *_):
+        if self._shader_target is None or not self._shader_target.get("pbr"):
+            return
+        self._pbr_state["maps"] = {}
+        self._set_pbr_widgets(self._pbr_state)
+        self._after_pbr_maps_changed()
+
+    # ------------------------------------------------------------
+    # A map added or taken away changes which inputs a texture drives: write the file now and read it back.
+    def _after_pbr_maps_changed(self):
+        self._shader_timer.stop()
+        self.apply_shader_edit()
+        self._reload_current_shader()
+
+    # ------------------------------------------------------------
+    def _reload_current_shader(self):
+        self._shader_timer.stop()
+        self._fill_shader_materials()
+
+    # ------------------------------------------------------------
+    # The spec of the file from the settings of the editor and the texture set.
+    def _compose_pbr_spec(self):
+        settings, state = self._shader_settings, self._pbr_state
+        mods = dict(DEFAULT_MODS)
+        mods.update(settings["mods"])
+        options = dict(state["options"])
+        options.update({"tint": tuple(mods["tint"]), "brightness": float(mods["brightness"]), "rough_scale": float(mods["rough_scale"]),
+                        "normal_strength": float(mods["normal"]), "disp_scale": DISP_SCALE_DEFAULT * float(mods["disp"]), "tiling": float(mods["tiling"])})
+        return {"name": state["name"], "values": dict(settings["values"]), "maps": dict(state["maps"]), "options": options}
+
+    # ------------------------------------------------------------
     def _random_ranges(self):
         return {key: float(slider.value()) for key, slider in self._random_sliders.items()}
 
@@ -346,7 +543,10 @@ class ShaderTab:
         ranges = self._random_ranges()
         rng = random.Random("edit|{}|{}".format(seed, sorted(ranges.items())))
         self.sld_random_seed.setValue(seed + 1)
-        textured = target["info"]["inputs"]["base_color"]["kind"] == "connected" and "base_color" not in self._shader_settings["values"]
+        if target.get("pbr"):
+            textured = "base_color" in self._pbr_state["maps"]
+        else:
+            textured = target["info"]["inputs"]["base_color"]["kind"] == "connected" and "base_color" not in self._shader_settings["values"]
         if textured:
             soft = dict(ranges, sat_min=min(ranges["sat_min"], 0.6), sat_max=min(ranges["sat_max"], 0.6), val_min=1.0, val_max=1.0)
             self._shader_settings["mods"]["tint"] = random_color(rng, soft)
@@ -486,6 +686,7 @@ class ShaderTab:
         if not references:
             self._shader_target = None
             self._shader_enable(False)
+            self._sync_pbr_group()
             self.lbl_shader_status.setText("No material assigned yet. Click a basic material (with prims selected), or drag one onto a prim.")
             return
         self.on_shader_pick(self.combo_shader_material.currentIndex())
@@ -507,22 +708,66 @@ class ShaderTab:
             self._shader_enable(False)
             return
         index, prim, file_path, ref_prim = data
-        original, saved = original_and_settings(file_path)
+        file_path = self._current_file_path(index, prim, file_path)
+        spec = None
+        try:
+            spec = read_pbr_spec(read_text(file_path))
+        except (OSError, UnicodeDecodeError):
+            pass
+        if spec is not None:
+            original, saved = file_path, {}
+        else:
+            original, saved = original_and_settings(file_path)
         try:
             info = describe(read_text(original))
         except (OSError, MtlxError, UnicodeDecodeError) as exc:
             self._shader_target = None
             self._shader_enable(False)
+            self._sync_pbr_group()
             self.lbl_shader_status.setText("This material cannot be edited here ({}). Use Open Network.".format(exc))
             return
-        self._shader_target = {"index": index, "prim": prim, "original": original, "info": info}
+        self._shader_target = {"index": index, "prim": prim, "original": original, "info": info, "pbr": spec is not None}
         # a file keeps its tuples as lists
         tupled = lambda items: {k: tuple(v) if isinstance(v, list) else v for k, v in items.items()}
-        self._shader_settings = {"values": tupled(saved.get("values", {})), "mods": tupled(saved.get("mods", {}))}
+        if spec is not None:
+            self._adopt_pbr_spec(spec, info)
+        else:
+            self._shader_settings = {"values": tupled(saved.get("values", {})), "mods": tupled(saved.get("mods", {}))}
         self._shader_enable(True)
+        self._sync_pbr_group()
         self._load_shader_controls()
         self.lbl_shader_status.setText("{} is assigned to {}. {}".format(info["material"] or prim.rsplit("/", 1)[-1], prim,
                                        "A copy is saved next to the file at every change; the original is never modified."))
+
+    # ------------------------------------------------------------
+    # The file the Material Linker has now for that slot: an edit made since the list was filled changed it.
+    def _current_file_path(self, index, prim, fallback):
+        stage = hou.node("/stage")
+        linker = _material_linker_node(stage) if stage is not None else None
+        if linker is not None:
+            for slot, linked_prim, file_path, _ in _linker_references(linker):
+                if slot == index and linked_prim == prim:
+                    return file_path
+        return fallback
+
+    # ------------------------------------------------------------
+    def _sync_pbr_group(self):
+        self.grp_pbr.setVisible(self._shader_target is not None and bool(self._shader_target.get("pbr")))
+
+    # ------------------------------------------------------------
+    # The settings of the editor and the texture set from the spec in a PBR file. The controls show the constants of the
+    # spec, not the file's (tint and brightness are already in those).
+    def _adopt_pbr_spec(self, spec, info):
+        options = spec["options"]
+        self._pbr_state = {"name": spec["name"], "maps": dict(spec["maps"]), "options": {k: options[k] for k in
+                           ("normal_format", "gloss", "ao_strength", "offset", "rotation", "disp_mid")}}
+        mods = {"tint": tuple(options["tint"]), "brightness": options["brightness"], "rough_scale": options["rough_scale"],
+                "normal": options["normal_strength"], "disp": options["disp_scale"] / DISP_SCALE_DEFAULT, "tiling": options["tiling"]}
+        self._shader_settings = {"values": dict(spec["values"]), "mods": mods}
+        for key, entry in info["inputs"].items():
+            if entry["kind"] != "connected":
+                entry["value"] = spec["values"].get(key, INPUT_DEFAULTS[key])
+        self._set_pbr_widgets(self._pbr_state)
 
     # ------------------------------------------------------------
     def _load_shader_controls(self):
@@ -539,18 +784,30 @@ class ShaderTab:
                     continue
                 entry = info["inputs"][key]
                 value = settings["values"].get(key, entry["value"])
-                driven = entry["kind"] == "connected" and key not in settings["values"]
+                if target.get("pbr"):
+                    driven = PBR_DRIVEN.get(key) in self._pbr_state["maps"]
+                    tip = "A map drives this input: clear it in the PBR Texture Set group to use a value."
+                else:
+                    driven = entry["kind"] == "connected" and key not in settings["values"]
+                    tip = "A texture drives this input: use the Textures group below, or change the value to replace the texture."
                 widget.setEnabled(not driven)
-                widget.setToolTip("A texture drives this input: use the Textures group below, or change the value to replace the texture." if driven else "")
+                widget.setToolTip(tip if driven else "")
                 self._set_widget(widget, value)
             for weight_key, group in self._shader_groups.items():
                 value = settings["values"].get(weight_key, info["inputs"][weight_key]["value"])
                 group.blockSignals(True)
                 group.setChecked(float(value) > 0.0)
                 group.blockSignals(False)
-            self.grp_shader_textures.setVisible(bool(info["textured"]))
+            pbr = bool(target.get("pbr"))
+            self.grp_shader_textures.setVisible(bool(info["textured"]) or pbr)
+            maps = self._pbr_state["maps"] if pbr else {}
             for name, present in (("normal", info["has_normal"]), ("disp", info["has_displacement"]), ("tiling", info["has_tiling"])):
                 self._shader_controls["mod:" + name].setEnabled(present)
+            if pbr:
+                # the tint, brightness and roughness scale also work on constants
+                self._shader_controls["mod:tiling"].setEnabled(bool(maps))
+                self._shader_controls["mod:normal"].setEnabled("normal" in maps)
+                self._shader_controls["mod:disp"].setEnabled("height" in maps)
         finally:
             self._shader_loading = False
 
@@ -608,7 +865,13 @@ class ShaderTab:
         clean = {"values": self._shader_settings["values"], "mods": {k: v for k, v in self._shader_settings["mods"].items()
                                                                     if v != DEFAULT_MODS.get(k)}}
         try:
-            path = write_variant(target["original"], clean) if (clean["values"] or clean["mods"]) else target["original"]
+            if target.get("pbr"):
+                spec = self._compose_pbr_spec()
+                folder = os.path.dirname(target["original"])
+                path = write_pbr_file(spec, folder)
+                _prune(folder, spec["name"], keep=path)
+            else:
+                path = write_variant(target["original"], clean) if (clean["values"] or clean["mods"]) else target["original"]
         except (OSError, MtlxError, UnicodeDecodeError) as exc:
             self.log_message("[WARN] Material not changed: {}".format(exc))
             return
@@ -621,8 +884,18 @@ class ShaderTab:
     def on_shader_reset(self):
         if self._shader_target is None:
             return
-        self._shader_settings = {"values": {}, "mods": {}}
         self._shader_remembered = {}
+        if self._shader_target.get("pbr"):
+            # the texture set stays, everything else goes back to the defaults
+            fresh = default_spec(self._pbr_state["name"])
+            fresh["maps"] = dict(self._pbr_state["maps"])
+            self._adopt_pbr_spec(fresh, self._shader_target["info"])
+            self._load_shader_controls()
+            self.apply_shader_edit()
+            self._reload_current_shader()
+            self.log_message("[OK] {}: values and options are back to the defaults, the maps are kept.".format(self._shader_target["prim"]))
+            return
+        self._shader_settings = {"values": {}, "mods": {}}
         self._load_shader_controls()
         self.apply_shader_edit()
         self.log_message("[OK] {} is back to its original file.".format(self._shader_target["prim"]))
@@ -637,14 +910,20 @@ class ShaderTab:
                                                         text=safe_name(target["info"]["material"] or "My_Material"))
         if not accepted or not name.strip():
             return
-        folder = os.path.dirname(target["original"]) if target["info"]["has_files"] else data_folder("my_materials")
+        pbr = bool(target.get("pbr"))
+        folder = data_folder("my_materials") if pbr or not target["info"]["has_files"] else os.path.dirname(target["original"])
         wanted = "{}/{}.mtlx".format(folder, safe_name(name))
         if os.path.exists(wanted) and QtWidgets.QMessageBox.question(
                 self, "Save as My Material", "{} exists. Replace it?".format(os.path.basename(wanted))) != QtWidgets.QMessageBox.Yes:
             return
         clean = {"values": self._shader_settings["values"], "mods": {k: v for k, v in self._shader_settings["mods"].items() if v != DEFAULT_MODS.get(k)}}
         try:
-            path = write_named(target["original"], clean, name, folder)
+            if pbr:
+                spec = self._compose_pbr_spec()
+                spec["name"] = safe_name(name)
+                path = write_pbr_file(spec, folder, base=True)
+            else:
+                path = write_named(target["original"], clean, name, folder)
         except (OSError, MtlxError, UnicodeDecodeError) as exc:
             self.log_message("[WARN] Material not saved: {}".format(exc))
             return
