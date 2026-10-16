@@ -20,6 +20,7 @@ from .linker import (_get_or_create_material_edit, _get_or_create_material_linke
                      _insert_material_linker_in_chain, _linker_add_reference, _linker_assign, _linker_references, _linker_rules,
                      _linker_unassign, _material_edit_load, _material_edit_node)
 from .nodeutil import _is_tool_node_candidate
+from .shelf import install
 from .util import _private_temp_dir
 from .window import KarmaBuilderUI
 
@@ -32,7 +33,7 @@ __all__ = [
     "_stage_camera_prims", "_get_or_create_material_linker", "_insert_material_linker_in_chain",
     "_get_or_create_material_edit", "_insert_material_edit_in_chain", "_material_edit_load", "_material_edit_node",
     "_linker_add_reference", "_linker_assign", "_linker_references", "_linker_rules", "_linker_unassign",
-    "_is_tool_node_candidate", "_private_temp_dir", "bsm_karma_ui_dialog",
+    "_is_tool_node_candidate", "_private_temp_dir", "bsm_karma_ui_dialog", "install",
 ]
 
 # le dialogue est gardé en global pour qu'un second lancement ferme le premier;

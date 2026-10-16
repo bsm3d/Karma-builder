@@ -40,6 +40,17 @@ Install `bsm_karma_builder.hda` (Assets > Install Asset Library), drop a **BSM K
 
 ### Option B: the script and a shelf button
 
+The quickest way: in the Python Shell of Houdini, point at the folder of the repository and let the tool install itself (it copies the package and creates the shelf button):
+
+```python
+import sys
+sys.path.insert(0, r"D:/Documents/Coding/Houdini Scripts/Karma-builder")
+import bsm_karma
+bsm_karma.install()
+```
+
+By hand:
+
 1. Copy the whole `bsm_karma` folder (the Python package, presets included) to the `scripts/python` folder of your Houdini user preferences, typically:
    * Windows: `C:\Users\%USERNAME%\Documents\houdini<version>\scripts\python\`
    * Linux: `~/houdini<version>/scripts/python/`

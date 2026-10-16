@@ -4,6 +4,31 @@ BSM Karma Builder - installation as a script with a shelf button (no HDA)
 Needs Houdini 21 or 22, Solaris (LOPs) and Karma.
 
 
+0. Automatic install (the easy way)
+-----------------------------------
+
+In Houdini, open Windows > Python Shell and paste these lines. Replace the path with the folder of the repository
+(the one that holds the "bsm_karma" folder):
+
+    import sys
+    sys.path.insert(0, r"D:/Documents/Coding/Houdini Scripts/Karma-builder")
+    import bsm_karma
+    bsm_karma.install()
+
+It does the two steps below for you:
+  - copies the "bsm_karma" folder to $HOUDINI_USER_PREF_DIR/scripts/python/ (an older copy there is kept as
+    bsm_karma.bak, one backup);
+  - creates the shelf "BSM Karma" with a "Karma Builder" button (file toolbar/bsm_karma.shelf, the icon is copied
+    to $HOUDINI_USER_PREF_DIR/bsm_karma/), reloads the shelves and adds the shelf to your shelf bar.
+A window lists what was done. If the shelf does not show, the + at the right of the shelf tabs lists it.
+
+Run it again after each update of the repository: it replaces the copy and rewrites the shelf. From the HDA, the
+node has a "Create Shelf Button" parameter that creates the shelf in the same way, with a button that opens the tool
+through the asset (no node needed, no scripts/python copy).
+
+The next sections explain the same thing by hand.
+
+
 1. Where to put the tool
 ------------------------
 
