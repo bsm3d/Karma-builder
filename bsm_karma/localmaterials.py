@@ -1,5 +1,9 @@
-# localmaterials.py - BSM Karma Builder - downloaded material files dragged onto prims: payload, checks, thumbnails
-# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Downloaded material files dragged onto prims: payload, checks, thumbnails
+# Houdini : 21 and 22 (PySide6 only, no hou calls)
+# Version : 1.0.0
 
 import json
 import os

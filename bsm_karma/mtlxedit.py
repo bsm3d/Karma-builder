@@ -1,5 +1,9 @@
-# mtlxedit.py - BSM Karma Builder - read and change a MaterialX .mtlx file for the material editor
-# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Read and change a MaterialX .mtlx file for the material editor
+# Houdini : 21 and 22 (plain Python, also runs without Houdini)
+# Version : 1.0.0
 
 import base64
 import hashlib

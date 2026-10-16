@@ -1,5 +1,9 @@
-# snapshots.py - BSM Karma Builder - viewport snapshots: A/B slots, compare and save
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Viewport snapshots: A/B slots, compare and save
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import datetime
 import hou

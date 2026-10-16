@@ -1,5 +1,9 @@
-# tab_shader.py - BSM Karma Builder - Shader tab: basic materials and a simple editor for the material of a prim
-# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Shader tab: basic materials and a simple editor for the material of a prim
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 import os

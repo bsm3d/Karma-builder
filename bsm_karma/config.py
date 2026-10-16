@@ -1,5 +1,9 @@
-# config.py - BSM Karma Builder - constants shared by the whole tool
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Constants shared by the whole tool
+# Houdini : 21 and 22 (plain Python, also runs without Houdini)
+# Version : 1.0.0
 
 import re
 

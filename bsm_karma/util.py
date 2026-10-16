@@ -1,5 +1,9 @@
-# util.py - BSM Karma Builder - small helpers: math, colors, paths, temp folder
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Small helpers: math, colors, paths, temp folder
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import atexit
 import hou

@@ -1,5 +1,9 @@
-# widgets.py - BSM Karma Builder - combo box, prim tree and the tab scroll wrapper
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Combo box, prim tree and the tab scroll wrapper
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 from hutil.Qt import QtWidgets, QtCore, QtGui

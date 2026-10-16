@@ -1,5 +1,9 @@
-# tab_lighting.py - BSM Karma Builder - Lighting tab: HDRI and physical sky
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Lighting tab: HDRI and physical sky
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hashlib
 import hou

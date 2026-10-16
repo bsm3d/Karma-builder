@@ -1,5 +1,9 @@
-# window.py - BSM Karma Builder - the dialog: assembles the tabs, collects the settings, runs the build
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : The dialog: assembles the tabs, collects the settings, runs the build
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 import json

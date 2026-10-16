@@ -1,5 +1,9 @@
-# linker.py - BSM Karma Builder - Material Linker rules and references
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Material Linker rules and references
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 import re

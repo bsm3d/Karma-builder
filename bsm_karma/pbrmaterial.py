@@ -1,5 +1,9 @@
-# pbrmaterial.py - BSM Karma Builder - a general purpose PBR material written as a MaterialX file, with texture slots
-# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : A general purpose PBR material written as a MaterialX file, with texture slots
+# Houdini : 21 and 22 (plain Python, also runs without Houdini)
+# Version : 1.0.0
 
 import base64
 import copy

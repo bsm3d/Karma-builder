@@ -1,5 +1,9 @@
-# tab_materials.py - BSM Karma Builder - Materials tab: catalog, geometry source and assignments
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Materials tab: catalog, geometry source and assignments
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 import os

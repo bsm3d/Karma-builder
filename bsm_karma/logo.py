@@ -1,5 +1,9 @@
-# logo.py - BSM Karma Builder - the logo of the About tab, embedded so it travels with the HDA and the package
-# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : The logo of the About tab, embedded so it travels with the HDA and the package
+# Houdini : 21 and 22 (PySide6 only, no hou calls)
+# Version : 1.0.0
 
 import base64
 

@@ -1,5 +1,9 @@
-# catalog.py - BSM Karma Builder - material catalog drops, trust checks and stage prims
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Material catalog drops, trust checks and stage prims
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hashlib
 import hou

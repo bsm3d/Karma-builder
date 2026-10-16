@@ -1,5 +1,9 @@
-# __init__.py - BSM Karma Builder - entry point of the bsm_karma package
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Entry point of the bsm_karma package
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import sys
 import traceback

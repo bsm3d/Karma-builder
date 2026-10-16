@@ -1,5 +1,9 @@
-# previews.py - BSM Karma Builder - sun compass, sun altitude and atmosphere drawings
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Sun compass, sun altitude and atmosphere drawings
+# Houdini : 21 and 22 (PySide6 only, no hou calls)
+# Version : 1.0.0
 
 import math
 from hutil.Qt import QtWidgets, QtCore, QtGui

@@ -1,5 +1,9 @@
-# environment.py - BSM Karma Builder - camera, lights, sky, fog and clouds
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Camera, lights, sky, fog and clouds
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 import math

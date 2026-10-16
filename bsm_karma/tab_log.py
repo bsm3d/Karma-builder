@@ -1,5 +1,9 @@
-# tab_log.py - BSM Karma Builder - Log and About tabs, debug file controls
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Log and About tabs, debug file controls
+# Houdini : 21 and 22 (PySide6 only, no hou calls)
+# Version : 1.0.0
 
 import datetime
 import os

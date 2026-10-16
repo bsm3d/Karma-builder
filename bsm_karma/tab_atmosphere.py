@@ -1,5 +1,9 @@
-# tab_atmosphere.py - BSM Karma Builder - Atmosphere tab: fog and clouds
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Atmosphere tab: fog and clouds
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 from hutil.Qt import QtWidgets

@@ -1,5 +1,9 @@
-# clouds2d.py - BSM Karma Builder - procedural 2D cloud layer (a lat-long texture for a dome light)
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Procedural 2D cloud layer (a lat-long texture for a dome light)
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hashlib
 import hou

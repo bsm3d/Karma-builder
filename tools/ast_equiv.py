@@ -1,11 +1,15 @@
-# Checks that a style pass changed no code: compares the AST of files with their version at a git revision.
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Checks that a style pass changed no code: compares the AST of files with their version at a git revision
+# Houdini : 21 and 22 (plain Python, no Houdini needed)
+# Version : 1.0.0
 #
 # usage: python tools/ast_equiv.py [REV] [files...]     (default: HEAD, every .py file of the project)
 #
 # Docstrings are ignored on both sides. Comments never reach the AST, so any change to a name, a value or a
 # string shows up as a difference. Exit code 1 when a file differs.
-#
-# Revision : 10-10-2026 | Auteur : BSM
+
 import ast
 import subprocess
 import sys

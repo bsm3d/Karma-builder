@@ -1,5 +1,9 @@
-# tab_passes.py - BSM Karma Builder - Passes tab: AOVs
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Passes tab: AOVs
+# Houdini : 21 and 22 (PySide6 only, no hou calls)
+# Version : 1.0.0
 
 from hutil.Qt import QtWidgets
 from .widgets import wrap_tab

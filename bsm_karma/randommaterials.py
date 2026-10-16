@@ -1,5 +1,9 @@
-# randommaterials.py - BSM Karma Builder - random materials: a color, and a finish, drawn from ranges the user sets
-# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Random materials: a color, and a finish, drawn from ranges the user sets
+# Houdini : 21 and 22 (plain Python, also runs without Houdini)
+# Version : 1.0.0
 
 import colorsys
 import hashlib

@@ -1,5 +1,9 @@
-# viewport_drop.py - BSM Karma Builder - drop a catalog material on a prim of the Solaris viewport
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Drop a catalog material on a prim of the Solaris viewport
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 from hutil.Qt import QtWidgets, QtCore

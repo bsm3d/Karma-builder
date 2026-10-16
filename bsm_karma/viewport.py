@@ -1,5 +1,9 @@
-# viewport.py - BSM Karma Builder - Karma viewport, renderer and camera lock
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Karma viewport, renderer and camera lock
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import re
 import hou

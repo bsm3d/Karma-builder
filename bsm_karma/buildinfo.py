@@ -1,5 +1,9 @@
-# buildinfo.py - BSM Karma Builder - which build is running, and where it was loaded from
-# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Which build is running, and where it was loaded from
+# Houdini : 21 and 22 (plain Python, also runs without Houdini)
+# Version : 1.0.0
 #
 # The build id is a short hash of the source of every module of the package. It changes with any change of the code,
 # whether the tool runs from a folder, from scripts/python or from the HDA, and it is the same for the same code

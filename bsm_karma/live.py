@@ -1,5 +1,9 @@
-# live.py - BSM Karma Builder - live update: rebuild when a value changes
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Live update: rebuild when a value changes
+# Houdini : 21 and 22 (PySide6 only, no hou calls)
+# Version : 1.0.0
 
 from hutil.Qt import QtWidgets
 from .config import LIVE_STRUCTURE_KEYS

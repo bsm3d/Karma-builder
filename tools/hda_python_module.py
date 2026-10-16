@@ -1,10 +1,14 @@
-# PythonModule of the BSM Karma Builder HDA (hou.phm() on the node).
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : PythonModule of the HDA (hou.phm() on the node): serves the modules stored in the asset as a package
+# Houdini : 21 and 22
+# Version : 1.0.0
 #
 # The asset carries every module of the bsm_karma package and the presets as sections. An import hook serves
 # them as the package bsm_karma_hda, so the relative imports of the tool work as on disk and nothing clashes
 # with a bsm_karma package that is on the Python path.
-#
-# Revision : 15-10-2026 | Auteur : BSM
+
 import hashlib
 import importlib
 import importlib.abc

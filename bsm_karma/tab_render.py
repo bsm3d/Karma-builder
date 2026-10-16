@@ -1,5 +1,9 @@
-# tab_render.py - BSM Karma Builder - Render tab: denoiser, filter and ray limits
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Render tab: denoiser, filter and ray limits
+# Houdini : 21 and 22 (PySide6 only, no hou calls)
+# Version : 1.0.0
 
 from hutil.Qt import QtWidgets
 from .gauges import FloatSlider, IntSlider

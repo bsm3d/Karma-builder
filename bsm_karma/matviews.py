@@ -1,5 +1,9 @@
-# matviews.py - BSM Karma Builder - thumbnails, list and category views of the material catalog
-# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Thumbnails, list and category views of the material catalog
+# Houdini : 21 and 22 (PySide6 only, no hou calls)
+# Version : 1.0.0
 
 from hutil.Qt import QtWidgets, QtCore
 from .config import MATERIAL_VIEW_DEPTH, MATERIAL_VIEW_LIMIT

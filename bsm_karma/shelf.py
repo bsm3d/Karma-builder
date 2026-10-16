@@ -1,5 +1,9 @@
-# shelf.py - BSM Karma Builder - create the shelf button (and install the package) from inside Houdini
-# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Create the shelf button (and install the package) from inside Houdini
+# Houdini : 21 and 22
+# Version : 1.0.0
 
 import hou
 import os

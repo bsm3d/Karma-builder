@@ -1,10 +1,14 @@
-# Builds the BSM Karma Builder HDA from the project files: hython build_hda.py [output.hda]
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Builds the BSM Karma Builder HDA from the project files (hython build_hda.py [output.hda])
+# Houdini : 21 and 22 (run with hython)
+# Version : 1.0.0
 #
 # The asset is a LOP node that passes its input through and carries the tool as sections (one per module of the
 # bsm_karma package, presets, loader, license, icon). It is rebuilt from the sources each time, the package stays
 # the single source of truth.
-#
-# Revision : 10-10-2026 | Auteur : BSM
+
 import os
 import re
 import sys

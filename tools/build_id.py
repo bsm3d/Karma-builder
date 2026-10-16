@@ -1,9 +1,12 @@
-# build_id.py - prints the build id of the bsm_karma folder of this repository, to compare with the id shown in
-# the title of the window, in the About tab and in the Log. Needs Python only, not Houdini.
+# BSM Karma Builder
+# Benoît Saint-Moulin
+# www.bsm3d.com
+# Function : Prints the build id of the bsm_karma folder of this repository
+# Houdini : 21 and 22 (plain Python, no Houdini needed)
+# Version : 1.0.0
 #
 # usage: python tools/build_id.py [path/to/bsm_karma]
-#
-# Revision : 16-10-2026 | Auteur : BSM
+
 import importlib.util
 import os
 import sys
