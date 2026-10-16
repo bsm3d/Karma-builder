@@ -31,8 +31,16 @@ try:
 except ValueError:
     refused = True
 t.check("a script that would close the CDATA block is refused", refused)
-shipped = open(os.path.join(ROOT, "tools", "bsm_karma.shelf"), encoding="utf-8").read().replace("\r\n", "\n")
-t.check("tools/bsm_karma.shelf is what install writes (default icon)", shipped == shelf.build_shelf_xml(shelf.tool_script(False)))
+shipped = open(os.path.join(ROOT, "toolbar", "bsm_karma.shelf"), encoding="utf-8").read().replace("\r\n", "\n")
+t.check("toolbar/bsm_karma.shelf is what install writes (default icon)", shipped == shelf.build_shelf_xml(shelf.tool_script(False)))
+
+# the menu entry shipped at the repository root, picked up through the package
+menu = xml.dom.minidom.parse(os.path.join(ROOT, "MainMenuCommon.xml"))
+items = menu.getElementsByTagName("scriptItem")
+t.check("MainMenuCommon.xml is valid XML with one BSM menu and one item", len(menu.getElementsByTagName("subMenu")) == 1 and len(items) == 1)
+menu_script = items[0].getElementsByTagName("scriptCode")[0].firstChild.data
+t.check("the menu script reloads the package and opens the tool", "importlib.reload(bsm_karma)" in menu_script and menu_script.rstrip().endswith("bsm_karma.main()"), menu_script)
+compile(menu_script, "<menu>", "exec")
 
 # the package copy
 source = os.path.join(ROOT, "bsm_karma")

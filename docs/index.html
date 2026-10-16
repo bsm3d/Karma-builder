@@ -76,7 +76,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <ol>
     <li><a href="#overview">Overview</a></li>
     <li><a href="#install">Installation</a>
-      <ul><li><a href="#install-hda">As an HDA</a></li><li><a href="#install-script">As a script</a></li><li><a href="#install-shelf">The shelf button</a></li></ul></li>
+      <ul><li><a href="#install-bat">Install.bat</a></li><li><a href="#install-package">Package file</a></li><li><a href="#install-hda">As an HDA</a></li></ul></li>
     <li><a href="#quickstart">Quick start</a></li>
     <li><a href="#network">What gets built</a>
       <ul><li><a href="#modes">Scene modes</a></li><li><a href="#incremental">Rebuilding safely</a></li></ul></li>
@@ -121,37 +121,31 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 </ul>
 
 <h2 id="install">Installation</h2>
-<p>A step by step version, with troubleshooting and how to uninstall, is in <code>README.md</code> at the root of the repository.</p>
-<h3 id="install-hda">Option A: the HDA</h3>
+<p>No Python to paste: you unpack a folder, double-click a file, restart Houdini. A step by step version, with troubleshooting and how to uninstall, is in <code>README.md</code> at the root of the repository.</p>
+<h3 id="install-bat">Option A: Install.bat (Windows)</h3>
 <ol>
-  <li>In Houdini, choose <em>Assets &rarr; Install Asset Library&hellip;</em> and select <code>bsm_karma_builder.hda</code>. To have it loaded at every start, copy the file into the <code>otls</code> folder of your Houdini preferences instead.</li>
-  <li>In <code>/stage</code>, add a <strong>BSM Karma Builder</strong> node (type <code>karma builder</code> in the Tab menu, or use the Python Shell: <code>hou.node("/stage").createNode("bsm::karma_builder::1.0")</code>).</li>
-  <li>Press <strong>Open Karma Builder</strong> on the node.</li>
+  <li>Get the repository (clone it or unpack the zip) and keep the folder where it is.</li>
+  <li>Double-click <strong>Install.bat</strong>. If Windows shows &ldquo;Windows protected your PC&rdquo;, choose <em>More info</em>, then <em>Run anyway</em>.</li>
+  <li>Restart Houdini. Use the menu <strong>BSM &rarr; Karma Builder</strong>. The shelf <strong>BSM Karma</strong> is available from the <strong>+</strong> next to the shelf tabs.</li>
 </ol>
-<p>The tool and its presets are stored inside the asset, so nothing else needs to be installed. The node passes its input through unchanged and is not part of the network the tool builds; it only opens the window.</p>
+<p>Install.bat writes one small file, <code>packages/bsm_karma.json</code>, in the preferences folder of each Houdini 21 or 22 it finds. The file points Houdini at the folder, nothing is copied, so updating is just updating the folder. If you move the folder, run Install.bat again. <strong>Uninstall.bat</strong> removes the file.</p>
 
-<h3 id="install-script">Option B: the script</h3>
-<p>Copy the whole <code>bsm_karma</code> folder (the Python package, <code>presets.json</code> included) to the <code>scripts/python</code> folder of your Houdini user preferences, so that <code>scripts/python/bsm_karma/__init__.py</code> exists:</p>
+<h3 id="install-package">Option B: package file (Linux, macOS)</h3>
+<p>Create <code>packages/bsm_karma.json</code> in the Houdini preferences folder with the folder of the repository as <code>path</code> and as <code>BSM_KARMA_ROOT</code>, and a <code>PYTHONPATH</code> entry with method <code>prepend</code> and value <code>$BSM_KARMA_ROOT</code>. The exact content is in the README.</p>
 <table>
-  <tr><th>Windows</th><td><code>C:\Users\%USERNAME%\Documents\houdini&lt;version&gt;\scripts\python\</code></td></tr>
-  <tr><th>Linux</th><td><code>~/houdini&lt;version&gt;/scripts/python/</code></td></tr>
-  <tr><th>macOS</th><td><code>~/Library/Preferences/houdini/&lt;version&gt;/scripts/python/</code></td></tr>
+  <tr><th>Windows</th><td><code>C:\Users\%USERNAME%\Documents\houdini&lt;version&gt;\packages\</code></td></tr>
+  <tr><th>Linux</th><td><code>~/houdini&lt;version&gt;/packages/</code></td></tr>
+  <tr><th>macOS</th><td><code>~/Library/Preferences/houdini/&lt;version&gt;/packages/</code></td></tr>
 </table>
-<p>Replace <code>&lt;version&gt;</code> with your Houdini version, for example <code>21.0</code> or <code>22.0</code>. To check the install, run in the Python Shell: <code>import bsm_karma; print(bsm_karma.SCRIPT_VERSION)</code>.</p>
+<p>Replace <code>&lt;version&gt;</code> with your Houdini version, for example <code>21.0</code> or <code>22.0</code>.</p>
 
-<h3 id="install-shelf">The shelf button</h3>
-<p><strong>Automatic.</strong> In the Python Shell of Houdini, with the folder of the repository (the one that holds <code>bsm_karma</code>) in place of the path below:</p>
-<pre><code>import sys
-sys.path.insert(0, r"D:/Documents/Coding/Houdini Scripts/Karma-builder")
-import bsm_karma
-bsm_karma.install()</code></pre>
-<p>This copies the package to <code>scripts/python</code> (an older copy is kept as <code>bsm_karma.bak</code>), writes <code>toolbar/bsm_karma.shelf</code> with the icon, reloads the shelves and adds the <em>BSM Karma</em> shelf to your shelf bar. Run it again after each update. With the HDA, the <strong>Create Shelf Button</strong> parameter of the node does the shelf part, with a button that opens the tool through the asset.</p>
-<p><strong>By hand.</strong> Create a shelf tool (right click on the shelf tabs &rarr; <em>New Shelf&hellip;</em>, then right click the shelf &rarr; <em>New Tool&hellip;</em>) and paste this in its Script tab:</p>
-<pre><code>import importlib
-import bsm_karma
-importlib.reload(bsm_karma)
-bsm_karma.main()</code></pre>
-<p>The reload line makes the button pick up a new version of the code each time it is pressed; it also re-reads every module of the package. Once the tool is stable, the first and third lines can go. A ready-made shelf is in <code>tools/bsm_karma.shelf</code>: copy it to the <code>toolbar</code> folder of your Houdini preferences. Running the tool a second time closes the first window and opens a new one, so there is only ever one window.</p>
+<h3 id="install-hda">Option C: the HDA</h3>
+<ol>
+  <li>Build it with <code>hython build_hda.py</code> (see the README), then copy <code>bsm_karma_builder.hda</code> into the <code>otls</code> folder of your Houdini preferences and restart Houdini, or use <em>Assets &rarr; Install Asset Library&hellip;</em>.</li>
+  <li>In <code>/stage</code>, press Tab and type <code>karma builder</code> (submenu <strong>BSM</strong>).</li>
+  <li>Press <strong>Open Karma Builder</strong> on the node. The <strong>Create Shelf Button</strong> button makes a shelf that opens the tool without the node.</li>
+</ol>
+<p>The tool and its presets are stored inside the asset. The node passes its input through unchanged and is not part of the network the tool builds; it only opens the window. The asset does not create a shelf or a menu by itself.</p>
 
 <h2 id="quickstart">Quick start</h2>
 <ol>
@@ -580,7 +574,7 @@ bsm_karma.main()</code></pre>
   <tr><td>Every frame overwrites the previous one</td><td>The output path has no frame token. Use <code>$F4</code> in the name, for example <code>frame_$F4.exr</code>.</td></tr>
   <tr><td>An error I cannot explain</td><td>Open the <a href="#debug-log">debug log file</a> (Log tab, <strong>Open Folder</strong>) and send it, with the Houdini version.</td></tr>
   <tr><td>The HDA still shows old behavior</td><td>It holds a copy of the code. Rebuild it with <code>hython build_hda.py</code> and reinstall it, and make sure an older copy is not installed as well.</td></tr>
-  <tr><td>I am not sure which version runs</td><td>Compare the build id in the title of the window with <code>python tools/build_id.py</code> run on the repository. Different ids mean another copy is loaded (an old <code>scripts/python</code> copy, an old HDA). See <a href="#tab-log">Log and About</a>.</td></tr>
+  <tr><td>I am not sure which version runs</td><td>Compare the build id in the title of the window with <code>python tools/build_id.py</code> run on the repository. Different ids mean another copy is loaded (an old <code>scripts/python</code> copy, an old HDA, a package file pointing at another folder). See <a href="#tab-log">Log and About</a>.</td></tr>
 </table>
 
 <h2 id="files">Project files</h2>
@@ -592,7 +586,10 @@ bsm_karma.main()</code></pre>
   <tr><td><code>README.md</code></td><td>Presentation, installation (automatic, HDA, by hand), troubleshooting, uninstall, the material sources.</td></tr>
   <tr><td><code>build_hda.py</code></td><td>Builds the HDA with <code>hython</code>.</td></tr>
   <tr><td><code>tools/hda_python_module.py</code></td><td>The PythonModule of the HDA: serves the embedded modules and opens the window.</td></tr>
-  <tr><td><code>tools/bsm_karma.shelf</code></td><td>Ready-made shelf with the button.</td></tr>
+  <tr><td><code>Install.bat</code>, <code>Uninstall.bat</code></td><td>Double-click installer for Windows: writes or removes the package file.</td></tr>
+  <tr><td><code>tools/install_windows.ps1</code></td><td>The script behind both .bat files.</td></tr>
+  <tr><td><code>MainMenuCommon.xml</code></td><td>The BSM &rarr; Karma Builder menu entry, loaded through the package.</td></tr>
+  <tr><td><code>toolbar/bsm_karma.shelf</code></td><td>Ready-made shelf with the button, loaded through the package.</td></tr>
   <tr><td><code>tools/build_id.py</code></td><td>Prints the build id of the repository, to compare with the one shown in the window.</td></tr>
   <tr><td><code>tools/ast_equiv.py</code></td><td>Maintainer helper: compares the code with an earlier git revision, ignoring comments, to prove that a style pass changed nothing (<code>python tools/ast_equiv.py [REV]</code>).</td></tr>
   <tr><td><code>tests/</code></td><td>Tests run with <code>hython</code> (<code>tests/run_tests.ps1</code>), and the screenshot script.</td></tr>

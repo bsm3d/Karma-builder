@@ -11,6 +11,8 @@
 [TODO] bsm_karma/matviews.py - List and Categories read the item view found inside Houdini's gallery (model, mimeData): check on H21 and H22 that the rows, the folders and the drags are right
 [TODO] bsm_karma/clouds2d.py, environment.py - 2D clouds are a second dome light with a generated picture: check in Karma (H22) that it shows over Physical Sky as a background, its brightness, its orientation (clouds overhead, not sideways), and that the two dome lights add up. Alternative if not: a cloud dome with alpha
 [TODO] bsm_karma/mxsources.py - checked with a fake session shaped like the ambientCG and Poly Haven answers, never against the real servers: run one ambientCG and one Poly Haven download on Windows and check the files it writes and that the .mtlx opens in the catalog
+[TODO] Install.bat, tools/install_windows.ps1, MainMenuCommon.xml, toolbar/bsm_karma.shelf - installer tested with PowerShell 7 on fake Documents folders only; in Houdini 22 check that the package JSON (PYTHONPATH prepend, path) loads, that the BSM menu appears and that the BSM Karma shelf is listed under the + of the shelf tabs
+[TODO] build_hda.py - Tools.shelf now uses the viewer and network contexts (was neteditor): rebuild the HDA and check the Tab menu entry BSM > BSM Karma Builder in /stage on H22 and H21
 [DONE] bsm_karma.py split into the bsm_karma package, one module per responsibility
 [DONE] broad except Exception narrowed, the five that must never raise are commented
 [DONE] security audit: backtick file names, plain text for outside text, private log fallback, hscript names, preview size cap, presets validation

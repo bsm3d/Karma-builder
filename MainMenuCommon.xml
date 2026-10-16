@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mainMenu>
+  <menuBar>
+    <subMenu id="bsm_menu">
+      <label>BSM</label>
+      <scriptItem id="bsm_karma_builder_open">
+        <label>Karma Builder</label>
+        <scriptCode><![CDATA[import importlib
+import bsm_karma
+importlib.reload(bsm_karma)
+bsm_karma.main()
+]]></scriptCode>
+      </scriptItem>
+    </subMenu>
+  </menuBar>
+</mainMenu>

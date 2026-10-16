@@ -47,6 +47,8 @@ t.check("presets and loader are embedded verbatim",
 t.check("license is embedded", "PolyForm Noncommercial License 1.0.0" in sections["LICENSE.txt"].contents())
 t.check("help and tab menu sections present", "Help" in sections and "Tools.shelf" in sections)
 t.check("the tab menu entry is tied to the asset itself", "$HDA_TABLE_AND_NAME" in sections["Tools.shelf"].contents(), sections["Tools.shelf"].contents()[:200])
+shelf_text = sections["Tools.shelf"].contents()
+t.check("the tab menu entry uses the network and viewer contexts Houdini knows", 'name="network"' in shelf_text and 'name="viewer"' in shelf_text and "neteditor" not in shelf_text, shelf_text[:300])
 t.check("icon embedded and resolved", "icon.png" in sections and "icon.png" in node_type.resolvedIcon(), node_type.resolvedIcon())
 t.check("definition version", definition.version() == version, definition.version())
 
