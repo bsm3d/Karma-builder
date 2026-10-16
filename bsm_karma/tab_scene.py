@@ -16,7 +16,7 @@ class SceneTab:
 
     def _build_scene_tab(self, tabs):
         tab_main = QtWidgets.QWidget()
-        form_main = QtWidgets.QFormLayout(tab_main)
+        form_main = self.form_main = QtWidgets.QFormLayout(tab_main)
 
         self.combo_scene_mode = QtWidgets.QComboBox()
         self.combo_scene_mode.addItems(["Environment", "Studio", "3 Points", "Interior"])

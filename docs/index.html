@@ -191,8 +191,8 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
     <td><code>fill_hdri</code>, <code>key_light</code>, <code>fill_light</code>, <code>rim_light</code></td>
     <td>The dome runs at 20% of <em>Dome Intensity</em>. Relative to <em>Main Area Intensity</em>, the key is 100%, the fill 40% and the rim 150%.</td></tr>
   <tr><td><strong>Interior</strong></td>
-    <td><code>physical_sky</code> <em>or</em> <code>env_hdri</code>, plus <code>window_portal</code> (area light)</td>
-    <td>The sky (or HDRI) is the light that comes in; an area light stands in for the window. The sky is still in the scene, so it also shows wherever the camera sees outside, for example through openings in your walls. With no walls, it shows everywhere.</td></tr>
+    <td><code>window_portal</code> (area light), plus <code>env_hdri</code> when <em>Window View</em> is <em>HDRI Image</em></td>
+    <td>No sky. An interior is lit by its window, so an area light stands in for it, with the exposure and the color set in Lamp Colors. With <em>Window View</em> on <em>None</em> the window light is the only light. With <em>HDRI Image</em> a dome light shows the picture wherever the camera sees outside, for example through the openings of your walls, and also lights the room through them; with no walls, it shows everywhere.</td></tr>
 </table>
 <p>When you change mode, the nodes of the previous mode that are no longer needed are removed.</p>
 
@@ -224,7 +224,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 <table>
   <tr><th>Control</th><th>Description</th></tr>
   <tr><td>Scene Mode</td><td>Environment, Studio, 3 Points or Interior (see <a href="#modes">Scene modes</a>).</td></tr>
-  <tr><td>Environment Type</td><td>Physical Sky or HDRI Image. Only used by the Environment and Interior modes.</td></tr>
+  <tr><td>Environment Type</td><td>Physical Sky or HDRI Image. Only used by the Environment mode. In Interior the field is named <em>Window View</em> and offers None or HDRI Image: an interior has no sky.</td></tr>
   <tr><td>Sky Preset</td><td>Same list as <em>Atmosphere Preset</em> on the Lighting tab; the two stay in sync. Choosing a preset sets the sky sliders.</td></tr>
   <tr><td>Quality Preset</td><td>Sets resolution and samples (see <a href="#presets">Presets</a>). You can still edit both afterwards.</td></tr>
   <tr><td>Resolution</td><td>Width and height, 1 to 8192.</td></tr>
@@ -254,7 +254,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <tr><td>HDRI Rotation Y</td><td>Rotates the dome around the vertical axis.</td></tr>
   <tr><td>HDRI Saturation, Temperature, Tint</td><td>Combined into the light color of the dome: temperature in kelvin (2500 to 12000), then tint (green to magenta), then saturation.</td></tr>
 </table>
-<p>The HDRI controls are only shown when the mode uses an HDRI (Studio, 3 Points, or Environment/Interior with <em>HDRI Image</em>). The preview shows the whole picture in a frame that follows the width of the tab (2:1 for a lat-long image, at most 240 px high), whatever the size of the file. It uses Qt for the usual formats, the tool's own readers for Radiance <code>.hdr</code> and OpenEXR (no compression, RLE, ZIP), and falls back to Houdini's <code>iconvert</code> for the rest (PIZ and other compressions, RAT). If none works the preview says why, for example <em>Preview unavailable: OpenEXR compression PIZ ...; iconvert not found</em>; the render is not affected.</p>
+<p>The HDRI controls are only shown when the mode uses an HDRI (Studio, 3 Points, or Environment with <em>HDRI Image</em>, Interior with a <em>Window View</em> HDRI). The preview shows the whole picture in a frame that follows the width of the tab (2:1 for a lat-long image, at most 240 px high), whatever the size of the file. It uses Qt for the usual formats, the tool's own readers for Radiance <code>.hdr</code> and OpenEXR (no compression, RLE, ZIP), and falls back to Houdini's <code>iconvert</code> for the rest (PIZ and other compressions, RAT). If none works the preview says why, for example <em>Preview unavailable: OpenEXR compression PIZ ...; iconvert not found</em>; the render is not affected.</p>
 
 <h4>Lamp Colors</h4>
 <p>Shown in Studio, 3 Points and Interior. Each lamp has a <em>Temp. (K)</em> slider (low is warm, high is cool, 6500 is neutral white) and a <em>Tint</em> slider (green to magenta). Studio has one lamp (the key), 3 Points has the key, the fill and the rim, Interior has the window light (the key sliders, named <em>Window</em>). A color change is applied by Live Update like any value.</p>

@@ -275,12 +275,14 @@ class LightingTab:
     def update_environment_tab(self):
         mode = self.combo_scene_mode.currentText()
         is_env_mode = (mode == "Environment")
+        self._sync_env_type_items(mode)
         env_type = self.combo_env_type.currentText()
 
         self.combo_env_type.setEnabled(mode in ["Environment", "Interior"])
 
         is_hdri = (mode in ["Studio", "3 Points"]) or (mode in ["Environment", "Interior"] and env_type == "HDRI Image")
-        is_physical = (mode in ["Environment", "Interior"] and env_type == "Physical Sky")
+        # an interior has no sky: its light is the window, and an HDRI is only what is seen through it
+        is_physical = (mode == "Environment" and env_type == "Physical Sky")
         
         hdri_rows = [
             self.sld_hdri_int,
@@ -309,6 +311,25 @@ class LightingTab:
 
         # the preset is applied when it is picked (sync_from_*), not at every refresh: that wiped the sliders
         self.grp_sky.setVisible(is_physical)
+
+    # ------------------------------------------------------------
+    # Environment: a physical sky or an HDRI. Interior: nothing outside (the window light alone) or an HDRI seen through
+    # the window. The choice is kept when it exists in the new list.
+    def _sync_env_type_items(self, mode):
+        wanted = ["None", "HDRI Image"] if mode == "Interior" else ["Physical Sky", "HDRI Image"]
+        current = [self.combo_env_type.itemText(i) for i in range(self.combo_env_type.count())]
+        label = self.form_main.labelForField(self.combo_env_type)
+        if label is not None:
+            label.setText("Window View:" if mode == "Interior" else "Environment Type:")
+        self.combo_env_type.setToolTip("No sky in an interior: the window light is the light. An HDRI is seen through the window and also lights the room." if mode == "Interior" else "")
+        if current == wanted:
+            return
+        keep = self.combo_env_type.currentText()
+        self.combo_env_type.blockSignals(True)
+        self.combo_env_type.clear()
+        self.combo_env_type.addItems(wanted)
+        self.combo_env_type.setCurrentText(keep if keep in wanted else wanted[0])
+        self.combo_env_type.blockSignals(False)
 
     # ----------------------------------------------------------------------
     def _set_hdri_preview_message(self, message):

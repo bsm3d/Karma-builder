@@ -113,7 +113,7 @@ t.check("pass chain back", stage.node("standard_aovs") is not None)
 no_orphans("(AOV toggle)")
 
 for mode, env, fog, clouds in (("Studio", "HDRI Image", False, False), ("3 Points", "HDRI Image", False, False),
-                               ("Interior", "Physical Sky", False, False), ("Environment", "HDRI Image", True, True),
+                               ("Interior", "None", False, False), ("Interior", "HDRI Image", False, False), ("Environment", "HDRI Image", True, True),
                                ("Environment", "Physical Sky", True, False), ("Studio", "HDRI Image", False, False)):
     build(scene_mode=mode, env_type=env, enable_fog=fog, enable_clouds=clouds, sky_mode=1)
     no_orphans("({} / {} fog={} clouds={})".format(mode, env, fog, clouds))

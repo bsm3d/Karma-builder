@@ -42,11 +42,8 @@ def _cleanup_environment_nodes(stage, cfg, log_callback):
     elif mode == "3 Points":
         keep.update({"fill_hdri", "key_light", "fill_light", "rim_light"})
     elif mode == "Interior":
-        if env_type == "Physical Sky":
-            keep.add("physical_sky")
-            if cfg.get("sky_mode", 0) == 1:
-                keep.add("sky_atmosphere_linker")
-        else:
+        # no sky: the window light, and an HDRI for the view through it
+        if env_type == "HDRI Image":
             keep.add("env_hdri")
         keep.add("window_portal")
 
@@ -164,9 +161,8 @@ def _build_lighting(stage, cam, cfg, log_callback, skipped):
                                   color=_lamp_color(cfg, "rim"))
 
     if mode == "Interior":
-        if env_type == "Physical Sky":
-            env_base = _create_physical_sky(stage, cam, cfg, log_callback)
-        else:
+        env_base = cam
+        if env_type == "HDRI Image":
             env_base = _create_dome_light(stage, cam, cfg["hdri_int"], cfg["hdri_path"], log_callback, name="env_hdri", hdri_opts=cfg)
         return _create_area_light(stage, env_base, float(cfg["area_int"]), log_callback, name="window_portal", pos=(5, 2, 0), rot=(0, 90, 0),
                                   color=_lamp_color(cfg, "key"))
@@ -230,7 +226,7 @@ def setup_karma_environment(cfg, log_callback):
         stage = _get_or_create_stage()
         child_count = len(stage.children())
         cam, cam_path = _resolve_render_camera(stage, cfg, log_callback)
-        if cfg.get("scene_mode", "Environment") in ("Environment", "Interior") and cfg.get("env_type", "Physical Sky") == "Physical Sky" \
+        if cfg.get("scene_mode", "Environment") == "Environment" and cfg.get("env_type", "Physical Sky") == "Physical Sky" \
                 and cfg.get("sky_mode", 0) == 1:
             _ensure_atmosphere_clip(cam, cam_path, log_callback)
 

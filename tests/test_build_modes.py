@@ -32,7 +32,7 @@ def val(node_name, parm):
 
 
 for mode, env in (("Environment", "Physical Sky"), ("Environment", "HDRI Image"), ("Studio", "HDRI Image"),
-                  ("3 Points", "HDRI Image"), ("Interior", "Physical Sky")):
+                  ("3 Points", "HDRI Image"), ("Interior", "None"), ("Interior", "HDRI Image")):
     build(scene_mode=mode, env_type=env)
     rop = stage.node("render_to_disk")
     chain, node = [], rop
@@ -132,9 +132,12 @@ t.check("Studio: a positive tint raises red and blue over green", lamp_rgb("stud
 build(scene_mode="3 Points", env_type="HDRI Image", lamp_key_temp=3000, lamp_fill_temp=10000, lamp_rim_temp=6500)
 key, fill, rim = lamp_rgb("key_light"), lamp_rgb("fill_light"), lamp_rgb("rim_light")
 t.check("3 Points: each lamp has its own color", key[0] > key[2] and fill[2] > fill[0] and abs(rim[0] - rim[2]) < 0.1, (key, fill, rim))
-build(scene_mode="Interior", env_type="Physical Sky", lamp_key_temp=3000)
+build(scene_mode="Interior", env_type="None", lamp_key_temp=3000)
 window = lamp_rgb("window_portal")
 t.check("Interior: the window light takes the key color", window[0] > window[2], window)
+t.check("Interior: no sky and no dome without a window view", stage.node("physical_sky") is None and stage.node("env_hdri") is None and stage.node("window_portal") is not None)
+build(scene_mode="Interior", env_type="HDRI Image")
+t.check("Interior: an HDRI is the view through the window, still no sky", stage.node("env_hdri") is not None and stage.node("physical_sky") is None and stage.node("window_portal") is not None)
 t.check("lamp colors: no warning", not [l for l in logs if "WARN" in l], [l for l in logs if "WARN" in l])
 
 # --- cloud animation: the wind moves the 3D clouds and the drift turns the 2D ones, with the time
