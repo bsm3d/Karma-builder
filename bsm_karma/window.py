@@ -228,7 +228,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         super().resizeEvent(event)
         if not hasattr(self, "lbl_snapshot_preview"):
             return
-        if self._snapshot_source_image.isNull():
+        if not self._snapshot_any_image():
             return
 
         cur_size = self.lbl_snapshot_preview.size()

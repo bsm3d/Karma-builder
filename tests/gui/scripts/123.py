@@ -129,7 +129,7 @@ def layout_problems(ui):
             if ok and w.width() > 0:
                 shown.append(w)
         for w in shown:
-            if isinstance(w, QtWidgets.QLabel) and not w.wordWrap() and w.textFormat() != QtCore.Qt.RichText and w.text():
+            if isinstance(w, QtWidgets.QLabel) and not w.wordWrap() and w.text() and not ('<' in w.text() and '>' in w.text()):
                 if w.fontMetrics().horizontalAdvance(w.text()) > w.contentsRect().width() + 1:
                     problems.append("{}: label '{}' is cut".format(name, w.text()[:40]))
             elif isinstance(w, (QtWidgets.QPushButton, QtWidgets.QCheckBox, QtWidgets.QRadioButton, QtWidgets.QToolButton)) and w.text():
@@ -155,6 +155,33 @@ def step_layout():
     ui = S["ui"]
     problems = layout_problems(ui)
     check("no text cut, no overlapping widgets, no horizontal scroll bar in any tab", not problems, problems[:6])
+    ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(0)
+
+
+# --------------------------------------------------------------------------------
+# The snapshot preview shows the whole frame at the ratio of the image, nothing cropped.
+def step_preview():
+    ui = S["ui"]
+    ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(6)
+    pump()
+    image = QtGui.QImage(1920, 1080, QtGui.QImage.Format_RGB32)
+    painter = QtGui.QPainter(image)
+    painter.fillRect(0, 0, 960, 1080, QtGui.QColor("#ff0000"))
+    painter.fillRect(960, 0, 960, 1080, QtGui.QColor("#0000ff"))
+    painter.end()
+    ui._snapshot_source_image = image
+    ui._update_snapshot_slots_ui()
+    ui._update_snapshot_preview()
+    pump()
+    pump()
+    label = ui.lbl_snapshot_preview
+    width, height = label.width(), label.height()
+    check("the preview of a 1080p snapshot is 16:9 (or at the height limit)", abs(height - min(label.MAX_HEIGHT, width * 9 / 16)) <= 2, (width, height))
+    frame = label.pixmap().toImage()
+    check("the preview holds the whole frame: both edges of the picture are there", frame.pixelColor(2, height // 2).red() > 200 and frame.pixelColor(width - 3, height // 2).blue() > 200)
+    ui.on_clear_snapshot_slots()
+    pump()
+    check("clearing the slots gives the short strip back", label.height() == label.EMPTY_HEIGHT)
     ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(0)
 
 
@@ -370,11 +397,11 @@ def step_quit():
 ALL = {
     "wait": (4000, lambda: say("waited")),
     "gallery": (1500, step_gallery), "gallery_close": (1500, step_gallery_close), "dlgclose": (1500, step_dlgclose),
-    "setup": (2500, step_setup), "layout": (800, step_layout), "cameras": (800, step_cameras), "panels": (800, step_panels),
+    "setup": (2500, step_setup), "layout": (800, step_layout), "preview": (800, step_preview), "cameras": (800, step_cameras), "panels": (800, step_panels),
     "catalog": (800, step_catalog_and_clear), "escape": (500, step_escape), "after": (1200, step_after_escape),
     "cycles": (500, step_cycles), "hda": (500, step_hda), "quit": (500, step_quit),
 }
-ORDER = os.environ.get("BSM_STEPS", "setup,layout,cameras,panels,catalog,escape,after,cycles,hda,quit").split(",")
+ORDER = os.environ.get("BSM_STEPS", "setup,layout,preview,cameras,panels,catalog,escape,after,cycles,hda,quit").split(",")
 STEPS = [ALL[name] for name in ORDER]
 
 

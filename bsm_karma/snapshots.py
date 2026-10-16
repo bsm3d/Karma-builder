@@ -286,39 +286,58 @@ class SnapshotMixin:
         return result
 
     # ------------------------------------------------------------
+    # The whole frame, at the ratio of the image, centered in a dark frame the size of the preview. Nothing is cropped.
     def _update_snapshot_preview(self, rebuild=False):
+        label = self.lbl_snapshot_preview
         if not self._snapshot_any_image():
-            self.lbl_snapshot_preview.setPixmap(QtGui.QPixmap())
-            self.lbl_snapshot_preview.setText("No snapshot yet.")
+            label.set_ratio(None)
+            label.setPixmap(QtGui.QPixmap())
+            label.setText("No snapshot yet.")
+            self.lbl_snapshot_caption.setText("")
             return
-
-        target_size = self.lbl_snapshot_preview.size()
-        if target_size.width() < 2 or target_size.height() < 2:
-            return
-        self._last_snapshot_preview_size = target_size
 
         source_img = self._snapshot_source_image
         if source_img is None or source_img.isNull():
             source_img = self._snapshot_compare_image
+        label.set_ratio(source_img.height() / float(max(1, source_img.width())))
 
+        # the label takes its new height at the next layout pass: work with the size it is going to have
+        target_size = QtCore.QSize(label.width(), label.target_height())
+        if target_size.width() < 2 or target_size.height() < 2:
+            return
+        self._last_snapshot_preview_size = label.size()
+
+        fitted = QtCore.QSize(source_img.size()).scaled(target_size, QtCore.Qt.KeepAspectRatio)
         compare_ready = self._snapshot_has_compare() and (
             (not hasattr(self, "chk_snapshot_compare")) or self.chk_snapshot_compare.isChecked()
         )
-
         if compare_ready:
-            pixmap = self._build_compare_pixmap(
+            picture = self._build_compare_pixmap(
                 self._snapshot_source_image,
                 self._snapshot_compare_image,
-                target_size,
+                fitted,
                 float(self.sld_snapshot_compare.value()),
             )
         else:
-            pixmap = self._build_centered_pixmap(source_img, target_size)
+            picture = self._build_centered_pixmap(source_img, fitted)
+        picture = self._pixmap_with_safe_overlay(picture)
 
-        pixmap = self._pixmap_with_safe_overlay(pixmap)
+        frame = QtGui.QPixmap(target_size)
+        frame.fill(QtGui.QColor("#1f1f1f"))
+        painter = QtGui.QPainter(frame)
+        painter.drawPixmap((target_size.width() - fitted.width()) // 2, (target_size.height() - fitted.height()) // 2, picture)
+        painter.end()
+        label.setText("")
+        label.setPixmap(frame)
+        self.lbl_snapshot_caption.setText(self._snapshot_caption(source_img, compare_ready))
 
-        self.lbl_snapshot_preview.setText("")
-        self.lbl_snapshot_preview.setPixmap(pixmap)
+    # ------------------------------------------------------------
+    def _snapshot_caption(self, image, compared):
+        parts = ["A | B compared" if compared else "Slot {}".format("A" if not self._snapshot_source_image.isNull() else "B"),
+                 "{} x {}".format(image.width(), image.height())]
+        if self.chk_snapshot_safe.isChecked():
+            parts.append(self.combo_snapshot_safe_type.currentText())
+        return "  |  ".join(parts)
 
     # ------------------------------------------------------------
     @_guarded_slot

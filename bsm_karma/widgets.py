@@ -50,6 +50,49 @@ class PopupRefreshComboBox(QtWidgets.QComboBox):
 
 
 # --------------------------------------------------------
+# The picture of the last snapshot. Its height follows its width so that the whole frame fits at the ratio of the image
+# (16:9 for a 1080p render), within the limits below; with no picture it is a short strip.
+class SnapshotPreview(QtWidgets.QLabel):
+    EMPTY_HEIGHT = 110
+    MIN_HEIGHT = 90
+    MAX_HEIGHT = 340
+
+    # ------------------------------------------------------------
+    def __init__(self, text="", parent=None):
+        super().__init__(text, parent)
+        self._ratio = None
+        self.setAlignment(QtCore.Qt.AlignCenter)
+        self.setScaledContents(False)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+        self.setTextFormat(QtCore.Qt.PlainText)
+        self.setFixedHeight(self.EMPTY_HEIGHT)
+
+    # ------------------------------------------------------------
+    # ratio is height / width of the image, None when there is none
+    def set_ratio(self, ratio):
+        self._ratio = ratio if ratio and ratio > 0 else None
+        self._fit_height()
+
+    # ------------------------------------------------------------
+    def target_height(self, width=None):
+        if self._ratio is None:
+            return self.EMPTY_HEIGHT
+        width = self.width() if width is None else width
+        return int(_clamp(round(width * self._ratio), self.MIN_HEIGHT, self.MAX_HEIGHT))
+
+    # ------------------------------------------------------------
+    def _fit_height(self):
+        height = self.target_height()
+        if height != self.height():
+            self.setFixedHeight(height)
+
+    # ------------------------------------------------------------
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._fit_height()
+
+
+# --------------------------------------------------------
 # Small square showing an RGB value. Values above 1 (the sliders go up to 2) are clipped for display.
 class ColorSwatch(QtWidgets.QWidget):
     EDGE = QtGui.QColor("#3f4246")

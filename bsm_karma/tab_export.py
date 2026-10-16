@@ -8,7 +8,7 @@ from .debuglog import _guarded_slot
 from .gauges import ClickSlider
 from .styles import _C, _btn_style, _slider_stylesheet
 from .util import _expand_plain_path, _normalize_output_path_extension
-from .widgets import fit_spin, wrap_tab
+from .widgets import SnapshotPreview, fit_spin, wrap_tab
 
 
 # ------------------------------------------------------------
@@ -189,19 +189,19 @@ class ExportTab:
         lay_viewport_tools.addLayout(row_compare)
 
         self.w_snapshot_preview = QtWidgets.QWidget()
-        self.w_snapshot_preview.setMinimumHeight(110)
+        self.w_snapshot_preview.setMinimumHeight(SnapshotPreview.EMPTY_HEIGHT)
         self.w_snapshot_preview.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         lay_snapshot_stack = QtWidgets.QVBoxLayout(self.w_snapshot_preview)
         lay_snapshot_stack.setContentsMargins(0, 0, 0, 0)
 
-        self.lbl_snapshot_preview = QtWidgets.QLabel("No snapshot yet.")
-        self.lbl_snapshot_preview.setMinimumHeight(110)
-        self.lbl_snapshot_preview.setAlignment(QtCore.Qt.AlignCenter)
-        self.lbl_snapshot_preview.setScaledContents(False)
-        self.lbl_snapshot_preview.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
-        self.lbl_snapshot_preview.setTextFormat(QtCore.Qt.PlainText)
+        self.lbl_snapshot_preview = SnapshotPreview("No snapshot yet.")
         self.lbl_snapshot_preview.setObjectName("snapshotPreview")
         lay_snapshot_stack.addWidget(self.lbl_snapshot_preview)
+        self.lbl_snapshot_caption = QtWidgets.QLabel("")
+        self.lbl_snapshot_caption.setAlignment(QtCore.Qt.AlignCenter)
+        self.lbl_snapshot_caption.setTextFormat(QtCore.Qt.PlainText)
+        self.lbl_snapshot_caption.setStyleSheet("color: {};".format(_C["text_muted"]))
+        lay_snapshot_stack.addWidget(self.lbl_snapshot_caption)
         lay_viewport_tools.addWidget(self.w_snapshot_preview)
 
         self.form_out.addRow(grp_viewport_tools)
