@@ -162,6 +162,36 @@ many = {"values": {key: (0.123456, 0.234567, 0.345678) if basic.INPUT_TYPES[key]
 big = edit.write_variant(src + "/Wood.mtlx", many)
 t.check("a variant with every setting still tells its original and settings", edit.original_and_settings(big)[0] == src + "/Wood.mtlx" and len(edit.original_and_settings(big)[1]["values"]) == len(many["values"]))
 
+# --- random materials
+import colorsys
+import bsm_karma.randommaterials as rnd
+kind, values = rnd.random_values(3, "Plastic")
+t.check("random: the same seed and ranges give the same material", rnd.random_values(3, "Plastic") == (kind, values) and rnd.random_values(4, "Plastic")[1] != values)
+t.check("random: another kind is another finish", rnd.random_values(3, "Metal")[1]["metalness"] == 1.0 and rnd.random_values(3, "Matte")[1]["specular_roughness"] >= 0.65
+        and rnd.random_values(3, "Paint")[1]["coat"] == 1.0)
+kinds = {rnd.random_values(n, "Any")[0] for n in range(60)}
+t.check("random: Any draws every kind", kinds == set(rnd.KINDS[1:]), kinds)
+ranges = {"hue_from": 100.0, "hue_to": 140.0, "sat_min": 0.5, "sat_max": 0.6, "val_min": 0.7, "val_max": 0.8}
+off = 0
+for n in range(200):
+    color = rnd.random_values(n, "Plastic", ranges)[1]["base_color"]
+    shown = [rnd.srgb_to_linear.__globals__["colorsys"].rgb_to_hsv(*[(c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055) for c in color])][0]
+    if not (100.0 - 1 <= shown[0] * 360.0 <= 140.0 + 1 and 0.5 - 0.01 <= shown[1] <= 0.6 + 0.01 and 0.7 - 0.01 <= shown[2] <= 0.8 + 0.01):
+        off += 1
+t.check("random: the colors stay inside the hue, saturation and brightness ranges", off == 0, off)
+wrap = {"hue_from": 300.0, "hue_to": 60.0}
+hues = [colorsys.rgb_to_hsv(*[(c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055) for c in rnd.random_values(n, "Plastic", wrap)[1]["base_color"]])[0] * 360 for n in range(100)]
+t.check("random: a hue range from 300 to 60 goes through red", all(h >= 299 or h <= 61 for h in hues) and any(h > 300 for h in hues) and any(h < 60 for h in hues))
+t.check("random: a metal is never a dark or loud color", all(max(rnd.random_values(n, "Metal")[1]["base_color"]) > 0.3 for n in range(50)))
+t.check("random: strange ranges are tidied", rnd.random_values(1, "Plastic", {"sat_min": 2.0, "sat_max": -1.0, "hue_from": 999})[1]["base_color"] is not None)
+folder = work + "/random"
+os.makedirs(folder)
+first = rnd.random_material_file(3, "Plastic", None, folder)
+t.check("random: a file with a safe name and a material of that name", edit.describe(open(first, encoding="utf-8").read())["material"] == os.path.splitext(os.path.basename(first))[0] and basic.safe_name(os.path.basename(first)[:-5]) == os.path.basename(first)[:-5])
+stamp = os.path.getmtime(first)
+t.check("random: the same settings reuse the file", rnd.random_material_file(3, "Plastic", None, folder) == first and os.path.getmtime(first) == stamp)
+t.check("random: other ranges give another file", rnd.random_material_file(3, "Plastic", {"hue_from": 10.0}, folder) != first)
+
 # --- Houdini: USD reads the files
 usd_reads_mtlx = False
 try:

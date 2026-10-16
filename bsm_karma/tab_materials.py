@@ -423,13 +423,21 @@ class MaterialsTab:
     # ------------------------------------------------------------
     def _assign_material_assets(self, assets, prim_paths):
         prim_paths = [p for p in prim_paths if p]
-        if not assets or not prim_paths:
+        self._assign_material_pairs([(asset, prim_paths) for asset in assets])
+
+    # ------------------------------------------------------------
+    # pairs: [(material descriptor, prim paths)], all done in one step, so one prim list refresh and one undo.
+    def _assign_material_pairs(self, pairs):
+        pairs = [(asset, [p for p in prims if p]) for asset, prims in pairs]
+        pairs = [(asset, prims) for asset, prims in pairs if asset and prims]
+        if not pairs:
             return
         with hou.undos.group("BSM Karma - Assign Material"):
             linker = self._ensure_material_linker()
             if linker is None:
                 return
-            for asset in assets:
+            assigned = 0
+            for asset, prim_paths in pairs:
                 try:
                     material_path = _linker_add_reference(linker, asset["file_path"], asset["prim_path"], asset["label"])
                 except ValueError as exc:
@@ -440,8 +448,12 @@ class MaterialsTab:
                 except ValueError as exc:
                     self.log_message("[WARN] Material not assigned: {}".format(exc))
                     continue
-                self.log_message("[OK] {} -> {} prim(s): {}".format(material_path, count, ", ".join(prim_paths[:3])
-                                                                    + (" ..." if len(prim_paths) > 3 else "")))
+                assigned += count
+                if len(pairs) <= 5:
+                    self.log_message("[OK] {} -> {} prim(s): {}".format(material_path, count, ", ".join(prim_paths[:3])
+                                                                        + (" ..." if len(prim_paths) > 3 else "")))
+            if len(pairs) > 5:
+                self.log_message("[OK] {} materials assigned, one to each of {} prims.".format(len(pairs), assigned))
         self.refresh_material_targets()
 
     # ------------------------------------------------------------------------
@@ -472,7 +484,7 @@ class MaterialsTab:
     # Files dragged from the download window. Only files of a download folder are taken: the drop could come from anywhere.
     def _local_assets_from_payload(self, payload):
         roots = [self._default_download_folder()]
-        for sub in ("materials_basic", "my_materials"):
+        for sub in ("materials_basic", "my_materials", "materials_random"):
             try:
                 roots.append(data_folder(sub))
             except OSError:

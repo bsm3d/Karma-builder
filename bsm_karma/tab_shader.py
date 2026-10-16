@@ -9,10 +9,13 @@ from .debuglog import _debug, _guarded_slot
 from .gauges import FloatSlider
 from .linker import _linker_references, _linker_rules
 from .localmaterials import local_payload
+from .randommaterials import DEFAULT_RANGES, KINDS, MAX_PER_DROP, random_color, random_material_file
 from .mtlxedit import DEFAULT_MODS, MtlxError, describe, original_and_settings, read_text, write_named, write_variant
 from .styles import _C
 from .widgets import LOCAL_MATERIAL_MIME, ColorButton, FlowLayout, _drop_event_pos, linear_to_display, wrap_tab
+from .gauges import IntSlider
 from .linker import _material_linker_node
+import random
 
 EDIT_DELAY_MS = 250
 MY_MATERIALS_SHOWN = 24
@@ -47,7 +50,8 @@ class LibraryButton(QtWidgets.QToolButton):
         self._path_provider = path_provider
         self._press = None
         self.setText(label)
-        self.setIcon(QtGui.QIcon(ball_pixmap(color)))
+        if color is not None:
+            self.setIcon(QtGui.QIcon(ball_pixmap(color)))
         self.setIconSize(QtCore.QSize(44, 44))
         self.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         self.setAutoRaise(True)
@@ -115,6 +119,28 @@ def ball_pixmap(rgb, size=44):
     painter.setPen(QtCore.Qt.NoPen)
     painter.setBrush(QtGui.QColor(255, 255, 255, 120))
     painter.drawEllipse(int(size * 0.3), int(size * 0.22), int(size * 0.2), int(size * 0.12))
+    painter.end()
+    return pixmap
+
+
+# ------------------------------------------------------------
+def rainbow_pixmap(size=44):
+    pixmap = QtGui.QPixmap(size, size)
+    pixmap.fill(QtCore.Qt.transparent)
+    painter = QtGui.QPainter(pixmap)
+    painter.setRenderHint(QtGui.QPainter.Antialiasing)
+    gradient = QtGui.QConicalGradient(size / 2.0, size / 2.0, 0)
+    for step in range(7):
+        gradient.setColorAt(step / 6.0, QtGui.QColor.fromHsv(int(360 * step / 6.0) % 360, 190, 235))
+    painter.setBrush(gradient)
+    painter.setPen(QtGui.QPen(QtGui.QColor("#2a2a2a"), 1))
+    painter.drawEllipse(2, 2, size - 4, size - 4)
+    shade = QtGui.QRadialGradient(size * 0.38, size * 0.32, size * 0.62)
+    shade.setColorAt(0.0, QtGui.QColor(255, 255, 255, 110))
+    shade.setColorAt(1.0, QtGui.QColor(0, 0, 0, 90))
+    painter.setBrush(shade)
+    painter.setPen(QtCore.Qt.NoPen)
+    painter.drawEllipse(2, 2, size - 4, size - 4)
     painter.end()
     return pixmap
 
@@ -194,6 +220,7 @@ class ShaderTab:
         lay_library.addLayout(row_library)
         layout.addWidget(group_library)
 
+        layout.addWidget(self._build_random_group())
         for title, weight, controls in GROUPS:
             layout.addWidget(self._build_shader_group(title, weight, controls))
         self.grp_shader_textures = self._build_shader_group("Textures of this material", None, TEXTURE_CONTROLS, mods=True)
@@ -221,6 +248,112 @@ class ShaderTab:
         tabs.currentChanged.connect(self._shader_tab_changed)
         self._shader_tabs = tabs
         self._shader_enable(False)
+
+    # ------------------------------------------------------------
+    def _build_random_group(self):
+        group = QtWidgets.QGroupBox("Random Material")
+        layout = QtWidgets.QVBoxLayout(group)
+        hint = QtWidgets.QLabel("A new color and finish from the ranges below. Click or drag the ball; with several prims selected each one gets its own.")
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: {};".format(_C["text_muted"]))
+        layout.addWidget(hint)
+        top = QtWidgets.QHBoxLayout()
+        self.btn_random = LibraryButton("Random", None, self._next_random_file)
+        self.btn_random.setIcon(QtGui.QIcon(rainbow_pixmap()))
+        self.btn_random.setToolTip("Click: a random material for each selected prim. Drag: onto a prim or the viewport.")
+        self._connect_library_button(self.btn_random)
+        top.addWidget(self.btn_random)
+        form = QtWidgets.QFormLayout()
+        form.setHorizontalSpacing(14)
+        self.combo_random_kind = QtWidgets.QComboBox()
+        self.combo_random_kind.addItems(KINDS)
+        self.combo_random_kind.setToolTip("Any draws the finish too: plastic, matte, metal or paint.")
+        form.addRow("Kind:", self.combo_random_kind)
+        self.sld_random_seed = IntSlider(0, 9999, 1)
+        self.sld_random_seed.setToolTip("The same seed and ranges give the same colors again. Each use moves it on.")
+        form.addRow("Seed:", self.sld_random_seed)
+        top.addLayout(form, 1)
+        layout.addLayout(top)
+        form_ranges = QtWidgets.QFormLayout()
+        form_ranges.setHorizontalSpacing(14)
+        self._random_sliders = {}
+        for key, label, low, high in (("hue_from", "Hue From:", 0.0, 360.0), ("hue_to", "Hue To:", 0.0, 360.0), ("sat_min", "Saturation Min:", 0.0, 1.0),
+                                      ("sat_max", "Saturation Max:", 0.0, 1.0), ("val_min", "Brightness Min:", 0.0, 1.0), ("val_max", "Brightness Max:", 0.0, 1.0)):
+            slider = FloatSlider(low, high, DEFAULT_RANGES[key], decimals=0 if high == 360.0 else 2)
+            slider.setToolTip("Hue in degrees, 0 red, 120 green, 240 blue. From 300 to 60 goes through red. 0 to 360 is every color." if high == 360.0
+                              else "As a screen shows it.")
+            self._random_sliders[key] = slider
+            form_ranges.addRow(label, slider)
+        layout.addLayout(form_ranges)
+        row = QtWidgets.QHBoxLayout()
+        btn_assign = QtWidgets.QPushButton("Assign to Selection")
+        btn_assign.setToolTip("A random material for each prim selected in the Materials tab list or in the viewport.")
+        btn_assign.clicked.connect(self.on_random_assign)
+        self.btn_random_edit = QtWidgets.QPushButton("Randomize Material Being Edited")
+        self.btn_random_edit.setToolTip("A new random color for the material of the Material group (a texture is tinted).")
+        self.btn_random_edit.clicked.connect(self.on_random_edit)
+        row.addWidget(btn_assign)
+        row.addWidget(self.btn_random_edit)
+        layout.addLayout(row)
+        return group
+
+    # ------------------------------------------------------------
+    def _random_ranges(self):
+        return {key: float(slider.value()) for key, slider in self._random_sliders.items()}
+
+    # ------------------------------------------------------------
+    # The file of the next random material; the seed moves on, so a drag after a drag is another color.
+    def _next_random_file(self):
+        seed = int(self.sld_random_seed.value())
+        path = random_material_file(seed, self.combo_random_kind.currentText(), self._random_ranges())
+        self.sld_random_seed.setValue(seed + 1)
+        return path
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_random_assign(self, *_):
+        paths, origin = self._assignment_targets()
+        if not paths:
+            self.log_message("[INFO] Select prims in the Materials tab list, or in the Solaris viewport, then use Random.")
+            return
+        if len(paths) > MAX_PER_DROP:
+            self.log_message("[INFO] {} prims selected: the first {} get a random material.".format(len(paths), MAX_PER_DROP))
+            paths = paths[:MAX_PER_DROP]
+        seed, kind, ranges = int(self.sld_random_seed.value()), self.combo_random_kind.currentText(), self._random_ranges()
+        pairs = []
+        for number, prim in enumerate(paths):
+            try:
+                path = random_material_file(seed + number, kind, ranges)
+            except OSError as exc:
+                self.log_message("[WARN] Random material not written: {}".format(exc))
+                return
+            assets = self._local_assets_from_payload(local_payload([path]))
+            if assets:
+                pairs.append((assets[0], [prim]))
+        self.sld_random_seed.setValue(seed + len(paths))
+        self.log_message("[INFO] Random {}: {} prim(s) of {}.".format(kind, len(pairs), origin))
+        self._assign_material_pairs(pairs)
+        self._fill_shader_materials()
+
+    # ------------------------------------------------------------
+    @_guarded_slot
+    def on_random_edit(self, *_):
+        target = self._shader_target
+        if target is None:
+            self.log_message("[INFO] Assign a material first, then pick it in the Material group.")
+            return
+        seed = int(self.sld_random_seed.value())
+        ranges = self._random_ranges()
+        rng = random.Random("edit|{}|{}".format(seed, sorted(ranges.items())))
+        self.sld_random_seed.setValue(seed + 1)
+        textured = target["info"]["inputs"]["base_color"]["kind"] == "connected" and "base_color" not in self._shader_settings["values"]
+        if textured:
+            soft = dict(ranges, sat_min=min(ranges["sat_min"], 0.6), sat_max=min(ranges["sat_max"], 0.6), val_min=1.0, val_max=1.0)
+            self._shader_settings["mods"]["tint"] = random_color(rng, soft)
+        else:
+            self._shader_settings["values"]["base_color"] = random_color(rng, ranges)
+        self._load_shader_controls()
+        self.apply_shader_edit()
 
     # ------------------------------------------------------------
     def _connect_library_button(self, button):
