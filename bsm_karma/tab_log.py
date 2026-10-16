@@ -6,6 +6,7 @@ import os
 from hutil.Qt import QtWidgets, QtCore, QtGui
 from .buildinfo import BUILD_ID, build_location, build_origin
 from .config import SCRIPT_VERSION
+from .logo import logo_pixmap
 from .debuglog import _debug, _debug_session_header, _debug_state, debug_log_path
 from .styles import _C
 from .widgets import wrap_tab
@@ -19,6 +20,13 @@ class LogTab:
         layout_about.setAlignment(QtCore.Qt.AlignTop)
         layout_about.setSpacing(12)
         layout_about.setContentsMargins(16, 20, 16, 16)
+
+        logo = logo_pixmap(110)
+        if logo is not None:
+            lbl_logo = QtWidgets.QLabel()
+            lbl_logo.setPixmap(logo)
+            lbl_logo.setAlignment(QtCore.Qt.AlignCenter)
+            layout_about.addWidget(lbl_logo)
 
         lbl_title = QtWidgets.QLabel(f"BSM Karma Builder {SCRIPT_VERSION}")
         title_font = lbl_title.font()
