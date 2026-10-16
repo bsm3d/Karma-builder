@@ -127,10 +127,17 @@ original, restored = edit.original_and_settings(path)
 t.check("the variant knows its original and its settings", original == src + "/Wood.mtlx" and restored == settings, (original, restored))
 t.check("a file the tool did not write is its own original", edit.original_and_settings(src + "/Wood.mtlx") == (src + "/Wood.mtlx", {}))
 t.check("the variant is a valid file with the same material", edit.describe(open(path, encoding="utf-8").read())["material"] == "Wood")
-for n in range(12):
-    edit.write_variant(src + "/Wood.mtlx", {"values": {"subsurface": 0.01 * n + 0.01}})
-count = len([n for n in os.listdir(src) if edit.VARIANT_RE.match(n)])
-t.check("the oldest variants are removed", count <= edit.VARIANTS_KEPT, count)
+kept_before, edit.VARIANTS_KEPT = edit.VARIANTS_KEPT, 3
+made = [edit.write_variant(src + "/Wood.mtlx", {"values": {"subsurface": 0.01 * n + 0.01}}) for n in range(8)]
+for number, old in enumerate(made[:5]):
+    os.utime(old, (1_000_000_000 + number, 1_000_000_000 + number))
+recent = made[5]
+edit.write_variant(src + "/Wood.mtlx", {"values": {"subsurface": 0.5}})
+left = [n for n in os.listdir(src) if edit.VARIANT_RE.match(n)]
+t.check("copies beyond the newest ones and weeks old are removed", not any(os.path.basename(old) in left for old in made[:5]), left)
+t.check("recent copies are kept, a scene saved earlier may use them", os.path.basename(recent) in left and os.path.basename(made[7]) in left, left)
+edit.VARIANTS_KEPT = kept_before
+t.check("by default fifty copies are kept", edit.VARIANTS_KEPT == 50 and edit.VARIANT_MIN_AGE_DAYS == 14)
 t.check("the original is never removed or changed", open(src + "/Wood.mtlx", encoding="utf-8").read() == TEXTURED)
 forged = src + "/Forged.bsm_00000000.mtlx"
 open(forged, "w", encoding="utf-8").write('<?xml version="1.0"?>\n<!-- bsm_karma ' + edit._encode("../../etc/passwd", {}) + ' -->\n<materialx version="1.38"/>')
@@ -144,15 +151,68 @@ described = edit.describe(open(saved, encoding="utf-8").read())
 t.check("a named copy has the new name for its material and surface", saved == mine + "/Face_Skin.mtlx" and described["material"] == "Face_Skin" and described["surface"] == "SR_Face_Skin"
         and described["inputs"]["subsurface"]["value"] == 0.9, described["material"])
 
-# --- Houdini: USD reads the files
 try:
-    from pxr import Usd, UsdShade
+    edit.write_named(src + "/Wood.mtlx", {}, "Wood", src)
+    refused = False
+except edit.MtlxError:
+    refused = True
+t.check("a name that is the file being edited is refused: the original is not overwritten", refused and open(src + "/Wood.mtlx", encoding="utf-8").read() == TEXTURED)
+many = {"values": {key: (0.123456, 0.234567, 0.345678) if basic.INPUT_TYPES[key] == "color3" else 0.5 for key in basic.INPUT_TYPES if basic.INPUT_TYPES[key] != "boolean"},
+        "mods": {"tint": (0.9, 0.8, 0.7), "brightness": 1.1, "rough_scale": 0.9, "normal": 1.2, "disp": 1.3, "tiling": 1.4}}
+big = edit.write_variant(src + "/Wood.mtlx", many)
+t.check("a variant with every setting still tells its original and settings", edit.original_and_settings(big)[0] == src + "/Wood.mtlx" and len(edit.original_and_settings(big)[1]["values"]) == len(many["values"]))
+
+# --- Houdini: USD reads the files
+usd_reads_mtlx = False
+try:
+    from pxr import Sdf, Usd, UsdShade
+    usd_reads_mtlx = Sdf.FileFormat.FindByExtension("mtlx") is not None
+    if not usd_reads_mtlx:
+        print("note: this USD has no MaterialX file format plugin, the files are not opened with USD here")
 except ImportError:
-    Usd = None
-if Usd is not None:
+    pass
+if usd_reads_mtlx:
     for label, file in (("a basic material", basic.basic_material_file("Skin", folder)), ("an edited textured material", path), ("a named copy", saved)):
         stage = Usd.Stage.Open(file)
         materials = [p for p in stage.Traverse() if p.IsA(UsdShade.Material)] if stage else []
         t.check("USD opens {} and finds its material".format(label), len(materials) == 1, [str(p.GetPath()) for p in materials])
+# --- the MaterialX library, when this Python has it: the inputs of the table and the documents written are checked by it
+try:
+    import MaterialX as mx
+except ImportError:
+    mx = None
+    print("note: no MaterialX Python module here, the documents are not validated by MaterialX")
+if mx is not None:
+    libraries = mx.createDocument()
+    mx.loadLibraries(mx.getDefaultDataLibraryFolders(), mx.getDefaultDataSearchPath(), libraries)
+    definition = libraries.getNodeDef("ND_standard_surface_surfaceshader")
+    real = {i.getName(): (i.getType(), i.getValueString()) for i in definition.getActiveInputs()}
+    wrong = []
+    for key, kind, default in basic.SURFACE_INPUTS:
+        if key not in real or real[key][0] != kind:
+            wrong.append((key, kind, real.get(key)))
+        elif kind == "float" and abs(float(real[key][1]) - float(default)) > 1e-6:
+            wrong.append((key, default, real[key][1]))
+        elif kind == "color3" and any(abs(float(a) - b) > 1e-6 for a, b in zip(real[key][1].split(","), default)):
+            wrong.append((key, default, real[key][1]))
+    t.check("the standard surface inputs of the table exist in MaterialX with the same type and default", not wrong, wrong)
+
+    def valid(text):
+        document = mx.createDocument()
+        document.importLibrary(libraries)
+        path = work + "/validate.mtlx"
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        mx.readFromXmlFile(document, path)
+        return document.validate()
+    invalid = [name for name, values in basic.BASIC_MATERIALS.items() if not valid(basic.build_mtlx(name, values))[0]]
+    t.check("every basic material is a valid MaterialX document", not invalid, invalid)
+    everything = {"values": {key: (0.2, 0.3, 0.4) if basic.INPUT_TYPES[key] == "color3" else (True if basic.INPUT_TYPES[key] == "boolean" else 0.5) for key in basic.INPUT_TYPES},
+                  "mods": {"tint": (0.9, 0.8, 0.7), "rough_scale": 0.5, "normal": 2.0, "disp": 3.0, "tiling": 2.0}}
+    for label, text in (("a texture sample", TEXTURED), ("a texture sample edited", edit.apply_settings(TEXTURED, everything)),
+                        ("its mods only", edit.apply_settings(TEXTURED, {"mods": everything["mods"]}))):
+        ok, why = valid(text)
+        t.check("MaterialX validates " + label, ok, why[:200])
+
 shutil.rmtree(work, ignore_errors=True)
 t.done()

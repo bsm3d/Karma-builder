@@ -24,7 +24,7 @@ from .tab_render import RenderTab
 from .tab_scene import SceneTab
 from .tab_shader import ShaderTab
 from .util import _normalized_path
-from .widgets import space_layouts
+from .widgets import inside, space_layouts
 from .viewport import ViewportMixin
 
 
@@ -145,7 +145,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
 
         self._compact_combos()
         self._space_forms()
-        space_layouts(self)
+        space_layouts(self, skip=getattr(self, "mat_gallery", None))
 
     # ----------------------------------------
     def _close_pane_tab(self, pane_tab):
@@ -184,6 +184,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
         _debug("window closed")
         step("timer", self._hdri_preview_timer.stop)
         step("live timer", self._live_timer.stop)
+        step("material edit", self._flush_shader_edit)
 
         step("viewport panel", lambda: self._close_pane_tab(self._karma_scene_viewer))
         step("parameter panel", lambda: self._close_pane_tab(self._parm_pane_tab))
@@ -439,6 +440,8 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
     # minimum instead and let the popup be as wide as its longest entry.
     def _compact_combos(self):
         for combo in self.findChildren(QtWidgets.QComboBox):
+            if inside(combo, getattr(self, "mat_gallery", None)):
+                continue   # Houdini's own gallery keeps its own combo boxes
             combo.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
             combo.setMinimumContentsLength(9)
             # an explicit minimum wins over the size Qt computes from the longest item

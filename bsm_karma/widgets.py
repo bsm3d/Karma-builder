@@ -22,13 +22,23 @@ def fit_spin(spin, widest_text, width=0):
 
 
 # --------------------------------------------------------
+# Whether `widget` is `ancestor` or lies under it: Houdini's own widgets (the material gallery) are left as they are.
+def inside(widget, ancestor):
+    while ancestor is not None and widget is not None:
+        if widget is ancestor:
+            return True
+        widget = widget.parentWidget()
+    return False
+
+
+# --------------------------------------------------------
 # Raises the spacing of every row and column layout under root to the least the tool needs. The layouts of the
 # gauges are left alone: they put a gauge and its tick labels at zero distance on purpose.
-def space_layouts(root):
+def space_layouts(root, skip=None):
     from .gauges import FloatSlider, IntSlider
     for layout in root.findChildren(QtWidgets.QBoxLayout):
         try:
-            if isinstance(layout.parentWidget(), (FloatSlider, IntSlider)):
+            if isinstance(layout.parentWidget(), (FloatSlider, IntSlider)) or inside(layout.parentWidget(), skip):
                 continue
             across = layout.direction() in (QtWidgets.QBoxLayout.LeftToRight, QtWidgets.QBoxLayout.RightToLeft)
             wanted = ROW_GAP if across else COLUMN_GAP
@@ -195,8 +205,14 @@ class FlowLayout(QtWidgets.QLayout):
     def takeAt(self, index):
         return self._items.pop(index) if 0 <= index < len(self._items) else None
 
+    # no direction: the row grows only with its width. The type of "none" depends on the Qt binding.
     def expandingDirections(self):
-        return QtCore.Qt.Orientations(0) if hasattr(QtCore.Qt, "Orientations") else QtCore.Qt.Orientation(0)
+        for make in (lambda: QtCore.Qt.Orientations(0), lambda: QtCore.Qt.Orientation(0)):
+            try:
+                return make()
+            except (AttributeError, TypeError, ValueError):
+                continue
+        return QtCore.Qt.Horizontal
 
     def hasHeightForWidth(self):
         return True
@@ -265,7 +281,7 @@ class ColorButton(ColorSwatch):
 
     # ------------------------------------------------------------
     def mouseReleaseEvent(self, event):
-        if event.button() != QtCore.Qt.LeftButton or not self.rect().contains(event.pos()):
+        if event.button() != QtCore.Qt.LeftButton or not self.rect().contains(_drop_event_pos(event)):
             return
         chosen = QtWidgets.QColorDialog.getColor(self.shown_color(), self.window(), "Color")
         if chosen.isValid():

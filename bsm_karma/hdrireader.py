@@ -101,13 +101,18 @@ _EXR_LINES = {0: 1, 1: 1, 2: 1, 3: 16}
 _EXR_SIZES = {0: 4, 1: 2, 2: 4}
 
 
-def _exr_unpack(block, compression):
+def _exr_unpack(block, compression, limit):
     import numpy as np
     if compression in (2, 3):
-        raw = np.frombuffer(zlib.decompress(block), dtype=np.uint8)
+        # never inflate more than a block can hold: a damaged or hostile file must not fill the memory
+        inflater = zlib.decompressobj()
+        data = inflater.decompress(block, limit)
+        if inflater.unconsumed_tail:
+            raise UnsupportedImage("a block that inflates beyond its size")
+        raw = np.frombuffer(data, dtype=np.uint8)
     elif compression == 1:
         out, i = bytearray(), 0
-        while i < len(block):
+        while i < len(block) and len(out) <= limit:
             n = block[i] - 256 if block[i] > 127 else block[i]
             i += 1
             if n < 0:
@@ -207,7 +212,7 @@ def _read_exr(path, columns):
             payload = handle.read(size)
             expected = line_bytes * min(per_block, height - index * per_block)
             # a block that did not shrink is stored as it is
-            raw = payload if compression == 0 or size >= expected else bytes(_exr_unpack(payload, compression))
+            raw = payload if compression == 0 or size >= expected else bytes(_exr_unpack(payload, compression, expected))
             for line_number in by_block[index]:
                 line = []
                 for name in wanted:

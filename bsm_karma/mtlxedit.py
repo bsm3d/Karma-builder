@@ -6,11 +6,14 @@ import hashlib
 import json
 import os
 import re
+import time
 import xml.etree.ElementTree as ElementTree
 from .basicmaterials import INPUT_DEFAULTS, INPUT_TYPES, format_value, safe_name
 
 MAX_FILE_BYTES = 4 * 1024 * 1024
-VARIANTS_KEPT = 8
+VARIANTS_KEPT = 50
+VARIANT_MIN_AGE_DAYS = 14
+EMBED_SEARCH_BYTES = 16384
 VARIANT_RE = re.compile(r"^(?P<stem>.+)\.bsm_(?P<hash>[0-9a-f]{8})\.mtlx$")
 EMBED_RE = re.compile(r"<!--\s*bsm_karma\s+([A-Za-z0-9+/=]+)\s*-->")
 CONNECTION_ATTRIBUTES = ("nodename", "nodegraph", "output", "interfacename", "channels")
@@ -224,7 +227,7 @@ def _encode(original, settings):
 # ------------------------------------------------------------
 # (original file name, settings) kept in a comment of a variant, None for a file this tool did not write.
 def read_embedded(text):
-    found = EMBED_RE.search(text[:4096])
+    found = EMBED_RE.search(text[:EMBED_SEARCH_BYTES])
     if not found:
         return None
     try:
@@ -244,7 +247,7 @@ def _settings_key(settings):
 def original_and_settings(path):
     try:
         with open(path, encoding="utf-8") as handle:
-            text = handle.read(4096 + 64)
+            text = handle.read(EMBED_SEARCH_BYTES + 64)
     except OSError:
         return path, {}
     embedded = read_embedded(text)
@@ -283,8 +286,10 @@ def _prune(folder, stem, keep):
             if found and found.group("stem") == stem:
                 mine.append(os.path.join(folder, name))
         mine.sort(key=os.path.getmtime, reverse=True)
+        # a scene saved earlier may still point at an older copy: only the copies beyond the newest ones and a few weeks old go
+        limit = time.time() - VARIANT_MIN_AGE_DAYS * 86400
         for old in mine[VARIANTS_KEPT:]:
-            if os.path.normcase(os.path.abspath(old)) != os.path.normcase(os.path.abspath(keep)):
+            if os.path.normcase(os.path.abspath(old)) != os.path.normcase(os.path.abspath(keep)) and os.path.getmtime(old) < limit:
                 os.remove(old)
     except OSError:
         pass
@@ -310,6 +315,8 @@ def write_named(original, settings, name, folder):
         surface.set("name", new_surface)
     ElementTree.indent(root, space="  ")
     path = "{}/{}.mtlx".format(folder.replace("\\", "/"), wanted)
+    if os.path.normcase(os.path.abspath(path)) == os.path.normcase(os.path.abspath(original)):
+        raise MtlxError("that name is the file being edited: choose another name")
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write('<?xml version="1.0"?>\n' + ElementTree.tostring(root, encoding="unicode") + "\n")
     return path

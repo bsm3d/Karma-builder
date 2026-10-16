@@ -96,4 +96,15 @@ for name, wanted in (("not.exr", "OpenEXR"), ("cut.hdr", "ends early"), ("piz.ex
     out, why = reader.read_preview(path)
     t.check("{}: no picture, and the reason says '{}'".format(name, wanted), out is None and wanted in why, why)
 
+# an EXR whose block inflates far beyond its size is refused, not inflated
+import zlib
+t.check("an inflating block is limited by the size of a block", reader._exr_unpack.__code__.co_argcount == 3)
+inflated = zlib.compress(b"\x00" * (50 * 1024 * 1024), 9)
+try:
+    reader._exr_unpack(inflated, 3, 4096)
+    limited = False
+except reader.UnsupportedImage:
+    limited = True
+t.check("fifty megabytes from a 50 KB block are refused", limited and len(inflated) < 100 * 1024, len(inflated))
+
 t.done()

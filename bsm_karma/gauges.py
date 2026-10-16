@@ -15,10 +15,10 @@ class ClickSlider(QtWidgets.QSlider):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             if self.orientation() == QtCore.Qt.Horizontal:
-                pos = event.pos().x()
+                pos = _drop_event_pos(event).x()
                 span = max(1, self.width() - 1)
             else:
-                pos = event.pos().y()
+                pos = _drop_event_pos(event).y()
                 span = max(1, self.height() - 1)
 
             ratio = float(pos) / float(span)

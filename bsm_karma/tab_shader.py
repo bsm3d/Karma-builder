@@ -11,7 +11,7 @@ from .linker import _linker_references, _linker_rules
 from .localmaterials import local_payload
 from .mtlxedit import DEFAULT_MODS, MtlxError, describe, original_and_settings, read_text, write_named, write_variant
 from .styles import _C
-from .widgets import LOCAL_MATERIAL_MIME, ColorButton, FlowLayout, linear_to_display, wrap_tab
+from .widgets import LOCAL_MATERIAL_MIME, ColorButton, FlowLayout, _drop_event_pos, linear_to_display, wrap_tab
 from .linker import _material_linker_node
 
 EDIT_DELAY_MS = 250
@@ -57,13 +57,13 @@ class LibraryButton(QtWidgets.QToolButton):
     # ------------------------------------------------------------
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            self._press = event.pos()
+            self._press = _drop_event_pos(event)
         super().mousePressEvent(event)
 
     # ------------------------------------------------------------
     def mouseMoveEvent(self, event):
         if self._press is not None and event.buttons() & QtCore.Qt.LeftButton \
-                and (event.pos() - self._press).manhattanLength() >= QtWidgets.QApplication.startDragDistance():
+                and (_drop_event_pos(event) - self._press).manhattanLength() >= QtWidgets.QApplication.startDragDistance():
             self._press = None
             self.setDown(False)
             self._drag()
@@ -87,7 +87,7 @@ class LibraryButton(QtWidgets.QToolButton):
 
     # ------------------------------------------------------------
     def mouseReleaseEvent(self, event):
-        was_click = self._press is not None and event.button() == QtCore.Qt.LeftButton and self.rect().contains(event.pos())
+        was_click = self._press is not None and event.button() == QtCore.Qt.LeftButton and self.rect().contains(_drop_event_pos(event))
         self._press = None
         super().mouseReleaseEvent(event)
         if was_click:
@@ -358,10 +358,17 @@ class ShaderTab:
         self.on_shader_pick(self.combo_shader_material.currentIndex())
 
     # ------------------------------------------------------------
+    # An edit that is still waiting for its pause is applied before anything else changes: to the material it was made on.
+    def _flush_shader_edit(self):
+        if self._shader_timer.isActive():
+            self._shader_timer.stop()
+            self.apply_shader_edit()
+
+    # ------------------------------------------------------------
     @_guarded_slot
     def on_shader_pick(self, *_):
         data = self.combo_shader_material.currentData()
-        self._shader_timer.stop()
+        self._flush_shader_edit()
         if data is None:
             self._shader_target = None
             self._shader_enable(False)
@@ -498,6 +505,10 @@ class ShaderTab:
         if not accepted or not name.strip():
             return
         folder = os.path.dirname(target["original"]) if target["info"]["has_files"] else data_folder("my_materials")
+        wanted = "{}/{}.mtlx".format(folder, safe_name(name))
+        if os.path.exists(wanted) and QtWidgets.QMessageBox.question(
+                self, "Save as My Material", "{} exists. Replace it?".format(os.path.basename(wanted))) != QtWidgets.QMessageBox.Yes:
+            return
         clean = {"values": self._shader_settings["values"], "mods": {k: v for k, v in self._shader_settings["mods"].items() if v != DEFAULT_MODS.get(k)}}
         try:
             path = write_named(target["original"], clean, name, folder)

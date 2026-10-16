@@ -4,7 +4,7 @@
 from hutil.Qt import QtWidgets, QtCore
 from .config import MATERIAL_VIEW_DEPTH, MATERIAL_VIEW_LIMIT
 from .debuglog import _debug
-from .widgets import _asset_mime_type
+from .widgets import _asset_mime_type, _drop_event_pos
 
 VIEW_MODES = ("Thumbnails", "List", "Categories")
 
@@ -359,13 +359,13 @@ class _ViewEvents(QtCore.QObject):
     def eventFilter(self, obj, event):
         kind = event.type()
         if kind == QtCore.QEvent.MouseButtonPress and event.button() == QtCore.Qt.LeftButton:
-            self._press_pos = event.pos()
+            self._press_pos = _drop_event_pos(event)
             return False
         if kind == QtCore.QEvent.MouseButtonRelease:
             self._press_pos = None
             return False
         if kind == QtCore.QEvent.MouseMove and self._press_pos is not None and event.buttons() & QtCore.Qt.LeftButton:
-            if (event.pos() - self._press_pos).manhattanLength() >= QtWidgets.QApplication.startDragDistance():
+            if (_drop_event_pos(event) - self._press_pos).manhattanLength() >= QtWidgets.QApplication.startDragDistance():
                 self._press_pos = None
                 self._browser.dragStarted.emit()
             return False
@@ -373,7 +373,7 @@ class _ViewEvents(QtCore.QObject):
             view = self._browser.current_view()
             if view is None or obj is not view.viewport():
                 return False
-            if self._browser._select_under(view, event.pos()):
+            if self._browser._select_under(view, _drop_event_pos(event)):
                 self._browser.contextRequested.emit(event.globalPos())
                 return True
         return False
