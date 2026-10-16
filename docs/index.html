@@ -140,7 +140,13 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 <p>Replace <code>&lt;version&gt;</code> with your Houdini version, for example <code>21.0</code> or <code>22.0</code>. To check the install, run in the Python Shell: <code>import bsm_karma; print(bsm_karma.SCRIPT_VERSION)</code>.</p>
 
 <h3 id="install-shelf">The shelf button</h3>
-<p>Create a shelf tool (right click on the shelf tabs &rarr; <em>New Shelf&hellip;</em>, then right click the shelf &rarr; <em>New Tool&hellip;</em>) and paste this in its Script tab:</p>
+<p><strong>Automatic.</strong> In the Python Shell of Houdini, with the folder of the repository (the one that holds <code>bsm_karma</code>) in place of the path below:</p>
+<pre><code>import sys
+sys.path.insert(0, r"D:/Documents/Coding/Houdini Scripts/Karma-builder")
+import bsm_karma
+bsm_karma.install()</code></pre>
+<p>This copies the package to <code>scripts/python</code> (an older copy is kept as <code>bsm_karma.bak</code>), writes <code>toolbar/bsm_karma.shelf</code> with the icon, reloads the shelves and adds the <em>BSM Karma</em> shelf to your shelf bar. Run it again after each update. With the HDA, the <strong>Create Shelf Button</strong> parameter of the node does the shelf part, with a button that opens the tool through the asset.</p>
+<p><strong>By hand.</strong> Create a shelf tool (right click on the shelf tabs &rarr; <em>New Shelf&hellip;</em>, then right click the shelf &rarr; <em>New Tool&hellip;</em>) and paste this in its Script tab:</p>
 <pre><code>import importlib
 import bsm_karma
 importlib.reload(bsm_karma)
@@ -513,6 +519,7 @@ bsm_karma.main()</code></pre>
   <tr><td><code>test_cameras_nodes.py</code></td><td>Cameras, and the rule that nodes of yours are never touched.</td></tr>
   <tr><td><code>test_clouds2d.py</code></td><td>The 2D cloud picture: coverage, seamless, cache, valid PNG.</td></tr>
   <tr><td><code>test_mxdownload.py</code></td><td>The ambientCG and Poly Haven requests, with a fake network: hostile links, sizes, paths, unzip.</td></tr>
+  <tr><td><code>test_shelf.py</code></td><td>The shelf file, the copy of the package with its backup, the checks on the preferences folder.</td></tr>
   <tr><td><code>test_hda.py</code></td><td>The built HDA: sections, loader, version, icon, up to date.</td></tr>
   <tr><td><code>test_security.py</code></td><td>The safety checks (backticks, plain text, private folder, presets).</td></tr>
 </table>
@@ -604,6 +611,7 @@ bsm_karma.main()</code></pre>
   <tr><td><code>nodeutil</code></td><td>Create, mark and set nodes; ownership checks; pausing cooking.</td></tr>
   <tr><td><code>environment</code></td><td>Camera, lights, physical sky, fog and clouds.</td></tr>
   <tr><td><code>clouds2d</code></td><td>The 2D cloud picture: noise, PNG file, cache.</td></tr>
+  <tr><td><code>shelf</code></td><td>The automatic install: copy of the package, shelf file, shelf bar.</td></tr>
   <tr><td><code>rendering</code></td><td>Material library, AOVs, Karma Render Settings and the USD Render ROP.</td></tr>
   <tr><td><code>linker</code>, <code>catalog</code></td><td>Material Linker and Edit Material rules; catalog drops, trust checks and stage prims.</td></tr>
   <tr><td><code>build</code></td><td><code>setup_karma_environment</code>: the whole build, in order, then the cleanup.</td></tr>

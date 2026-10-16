@@ -66,6 +66,12 @@ Open Karma Builder:
     Opens the builder window. The window builds and updates its nodes in /stage; this node is not part of
     that network.
 
+Create Shelf Button:
+    #id: create_shelf
+
+    Creates a shelf called BSM Karma with a Karma Builder button that opens the window, so the node is not
+    needed again.
+
 @related
 
 - [Node:lop/karmarendersettings]
@@ -76,7 +82,7 @@ TOOLS_SHELF = """<?xml version="1.0" encoding="UTF-8"?>
 <shelfDocument>
   <tool name="$HDA_DEFAULT_TOOL" label="$HDA_LABEL" icon="$HDA_ICON">
     <toolMenuContext name="neteditor">
-      <contextNetType>LOP</contextNetType>
+      <contextOpType>$HDA_TABLE_AND_NAME</contextOpType>
     </toolMenuContext>
     <toolSubmenu>BSM</toolSubmenu>
     <script scriptType="python"><![CDATA[import loptoolutils
@@ -118,6 +124,13 @@ def build(output):
     )
     button.setHelp("Opens the BSM Karma Builder window.")
     ptg.append(button)
+    shelf_button = hou.ButtonParmTemplate(
+        "create_shelf", "Create Shelf Button",
+        script_callback="hou.phm().install_shelf(kwargs['node'])",
+        script_callback_language=hou.scriptLanguage.Python,
+    )
+    shelf_button.setHelp("Creates a shelf with a Karma Builder button that opens the window without needing this node.")
+    ptg.append(shelf_button)
     ptg.append(hou.LabelParmTemplate("tool_version", "Version", column_labels=(version,)))
     ptg.append(hou.LabelParmTemplate("requirements", "Requires", column_labels=("Houdini 21 or 22, Solaris and Karma",)))
     definition.setParmTemplateGroup(ptg)

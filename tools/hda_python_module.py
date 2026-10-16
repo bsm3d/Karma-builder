@@ -88,16 +88,47 @@ def load_tool(definition):
 
 
 # ------------------------------------------------------------
-# Opens the Karma Builder dialog (or brings a second launch in place of the first).
-def open_builder(node):
+# The tool module of an asset, or None after telling the user why it could not be loaded. Without a node, the asset
+# is found by its type name (the shelf button has no node).
+def _tool_or_message(node, type_name):
+    import hou
     try:
-        module = load_tool(node.type().definition())
+        if node is not None:
+            definition = node.type().definition()
+        else:
+            definition = hou.nodeType(hou.lopNodeTypeCategory(), type_name).definition()
+        return load_tool(definition)
     except Exception:   # a damaged or incomplete asset: tell the user, leave nothing half loaded
-        import hou
         import traceback
         forget_package()
         hou.ui.displayMessage("BSM Karma Builder could not load its code from this asset.\nRebuild it with: hython build_hda.py",
                               details=traceback.format_exc(), severity=hou.severityType.Error)
         return None
+
+
+# ------------------------------------------------------------
+# Opens the Karma Builder dialog (or brings a second launch in place of the first).
+def open_builder(node=None, type_name="bsm::karma_builder::1.0"):
+    module = _tool_or_message(node, type_name)
+    if module is None:
+        return None
     module.main()
     return module
+
+
+# ------------------------------------------------------------
+# Creates the shelf button that opens the tool without a node (see shelf.py of the package).
+def install_shelf(node=None, type_name="bsm::karma_builder::1.0"):
+    import hou
+    import importlib
+    module = _tool_or_message(node, type_name)
+    if module is None:
+        return None
+    shelf = importlib.import_module(module.__name__ + ".shelf")
+    try:
+        report = shelf.install_shelf(asset=True, type_name=node.type().name() if node is not None else type_name)
+    except (OSError, hou.Error) as exc:
+        hou.ui.displayMessage("The shelf could not be created.", details=str(exc), severity=hou.severityType.Error)
+        return None
+    hou.ui.displayMessage("The 'Karma Builder' button is ready.", details="\n".join(report))
+    return report

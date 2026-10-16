@@ -23,7 +23,7 @@ $failed = 0
 $env:QT_QPA_PLATFORM = "offscreen"
 
 if ($Screenshots) { $Gui = $true }
-$tests = if ($Screenshots) { @() } else { @("test_build_modes", "test_material_linker", "test_cameras_nodes", "test_clouds2d", "test_mxdownload", "test_hda", "test_security") }
+$tests = if ($Screenshots) { @() } else { @("test_build_modes", "test_material_linker", "test_cameras_nodes", "test_clouds2d", "test_mxdownload", "test_shelf", "test_hda", "test_security") }
 foreach ($test in $tests) {
     $out = & $hython (Join-Path $PSScriptRoot "$test.py") 2>&1 | Out-String
     $pass = ([regex]::Matches($out, "(?m)^PASS")).Count
