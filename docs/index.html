@@ -131,7 +131,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 <p>Install.bat writes one small file, <code>packages/bsm_karma.json</code>, in the preferences folder of each Houdini 21 or 22 it finds. The file points Houdini at the folder, nothing is copied, so updating is just updating the folder. If you move the folder, run Install.bat again. <strong>Uninstall.bat</strong> removes the file.</p>
 
 <h3 id="install-package">Option B: package file (Linux, macOS)</h3>
-<p>Create <code>packages/bsm_karma.json</code> in the Houdini preferences folder with the folder of the repository as <code>path</code> and as <code>BSM_KARMA_ROOT</code>, and a <code>PYTHONPATH</code> entry with method <code>prepend</code> and value <code>$BSM_KARMA_ROOT</code>. The exact content is in the README.</p>
+<p>Create <code>packages/bsm_karma.json</code> in the Houdini preferences folder with the folder of the repository as <code>path</code>, and a <code>PYTHONPATH</code> entry with method <code>prepend</code> and the same folder as value. The exact content is in the README.</p>
 <table>
   <tr><th>Windows</th><td><code>C:\Users\%USERNAME%\Documents\houdini&lt;version&gt;\packages\</code></td></tr>
   <tr><th>Linux</th><td><code>~/houdini&lt;version&gt;/packages/</code></td></tr>

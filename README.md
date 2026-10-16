@@ -55,15 +55,14 @@ If Houdini keeps its preferences somewhere other than `Documents\houdini22.0`, o
 
 ### B. Package file (Linux, macOS or by hand)
 
-Create `packages/bsm_karma.json` in your Houdini preferences folder (`~/houdini22.0` on Linux, `~/Library/Preferences/houdini/22.0` on macOS, `Documents\houdini22.0` on Windows) with this content, the path being the folder of the repository:
+Create `packages/bsm_karma.json` in your Houdini preferences folder (`~/houdini22.0` on Linux, `~/Library/Preferences/houdini/22.0` on macOS, `Documents\houdini22.0` on Windows) with this content, the path being the folder of the repository (twice):
 
 ```json
 {
     "enable": true,
     "path": "/home/you/Karma-builder",
     "env": [
-        { "BSM_KARMA_ROOT": "/home/you/Karma-builder" },
-        { "PYTHONPATH": { "method": "prepend", "value": "$BSM_KARMA_ROOT" } }
+        { "PYTHONPATH": { "method": "prepend", "value": "/home/you/Karma-builder" } }
     ]
 }
 ```

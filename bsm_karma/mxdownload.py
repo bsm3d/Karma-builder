@@ -7,12 +7,14 @@ import threading
 import time
 import zipfile
 from hutil.Qt import QtWidgets, QtCore, QtGui
+from .config import FORM_LABEL_GAP
 from .debuglog import _debug, _guarded_slot
 from .mxsources import (AMBIENTCG_RESOLUTIONS, POLYHAVEN_RESOLUTIONS, DownloadCancelled, DownloadError, ambientcg_catalog,
                         ambientcg_names, check_name, download_ambientcg, download_polyhaven, list_files, polyhaven_catalog,
                         polyhaven_names, safe_extract)
 from .styles import _C, _btn_style
 from .util import _expand_plain_path
+from .widgets import space_layouts
 
 SOURCE_AMBIENTCG = "ambientCG"
 SOURCE_POLYHAVEN = "Poly Haven"
@@ -165,6 +167,9 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
         row_use.addWidget(btn_open)
         row_use.addWidget(btn_refresh)
         layout.addLayout(row_use)
+        for form in self.findChildren(QtWidgets.QFormLayout):
+            form.setHorizontalSpacing(FORM_LABEL_GAP)
+        space_layouts(self)
         self._update_source_ui()
 
     # ------------------------------------------------------------

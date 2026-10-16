@@ -136,6 +136,7 @@ MATERIAL_EDIT_LOAD_PARM = "load1"
 
 # list and category views of the catalog: rows read from the gallery model, never more than this
 MATERIAL_VIEW_LIMIT = 20000
+MATERIAL_VIEW_DEPTH = 8
 
 
 # viewport picking: Houdini pixel coordinates start at the lower left, Qt at the upper left

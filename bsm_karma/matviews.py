@@ -2,7 +2,7 @@
 # Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
 
 from hutil.Qt import QtWidgets, QtCore
-from .config import MATERIAL_VIEW_LIMIT
+from .config import MATERIAL_VIEW_DEPTH, MATERIAL_VIEW_LIMIT
 from .debuglog import _debug
 from .widgets import _asset_mime_type
 
@@ -31,7 +31,7 @@ def payload_from_indexes(model, indexes):
     if model is None or not mime_type or not indexes:
         return ""
     try:
-        data = model.mimeData(indexes)
+        data = _model_call(model, "mimeData", indexes)
         if data is None or not data.hasFormat(mime_type):
             return ""
         return bytes(data.data(mime_type)).decode("utf-8")
@@ -50,12 +50,42 @@ def selected_payload(view):
 
 
 # ------------------------------------------------------------
-# Houdini's gallery model may expose hasChildren and canFetchMore as private methods: fall back to the row count.
+# Houdini's gallery model is a QAbstractListModel: PySide refuses hasChildren, parent and columnCount on it ("is a
+# private method"). The same call through QAbstractItemModel goes to the C++ object and is allowed.
+def _model_call(model, name, *args):
+    try:
+        return getattr(model, name)(*args)
+    except TypeError:
+        return getattr(QtCore.QAbstractItemModel, name)(model, *args)
+
+
+# ------------------------------------------------------------
+# A row with children is a folder. If the model cannot say, it is one when it reports rows below it.
 def _is_folder(model, index):
     try:
-        return bool(model.hasChildren(index) or model.canFetchMore(index))
+        return bool(_model_call(model, "hasChildren", index) or _model_call(model, "canFetchMore", index))
     except (TypeError, AttributeError, RuntimeError):
         return model.rowCount(index) > 0
+
+
+# ------------------------------------------------------------
+# One line for the debug log: what kind of model the gallery has and what its first row offers, so the categories can
+# be built from what is really there.
+def describe_model(model):
+    try:
+        kind = " > ".join(klass.__name__ for klass in type(model).__mro__ if klass.__name__ not in ("object", "Object", "Shiboken"))
+        parts = ["material model: {} | rows {}".format(kind, model.rowCount())]
+        if model.rowCount():
+            index = model.index(0, 0)
+            roles = {}
+            for role in list(range(0, 12)) + list(range(int(QtCore.Qt.UserRole), int(QtCore.Qt.UserRole) + 24)):
+                value = index.data(role)
+                if value not in (None, "", 0):
+                    roles[role] = str(value)[:60]
+            parts.append("row 0 roles {}".format(roles))
+        return " | ".join(parts)
+    except (TypeError, AttributeError, RuntimeError, ValueError) as exc:
+        return "material model: could not be described ({}: {})".format(type(exc).__name__, exc)
 
 
 # ------------------------------------------------------------
@@ -70,7 +100,8 @@ def walk_model(model, limit=MATERIAL_VIEW_LIMIT):
                 return
             index = model.index(row, 0, parent)
             text = str(index.data(QtCore.Qt.DisplayRole) or "")
-            if _is_folder(model, index):
+            # a model that ignores the parent in rowCount would make every row a folder of itself: stop at a depth
+            if len(trail) < MATERIAL_VIEW_DEPTH and _is_folder(model, index):
                 # a folder; one that is not loaded yet shows nothing here, opening it in Thumbnails loads it
                 visit(index, trail + [text])
             else:
@@ -104,7 +135,10 @@ class _ModelItemsMixin:
 
     def mimeData(self, items):
         indexes = self._indexes(items)
-        data = self._source_model.mimeData(indexes) if indexes and self._source_model is not None else None
+        try:
+            data = _model_call(self._source_model, "mimeData", indexes) if indexes and self._source_model is not None else None
+        except (TypeError, RuntimeError):
+            data = None
         return data if data is not None else QtCore.QMimeData()
 
     def selected_payload(self):
@@ -150,7 +184,7 @@ class MaterialCategoryTree(_ModelItemsMixin, QtWidgets.QTreeWidget):
         for text, trail, persistent in sorted(rows, key=lambda row: (row[1], row[0].lower())):
             parent = None
             key = ()
-            for name in trail or ["(uncategorized)"]:
+            for name in trail or ["All materials"]:
                 key = key + (name,)
                 node = groups.get(key)
                 if node is None:
@@ -235,6 +269,7 @@ class MaterialBrowser(QtWidgets.QWidget):
                     pass   # the old model is already gone
         self._bound_model = model
         if model is not None:
+            _debug(describe_model(model))
             for signal in self._model_signals(model):
                 signal.connect(self._refill_later)
             self._refill_later()
@@ -260,7 +295,12 @@ class MaterialBrowser(QtWidgets.QWidget):
         model = self._gallery_view.model() if self._gallery_view is not None else None
         if model is None:
             return
-        rows = walk_model(model)
+        try:
+            rows = walk_model(model)
+        except (TypeError, AttributeError, RuntimeError) as exc:
+            # the lists are a convenience: say so in the debug log and leave them empty, the thumbnails still work
+            _debug("material browser: the catalog model cannot be listed ({}: {})".format(type(exc).__name__, exc), "WARN")
+            rows = []
         if self.stack.currentIndex() == 1:
             self.list_view.fill(model, rows)
         elif self.stack.currentIndex() == 2:

@@ -71,8 +71,7 @@ $packageJson = @"
     "enable": true,
     "path": "$rootJson",
     "env": [
-        { "BSM_KARMA_ROOT": "$rootJson" },
-        { "PYTHONPATH": { "method": "prepend", "value": "`$BSM_KARMA_ROOT" } }
+        { "PYTHONPATH": { "method": "prepend", "value": "$rootJson" } }
     ]
 }
 "@
