@@ -51,8 +51,8 @@ class LogTab:
 
         lbl_cred = QtWidgets.QLabel(
             "<b>Programming & Design</b><br>"
-            "BSM<br>"
-            'BSM3D'
+            "Beno\u00eet Saint-Moulin<br>"
+            '<a href="https://www.bsm3d.com">www.bsm3d.com</a>'
         )
         lbl_cred.setAlignment(QtCore.Qt.AlignCenter)
         lbl_cred.setOpenExternalLinks(True)
