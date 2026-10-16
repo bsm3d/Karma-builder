@@ -122,6 +122,11 @@ LIVE_STRUCTURE_KEYS = ("scene_mode", "env_type", "sky_mode", "enable_fog", "enab
 # cloud types of the Atmosphere tab: a volume (slow, lit, parallax) or a 2D layer on a second dome light (fast)
 CLOUD_TYPES = ["3D Volume (slow, realistic)", "2D Layer (fast, backdrop)"]
 CLOUD2D_BRIGHTNESS = 1.5
+
+
+# The Volumetric Atmosphere is a shell about a hundred kilometres thick: a camera that does not see that far shows black.
+# At the horizon the ray to the top of the atmosphere is about 1,130 km long (scene units are metres).
+ATMOSPHERE_FAR_CLIP = 2000000.0
 CLOUD_LAYER_NAME = "cloud_layer_2d"
 
 

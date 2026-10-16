@@ -4,7 +4,7 @@
 import hou
 from .config import TOOL_STAGE_DELETE_ORDER
 from .debuglog import _debug, _debug_exception, _debug_state
-from .environment import _lamp_color, _create_area_light, _create_cloud_branch, _create_cloud_layer_2d, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _resolve_render_camera
+from .environment import _lamp_color, _create_area_light, _create_cloud_branch, _create_cloud_layer_2d, _create_dome_light, _create_environment_merge, _create_fog_branch, _create_physical_sky, _ensure_atmosphere_clip, _resolve_render_camera
 from .linker import _material_edit_node, _material_linker_node
 from .nodeutil import (_get_or_create_node, _get_or_create_stage, _is_tool_node_candidate, _layout_tool_nodes, _paused_cooking,
                        _remove_tool_node, _safe_connect)
@@ -230,6 +230,9 @@ def setup_karma_environment(cfg, log_callback):
         stage = _get_or_create_stage()
         child_count = len(stage.children())
         cam, cam_path = _resolve_render_camera(stage, cfg, log_callback)
+        if cfg.get("scene_mode", "Environment") in ("Environment", "Interior") and cfg.get("env_type", "Physical Sky") == "Physical Sky" \
+                and cfg.get("sky_mode", 0) == 1:
+            _ensure_atmosphere_clip(cam, cam_path, log_callback)
 
         env_tip = _build_lighting(stage, cam, cfg, log_callback, skipped)
         env_tip = _merge_geometry_source(stage, env_tip, cfg, log_callback, removals)

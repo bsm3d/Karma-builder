@@ -137,6 +137,48 @@ window = lamp_rgb("window_portal")
 t.check("Interior: the window light takes the key color", window[0] > window[2], window)
 t.check("lamp colors: no warning", not [l for l in logs if "WARN" in l], [l for l in logs if "WARN" in l])
 
+# --- cloud animation: the wind moves the 3D clouds and the drift turns the 2D ones, with the time
+build(enable_clouds=True, cloud_type=0, cloud_wind_speed=10.0, cloud_wind_dir=90.0)
+xform = stage.node("cloud_xform")
+tx, tz = xform.parm("tx"), xform.parm("tz")
+t.check("3D clouds: the wind is an expression of the time", "$T" in tx.expression() and "$T" in tz.expression(), (tx.expression() if tx.keyframes() else None))
+hou.setFrame(hou.timeToFrame(0.0)); start = tx.eval()
+hou.setFrame(hou.timeToFrame(10.0)); later = tx.eval(); later_z = tz.eval()
+t.check("3D clouds: at 10 m/s towards +X they are 100 m further after ten seconds, and not moved along Z", abs((later - start) - 100.0) < 1e-3 and abs(later_z) < 1e-3, (start, later, later_z))
+t.check("3D clouds: the altitude is kept", abs(xform.parm("ty").eval() - 140.0) < 1e-6)
+build(enable_clouds=True, cloud_type=0, cloud_wind_speed=0.0)
+t.check("3D clouds: wind off takes the animation off again", not xform.parm("tx").keyframes() and abs(xform.parm("tx").eval()) < 1e-9)
+build(enable_clouds=True, cloud_type=1, cloud2d_drift=30.0)
+ry = stage.node("cloud_layer_2d").parm("ry")
+hou.setFrame(hou.timeToFrame(0.0)); a = ry.eval()
+hou.setFrame(hou.timeToFrame(60.0)); b = ry.eval()
+t.check("2D clouds: 30 degrees per minute turn the dome 30 degrees in a minute", abs((b - a) - 30.0) < 1e-3, (a, b))
+build(enable_clouds=True, cloud_type=1, cloud2d_drift=0.0)
+t.check("2D clouds: no drift, no animation", not stage.node("cloud_layer_2d").parm("ry").keyframes())
+hou.setFrame(1)
+build(enable_clouds=False)
+
+# --- the Volumetric Atmosphere needs a camera that sees as far as the atmosphere
+def far_clip(node_name):
+    node = stage.node(node_name)
+    for parm_tuple in node.parmTuples():
+        if len(parm_tuple) == 2 and "clip" in parm_tuple.name().lower():
+            return tuple(parm_tuple.eval())
+    return None
+
+
+build(sky_mode=0)
+normal = far_clip("render_cam")
+build(sky_mode=1)
+t.check("Volumetric Atmosphere: the camera of the tool sees as far as the atmosphere", normal is not None and far_clip("render_cam")[1] >= 2000000.0 and far_clip("render_cam")[0] == normal[0],
+        (normal, far_clip("render_cam")))
+t.check("Volumetric Atmosphere: the Log says what was done", any("far clipping range of render_cam is now" in l for l in logs), [l for l in logs if "Atmosphere" in l])
+mine = stage.createNode("camera", "my_atmo_cam")
+build(sky_mode=1, camera_choice=mine.path())
+t.check("a camera of the user is not changed, the Log warns", far_clip("my_atmo_cam")[1] < 2000000.0 and any("does not change a camera it did not make" in l for l in logs), (far_clip("my_atmo_cam"), [l for l in logs if "Atmosphere" in l]))
+mine.destroy()
+build(sky_mode=0)
+
 build(engine="cpu", sky_mode=1, sky_atm_rayleigh=2.0, sky_atm_mie=3.0)
 t.check("CPU uses path traced convergence", val("karma_settings", "convergence_mode") == "Path Traced")
 t.check("rayleigh scale", abs(val("physical_sky", "rayleighscale") - 6e-05) < 1e-12, val("physical_sky", "rayleighscale"))

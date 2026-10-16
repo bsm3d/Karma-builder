@@ -60,7 +60,7 @@ def base_config(out_dir):
         fog_noise_amp=.5,
         enable_clouds=False, cloud_density=.2, cloud_altitude=140, cloud_scale=180, cloud_precision=5, cloud_clip=.35,
         cloud_material_path="", cloud_type=0, cloud2d_coverage=.45, cloud2d_softness=.4, cloud2d_scale=3.0,
-        cloud2d_brightness=.6, cloud2d_seed=7,
+        cloud2d_brightness=.6, cloud2d_seed=7, cloud2d_drift=0.0, cloud_wind_speed=0.0, cloud_wind_dir=90.0,
         sky_mode=0, sky_elev=30, sky_azim=0, sky_sun_int=1, sky_sun_size=.53, sky_sun_temp=5500,
         sky_amb_r=1, sky_amb_g=1, sky_amb_b=1, sky_turbidity=3, sky_int=1, sky_hz_blur=5,
         sky_atm_rayleigh=1, sky_atm_mie=1,

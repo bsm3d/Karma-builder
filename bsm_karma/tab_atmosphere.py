@@ -86,6 +86,12 @@ class AtmosphereTab:
         form_cloud3d.addRow("Cloud Voxel Size (Prec):", self.sld_cloud_precision)
         self.sld_cloud_clip = FloatSlider(0.0, 1.0, 0.35)
         form_cloud3d.addRow("Cloud Edge Clip:", self.sld_cloud_clip)
+        self.sld_cloud_wind = FloatSlider(0.0, 300.0, 0.0)
+        self.sld_cloud_wind.setToolTip("Clouds drift with this speed, in meters per second, as the time goes (press Play). 0 keeps them still.")
+        form_cloud3d.addRow("Wind Speed (m/s):", self.sld_cloud_wind)
+        self.sld_cloud_wind_dir = FloatSlider(0.0, 360.0, 90.0)
+        self.sld_cloud_wind_dir.setToolTip("Where the wind blows to, in degrees: 0 is away from the default camera (-Z), 90 to the right (+X).")
+        form_cloud3d.addRow("Wind Direction:", self.sld_cloud_wind_dir)
         self.w_cloud_mat_path = QtWidgets.QWidget()
         layout_cloud_mat = QtWidgets.QHBoxLayout(self.w_cloud_mat_path)
         layout_cloud_mat.setContentsMargins(0, 0, 0, 0)
@@ -120,6 +126,9 @@ class AtmosphereTab:
         self.sld_cloud2d_seed = IntSlider(0, 999, 7)
         self.sld_cloud2d_seed.setToolTip("Another number, another cloud pattern.")
         form_cloud2d.addRow("Seed:", self.sld_cloud2d_seed)
+        self.sld_cloud2d_drift = FloatSlider(0.0, 120.0, 0.0)
+        self.sld_cloud2d_drift.setToolTip("The clouds turn around the sky by this many degrees per minute of animation (press Play). 0 keeps them still.")
+        form_cloud2d.addRow("Drift (deg/min):", self.sld_cloud2d_drift)
         form_cloud.addRow(self.w_cloud_2d)
         # the three forms line their sliders up on the same column
         for form in (form_cloud, form_cloud3d, form_cloud2d):

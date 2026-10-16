@@ -2,9 +2,10 @@
 # Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
 
 import hou
+import math
 import os
 from .clouds2d import CLOUD_TEXTURE_SIZE, cloud_texture_path
-from .config import CAMERA_CREATE_LABEL, CLOUD2D_BRIGHTNESS, CLOUD_LAYER_NAME, DEFAULT_CLOUD_MATERIAL_PATH, GENERATED_CAMERA_NAME, QUICK_CLOUD_NAME, USD_CAMERA_PREFIX
+from .config import ATMOSPHERE_FAR_CLIP, CAMERA_CREATE_LABEL, CLOUD2D_BRIGHTNESS, CLOUD_LAYER_NAME, DEFAULT_CLOUD_MATERIAL_PATH, GENERATED_CAMERA_NAME, QUICK_CLOUD_NAME, USD_CAMERA_PREFIX
 from .nodeutil import _get_or_create_node, _is_tool_node_candidate, _mark_tool_node, _pset, _remove_tool_node, _safe_connect, _set_first_existing_parm, _set_first_existing_parm_tuple, _set_light_color, _set_usd_input
 from .util import _apply_saturation, _apply_tint, _kelvin_to_rgb
 
@@ -76,6 +77,47 @@ def _create_camera(stage, focal, res_x, res_y, pos, log_callback, view_matrix=No
     elif is_new:
         _pset(cam, "tx", pos[0], log_callback); _pset(cam, "ty", pos[1], log_callback); _pset(cam, "tz", pos[2], log_callback)
     return cam
+
+
+# --------------------------------------------------
+def _clip_range_parms(cam):
+    for name in ("clippingRange", "clippingrange"):
+        parm_tuple = cam.parmTuple(name)
+        if parm_tuple is not None and len(parm_tuple) == 2:
+            return parm_tuple
+    for parm_tuple in cam.parmTuples():
+        if len(parm_tuple) == 2 and "clip" in parm_tuple.name().lower():
+            return parm_tuple
+    return None
+
+
+# ------------------------------------------------------------
+# The Karma Sky Atmosphere is a shell about a hundred kilometres thick: a camera whose far clipping range stops short of it
+# renders black (SideFX documents it). The camera the tool made is given the range; a camera of yours is only checked.
+def _ensure_atmosphere_clip(cam, cam_path, log_callback, wanted=ATMOSPHERE_FAR_CLIP):
+    if cam is None:
+        log_callback("[INFO] Volumetric Atmosphere: the camera {} is a USD camera, its far clipping range cannot be checked here: "
+                     "it must reach about {:,.0f} units, or the sky renders black.".format(cam_path, wanted))
+        return
+    parm_tuple = _clip_range_parms(cam)
+    if parm_tuple is None:
+        log_callback("[WARN] Volumetric Atmosphere: no clipping range found on {}: its far clipping range must reach about {:,.0f} "
+                     "units, or the sky renders black.".format(cam.path(), wanted))
+        return
+    near, far = parm_tuple.eval()
+    if far >= wanted:
+        return
+    if cam.name() == GENERATED_CAMERA_NAME and _is_tool_node_candidate(cam):
+        try:
+            parm_tuple.set((near, wanted))
+        except hou.Error as exc:
+            log_callback("[WARN] Volumetric Atmosphere: the far clipping range of {} could not be raised: {}".format(cam.path(), exc))
+            return
+        log_callback("[INFO] Volumetric Atmosphere: the far clipping range of {} is now {:,.0f} (it was {:,.0f}), the atmosphere is "
+                     "clipped otherwise.".format(cam.name(), wanted, far))
+    else:
+        log_callback("[WARN] Volumetric Atmosphere: the far clipping range of {} is {:,.0f}. It must reach about {:,.0f} units or the "
+                     "sky renders black; the tool does not change a camera it did not make.".format(cam.path(), far, wanted))
 
 
 # --------------------------------------------------
@@ -219,6 +261,8 @@ def _create_physical_sky(stage, prev, cfg, log_callback):
                 log_callback("[WARN] Volumetric Atmosphere with the sun at {:.1f} deg (below the horizon) is dark, that is night. "
                              "Raise Solar Altitude above 0, or pick a daytime preset. It only renders in Karma.".format(
                                  float(cfg["sky_elev"])))
+            log_callback("[INFO] Volumetric Atmosphere renders in Karma CPU and XPU. If it stays black: the sun above the horizon, the far "
+                         "clipping range of the camera (raised for the camera the tool makes), then a render in CPU to tell the engines apart.")
             linker = _get_or_create_node(stage, "lightlinker", "sky_atmosphere_linker")
             _pset(linker, "num_links", 1, log_callback, quiet=True)
 
@@ -308,6 +352,18 @@ def _create_quick_cloud_material(stage, prev, cfg, log_callback):
 
 
 # ------------------------------------------------------------
+# An animation the tool made on a parameter: an expression of the time in seconds ($T) with plain numbers in it, so it
+# plays at any frame rate. The parameter is cleared first at every build: a value set over an animation would not stay.
+def _animate_parm(parm, per_second, log_callback):
+    try:
+        parm.deleteAllKeyframes()
+        if abs(per_second) > 1e-9:
+            parm.setExpression("$T*{:.8g}".format(per_second), hou.exprLanguage.Hscript)
+    except (hou.Error, AttributeError) as exc:
+        log_callback("[WARN] Clouds: the animation of {} was not set: {}".format(parm.name(), exc))
+
+
+# ------------------------------------------------------------
 # 2D clouds: a procedural cloud picture on a second dome light, added to the sky. No geometry, no volume: it renders
 # like any dome. A live update uses a smaller picture, the next Build writes the full one. The brightness slider is
 # relative to the sky (1 = as bright as the sky), so the clouds stay visible whatever the sky intensity is.
@@ -322,6 +378,12 @@ def _create_cloud_layer_2d(stage, prev, cfg, log_callback):
         reference = float(cfg.get("hdri_int", 1.0)) * (2.0 ** float(cfg.get("hdri_ev", 0.0)))
     intensity = float(cfg.get("cloud2d_brightness", CLOUD2D_BRIGHTNESS)) * reference
     dome = _create_dome_light(stage, prev, intensity, path, log_callback, name=CLOUD_LAYER_NAME)
+    # the picture turns around the sky: the rotation of the dome follows the time
+    drift = float(cfg.get("cloud2d_drift", 0.0))
+    if dome.parm("ry") is not None:
+        _animate_parm(dome.parm("ry"), drift / 60.0, log_callback)
+    elif drift > 0.0:
+        log_callback("[WARN] 2D clouds: the dome light has no rotation parameter, the drift was not set.")
     log_callback("[INFO] 2D clouds: dome light {} at intensity {:.2f} ({} x the {} {:.2f}), picture {}".format(
         dome.name(), intensity, "{:.2f}".format(float(cfg.get("cloud2d_brightness", CLOUD2D_BRIGHTNESS))),
         "sky intensity" if cfg.get("env_type", "Physical Sky") == "Physical Sky" else "HDRI intensity", reference, os.path.basename(path)))
@@ -384,6 +446,14 @@ def _create_cloud_branch(stage, prev, cfg, log_callback):
         "/World/Environment/Clouds*",
         log_callback,
     )
+    # the translate is set below: an animation of the wind from an earlier build is taken off first
+    moving = next((cloud_xform.parmTuple(n) for n in ("t", "translate", "trans") if cloud_xform.parmTuple(n) is not None), None)
+    if moving is not None and len(moving) == 3:
+        for component in (moving[0], moving[2]):
+            try:
+                component.deleteAllKeyframes()
+            except hou.Error:
+                pass
     cloud_altitude = float(cfg.get("cloud_altitude", 140.0))
     cloud_scale = max(5.0, float(cfg.get("cloud_scale", 180.0)))
     _set_first_existing_parm_tuple(
@@ -392,6 +462,15 @@ def _create_cloud_branch(stage, prev, cfg, log_callback):
         (0.0, cloud_altitude, 0.0),
         log_callback,
     )
+    # wind: the clouds slide along the ground plane with the time (direction 0 is -Z, 90 is +X)
+    speed = float(cfg.get("cloud_wind_speed", 0.0))
+    angle = math.radians(float(cfg.get("cloud_wind_dir", 90.0)))
+    translate = next((cloud_xform.parmTuple(n) for n in ("t", "translate", "trans") if cloud_xform.parmTuple(n) is not None), None)
+    if translate is not None and len(translate) == 3:
+        _animate_parm(translate[0], speed * math.sin(angle), log_callback)
+        _animate_parm(translate[2], -speed * math.cos(angle), log_callback)
+    elif speed > 0.0:
+        log_callback("[WARN] Clouds: the transform has no translate parameter, the wind was not set.")
     scale_c = cloud_scale / 100.0
     _set_first_existing_parm_tuple(
         cloud_xform,

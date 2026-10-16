@@ -343,6 +343,9 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
             "cloud2d_scale": self.sld_cloud2d_scale.value(),
             "cloud2d_brightness": self.sld_cloud2d_brightness.value(),
             "cloud2d_seed": self.sld_cloud2d_seed.value(),
+            "cloud2d_drift": self.sld_cloud2d_drift.value(),
+            "cloud_wind_speed": self.sld_cloud_wind.value(),
+            "cloud_wind_dir": self.sld_cloud_wind_dir.value(),
             "geo_source": self._current_geo_source(),
 
             "sky_mode": self.combo_sky_mode.currentIndex(),
