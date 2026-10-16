@@ -93,6 +93,54 @@ class SnapshotPreview(QtWidgets.QLabel):
 
 
 # --------------------------------------------------------
+# The preview of an HDRI (a lat-long picture, 2:1): the whole picture in a frame that follows the width of the tab and
+# never asks for more room than that, whatever the size of the picture.
+class HdriPreview(SnapshotPreview):
+    EMPTY_HEIGHT = 70
+    MIN_HEIGHT = 60
+    MAX_HEIGHT = 240
+
+    # ------------------------------------------------------------
+    def __init__(self, text="", parent=None):
+        super().__init__(text, parent)
+        self._source = None
+
+    # ------------------------------------------------------------
+    def set_picture(self, image):
+        self._source = QtGui.QPixmap.fromImage(image)
+        self.set_ratio(image.height() / float(max(1, image.width())))
+        self.setText("")
+        self._draw()
+
+    # ------------------------------------------------------------
+    def set_message(self, text):
+        self._source = None
+        self.set_ratio(None)
+        self.setPixmap(QtGui.QPixmap())
+        self.setText(text)
+
+    # ------------------------------------------------------------
+    def _draw(self):
+        if self._source is None or self._source.isNull():
+            return
+        size = QtCore.QSize(self.width(), self.target_height())
+        if size.width() < 2 or size.height() < 2:
+            return
+        fitted = self._source.scaled(size, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        frame = QtGui.QPixmap(size)
+        frame.fill(QtGui.QColor("#1f1f1f"))
+        painter = QtGui.QPainter(frame)
+        painter.drawPixmap((size.width() - fitted.width()) // 2, (size.height() - fitted.height()) // 2, fitted)
+        painter.end()
+        self.setPixmap(frame)
+
+    # ------------------------------------------------------------
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._draw()
+
+
+# --------------------------------------------------------
 # Small square showing an RGB value. Values above 1 (the sliders go up to 2) are clipped for display.
 class ColorSwatch(QtWidgets.QWidget):
     EDGE = QtGui.QColor("#3f4246")

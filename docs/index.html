@@ -254,7 +254,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <tr><td>HDRI Rotation Y</td><td>Rotates the dome around the vertical axis.</td></tr>
   <tr><td>HDRI Saturation, Temperature, Tint</td><td>Combined into the light color of the dome: temperature in kelvin (2500 to 12000), then tint (green to magenta), then saturation.</td></tr>
 </table>
-<p>The HDRI controls are only shown when the mode uses an HDRI (Studio, 3 Points, or Environment/Interior with <em>HDRI Image</em>). The preview uses Qt for formats it can decode, and falls back to Houdini's <code>iconvert</code> for EXR, HDR and RAT. If neither works the preview reads <em>Preview unavailable for this format</em>; the render is not affected.</p>
+<p>The HDRI controls are only shown when the mode uses an HDRI (Studio, 3 Points, or Environment/Interior with <em>HDRI Image</em>). The preview shows the whole picture in a frame that follows the width of the tab (2:1 for a lat-long image, at most 240 px high), whatever the size of the file. It uses Qt for the usual formats, the tool's own readers for Radiance <code>.hdr</code> and OpenEXR (no compression, RLE, ZIP), and falls back to Houdini's <code>iconvert</code> for the rest (PIZ and other compressions, RAT). If none works the preview says why, for example <em>Preview unavailable: OpenEXR compression PIZ ...; iconvert not found</em>; the render is not affected.</p>
 
 <h4>Karma Physical Sky</h4>
 <p>Shown when the mode uses a physical sky.</p>
@@ -511,6 +511,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <tr><td><code>test_build_modes.py</code></td><td>Every scene mode, the values that reach the nodes, 3D and 2D clouds, the volumetric atmosphere, the update mode.</td></tr>
   <tr><td><code>test_material_linker.py</code></td><td>Geometry merge, references, rules, real USD bindings, the Edit Material node, rebuilds.</td></tr>
   <tr><td><code>test_cameras_nodes.py</code></td><td>Cameras, and the rule that nodes of yours are never touched.</td></tr>
+  <tr><td><code>test_hdrireader.py</code></td><td>The HDRI preview readers: Radiance .hdr (flat and run-length), OpenEXR, tone mapping, damaged files.</td></tr>
   <tr><td><code>test_clouds2d.py</code></td><td>The 2D cloud picture: coverage, seamless, cache, valid OpenEXR.</td></tr>
   <tr><td><code>test_mxdownload.py</code></td><td>The ambientCG and Poly Haven requests, with a fake network: hostile links, sizes, paths, unzip.</td></tr>
   <tr><td><code>test_shelf.py</code></td><td>The shelf file, the copy of the package with its backup, the checks on the preferences folder.</td></tr>
@@ -609,6 +610,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <tr><td><code>debuglog</code></td><td>The debug log file and the guard around the button handlers.</td></tr>
   <tr><td><code>nodeutil</code></td><td>Create, mark and set nodes; ownership checks; pausing cooking.</td></tr>
   <tr><td><code>environment</code></td><td>Camera, lights, physical sky, fog and clouds.</td></tr>
+  <tr><td><code>hdrireader</code></td><td>Readers of Radiance .hdr and OpenEXR files for the HDRI preview, which Qt cannot open.</td></tr>
   <tr><td><code>clouds2d</code></td><td>The 2D cloud picture: noise, EXR file, cache.</td></tr>
   <tr><td><code>buildinfo</code></td><td>The build id and where the code was loaded from.</td></tr>
   <tr><td><code>shelf</code></td><td>The automatic install: copy of the package, shelf file, shelf bar.</td></tr>

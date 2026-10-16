@@ -7,11 +7,12 @@ import os
 import shutil
 import subprocess
 from hutil.Qt import QtWidgets, QtCore, QtGui
-from .debuglog import _guarded_slot
+from .debuglog import _debug, _guarded_slot
 from .gauges import FloatSlider, IntSlider
+from .hdrireader import PREVIEW_COLUMNS, read_preview
 from .previews import SunAltitudeWidget, SunCompassWidget
 from .util import _expand_plain_path, _private_temp_dir
-from .widgets import ColorSwatch, wrap_tab
+from .widgets import ColorSwatch, HdriPreview, wrap_tab
 
 HDRI_PREVIEW_MAX_BYTES = 400 * 1024 * 1024
 
@@ -65,11 +66,7 @@ class LightingTab:
         self.sld_hdri_tint = FloatSlider(-1.0, 1.0, 0.0)
         self.form_base.addRow("HDRI Tint:", self.sld_hdri_tint)
 
-        self.lbl_hdri_preview = QtWidgets.QLabel("HDRI preview")
-        self.lbl_hdri_preview.setMinimumHeight(110)
-        self.lbl_hdri_preview.setAlignment(QtCore.Qt.AlignCenter)
-        self.lbl_hdri_preview.setScaledContents(True)
-        self.lbl_hdri_preview.setTextFormat(QtCore.Qt.PlainText)
+        self.lbl_hdri_preview = HdriPreview("HDRI preview")
         self.lbl_hdri_preview.setObjectName("hdriPreview")
         self.form_base.addRow("HDRI Preview:", self.lbl_hdri_preview)
 
@@ -270,8 +267,6 @@ class LightingTab:
         is_hdri = (mode in ["Studio", "3 Points"]) or (mode in ["Environment", "Interior"] and env_type == "HDRI Image")
         is_physical = (mode in ["Environment", "Interior"] and env_type == "Physical Sky")
         
-        self.lbl_hdri_preview.setMinimumHeight(110 if is_hdri else 0)
-
         hdri_rows = [
             self.sld_hdri_int,
             self.w_hdri_path,
@@ -293,34 +288,49 @@ class LightingTab:
 
     # ----------------------------------------------------------------------
     def _set_hdri_preview_message(self, message):
-        self.lbl_hdri_preview.setPixmap(QtGui.QPixmap())
-        self.lbl_hdri_preview.setText(message)
+        self.lbl_hdri_preview.set_message(message)
 
     # ------------------------------------------------------------------------
-    def _load_hdri_preview_pixmap(self, source_path):
-        pixmap = QtGui.QPixmap(source_path)
-        if not pixmap.isNull():
-            return pixmap
+    # The picture to preview, at most PREVIEW_COLUMNS wide, and what went wrong when there is none. Qt reads the usual
+    # formats; Radiance and OpenEXR are read by hdrireader; Houdini's iconvert is the last resort.
+    def _load_hdri_preview_image(self, source_path):
+        reader = QtGui.QImageReader(source_path)
+        reader.setAutoTransform(True)
+        if hasattr(reader, "setAllocationLimit"):
+            reader.setAllocationLimit(0)
+        if reader.canRead():
+            size = reader.size()
+            if size.width() > PREVIEW_COLUMNS:
+                reader.setScaledSize(QtCore.QSize(PREVIEW_COLUMNS, max(1, round(size.height() * PREVIEW_COLUMNS / float(size.width())))))
+            image = reader.read()
+            if not image.isNull():
+                return image, ""
 
+        pixels, reason = read_preview(source_path)
+        if pixels is not None:
+            height, width = pixels.shape[:2]
+            return QtGui.QImage(pixels.tobytes(), width, height, width * 3, QtGui.QImage.Format_RGB888).copy(), ""
+        _debug("HDRI preview: own reader: {}".format(reason))
+
+        converted, detail = self._convert_with_iconvert(source_path)
+        if converted is not None:
+            return converted, ""
+        return None, "{}; {}".format(reason, detail)
+
+    # ------------------------------------------------------------------------
+    def _convert_with_iconvert(self, source_path):
         key = hashlib.md5(source_path.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
-        preview_path = os.path.join(_private_temp_dir(), f"hdri_preview_{key}.jpg")
+        preview_path = os.path.join(_private_temp_dir(), "hdri_preview_{}.jpg".format(key))
         if preview_path not in getattr(self, "_hdri_temp_files", []):
             self._hdri_temp_files.append(preview_path)
-
         try:
-            src_mtime = os.path.getmtime(source_path)
+            fresh = os.path.isfile(preview_path) and os.path.getmtime(preview_path) >= os.path.getmtime(source_path)
         except OSError:
-            return None
+            return None, "the file cannot be read"
 
-        need_convert = True
-        if os.path.isfile(preview_path):
-            try:
-                need_convert = os.path.getmtime(preview_path) < src_mtime
-            except OSError:
-                need_convert = True
-
-        if need_convert:
-            # petite optimisation: seulement les exécutables qui existent, un chemin absent coûte un lancement bloquant
+        detail = "iconvert not found"
+        if not fresh:
+            # only the executables that exist: a missing path costs a blocking launch
             candidates = []
             for folder in (os.environ.get("HB"), os.path.join(os.environ.get("HFS", ""), "bin") if os.environ.get("HFS") else None):
                 if not folder:
@@ -332,40 +342,28 @@ class LightingTab:
             on_path = shutil.which("iconvert")
             if on_path and on_path not in candidates:
                 candidates.append(on_path)
-
-            converted = False
             for iconvert_exe in candidates:
                 try:
-                    # Fallback conversion for EXR/HDR when Qt cannot decode directly.
-                    if os.name == "nt":
-                        subprocess.run(
-                            [iconvert_exe, source_path, preview_path],
-                            check=True,
-                            timeout=8,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            creationflags=0x08000000,
-                        )
-                    else:
-                        subprocess.run(
-                            [iconvert_exe, source_path, preview_path],
-                            check=True,
-                            timeout=8,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                        )
-                    converted = True
+                    subprocess.run([iconvert_exe, source_path, preview_path], check=True, timeout=30,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   creationflags=0x08000000 if os.name == "nt" else 0)
                     break
-                except (OSError, subprocess.SubprocessError):
-                    pass
+                except subprocess.CalledProcessError as exc:
+                    detail = "iconvert failed: {}".format((exc.stderr or b"").decode("utf-8", "replace").strip()[:120] or exc.returncode)
+                except (OSError, subprocess.SubprocessError) as exc:
+                    detail = "iconvert failed: {}".format(exc)
+            else:
+                _debug("HDRI preview: {}".format(detail))
+                return None, detail
 
-            if not converted:
-                return None
-
-        preview_pixmap = QtGui.QPixmap(preview_path)
-        if preview_pixmap.isNull():
-            return None
-        return preview_pixmap
+        reader = QtGui.QImageReader(preview_path)
+        if hasattr(reader, "setAllocationLimit"):
+            reader.setAllocationLimit(0)
+        size = reader.size()
+        if size.width() > PREVIEW_COLUMNS:
+            reader.setScaledSize(QtCore.QSize(PREVIEW_COLUMNS, max(1, round(size.height() * PREVIEW_COLUMNS / float(size.width())))))
+        image = reader.read()
+        return (image, "") if not image.isNull() else (None, "iconvert wrote a file Qt cannot read")
 
     # ------------------------------------------------------------
     @_guarded_slot
@@ -387,10 +385,13 @@ class LightingTab:
             self._set_hdri_preview_message("File too large for a preview")
             return
 
-        pixmap = self._load_hdri_preview_pixmap(source_path)
-        if pixmap is None:
-            self._set_hdri_preview_message("Preview unavailable for this format")
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            image, reason = self._load_hdri_preview_image(source_path)
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
+        if image is None:
+            _debug("HDRI preview of {}: {}".format(source_path, reason))
+            self._set_hdri_preview_message("Preview unavailable: {}".format(reason))
             return
-
-        self.lbl_hdri_preview.setText("")
-        self.lbl_hdri_preview.setPixmap(pixmap)
+        self.lbl_hdri_preview.set_picture(image)

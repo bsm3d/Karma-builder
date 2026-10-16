@@ -185,6 +185,37 @@ def step_preview():
     ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(0)
 
 
+# --------------------------------------------------------------------------------
+# The HDRI preview stays inside its tab whatever the size of the picture, and a format it cannot read gives a message.
+def step_hdri_preview():
+    ui = S["ui"]
+    ui.combo_env_type.setCurrentText("HDRI Image")
+    ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(1)
+    pump()
+    big = os.path.join(tempfile.gettempdir(), "bsm_gui_hdri_test.png").replace("\\", "/")
+    huge = QtGui.QImage(8000, 4000, QtGui.QImage.Format_RGB32)
+    huge.fill(QtGui.QColor("#3366aa"))
+    huge.save(big)
+    ui.line_hdri_path.setText(big)
+    ui._do_hdri_preview()
+    pump()
+    pump()
+    label = ui.lbl_hdri_preview
+    page = ui.findChild(QtWidgets.QTabWidget).widget(1)
+    check("the HDRI preview shows a 8000 x 4000 picture", label.pixmap() is not None and not label.pixmap().isNull() and label.text() == "", label.text())
+    check("the HDRI preview is 2:1 and stays inside the tab", abs(label.height() - min(label.MAX_HEIGHT, label.width() / 2)) <= 2 and not page.horizontalScrollBar().isVisible(), (label.width(), label.height()))
+    ui.line_hdri_path.setText(os.path.join(tempfile.gettempdir(), "bsm_no_such_hdri.exr").replace("\\", "/"))
+    ui._do_hdri_preview()
+    pump()
+    check("a missing HDRI gives a message and the short strip", label.text() == "HDRI file not found" and label.height() == label.EMPTY_HEIGHT, label.text())
+    try:
+        os.remove(big)
+    except OSError:
+        pass
+    ui.combo_env_type.setCurrentText("Physical Sky")
+    ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(0)
+
+
 # ------------------------------------
 def step_cameras():
     ui, k = S["ui"], S["k"]
@@ -397,11 +428,11 @@ def step_quit():
 ALL = {
     "wait": (4000, lambda: say("waited")),
     "gallery": (1500, step_gallery), "gallery_close": (1500, step_gallery_close), "dlgclose": (1500, step_dlgclose),
-    "setup": (2500, step_setup), "layout": (800, step_layout), "preview": (800, step_preview), "cameras": (800, step_cameras), "panels": (800, step_panels),
+    "setup": (2500, step_setup), "layout": (800, step_layout), "preview": (800, step_preview), "hdri": (800, step_hdri_preview), "cameras": (800, step_cameras), "panels": (800, step_panels),
     "catalog": (800, step_catalog_and_clear), "escape": (500, step_escape), "after": (1200, step_after_escape),
     "cycles": (500, step_cycles), "hda": (500, step_hda), "quit": (500, step_quit),
 }
-ORDER = os.environ.get("BSM_STEPS", "setup,layout,preview,cameras,panels,catalog,escape,after,cycles,hda,quit").split(",")
+ORDER = os.environ.get("BSM_STEPS", "setup,layout,preview,hdri,cameras,panels,catalog,escape,after,cycles,hda,quit").split(",")
 STEPS = [ALL[name] for name in ORDER]
 
 
