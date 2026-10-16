@@ -32,7 +32,7 @@ Please note that this is a first version. While it is not perfect, it represents
 
 ## Installation
 
-The full steps, the shelf button and the material sources are in [`install.txt`](install.txt).
+The full steps (automatic install with the shelf button, the HDA, by hand), the troubleshooting and the material sources are in [`INSTALL.md`](INSTALL.md).
 
 ### Option A: the HDA
 
