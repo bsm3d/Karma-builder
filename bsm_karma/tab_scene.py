@@ -68,7 +68,6 @@ class SceneTab:
         lay_camera_select = QtWidgets.QHBoxLayout(self.w_camera_select)
         lay_camera_select.setContentsMargins(0, 0, 0, 0)
         lay_camera_select.setSpacing(6)
-        # rebuilt each time it opens, so new or deleted cameras show up
         self.combo_camera = PopupRefreshComboBox()
         self.combo_camera.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.combo_camera.setToolTip("Create New Camera, a camera LOP of /stage, or a camera prim of the Geometry Source.")

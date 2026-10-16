@@ -21,7 +21,6 @@ def _normalized(text):
 
 
 # ------------------------------------------------------------
-# {module name: source}. From the folder of the package, or from the sources the HDA carries.
 def package_sources(folder=None):
     folder = folder or os.path.dirname(os.path.abspath(globals().get("__file__") or ""))
     if folder and os.path.isfile(os.path.join(folder, CONFIG_MODULE + ".py")):
@@ -51,7 +50,6 @@ def folder_build_id(folder=None):
     return _id_of(package_sources(folder))
 
 
-# the id of what was loaded: read once, when the package is imported
 BUILD_ID = folder_build_id()
 
 
@@ -68,7 +66,6 @@ def build_origin():
 
 
 # ------------------------------------------------------------
-# For the title of the window: the id and a one word origin.
 def build_tag():
     origin = build_origin()
     word = "HDA" if origin.startswith("the HDA") else ("installed" if origin.startswith("an installed") else "folder")

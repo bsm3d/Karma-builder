@@ -53,7 +53,6 @@ BASIC_MATERIALS = {
 
 
 # ------------------------------------------------------------
-# A name that MaterialX takes for a node and USD for a prim.
 def safe_name(text):
     name = re.sub(r"[^A-Za-z0-9_]+", "_", str(text)).strip("_")
     if not name:
@@ -82,7 +81,6 @@ def _same(kind, left, right):
 
 
 # ------------------------------------------------------------
-# The text of a .mtlx file with one standard surface and its material.
 def build_mtlx(name, values):
     name = safe_name(name)
     lines = ['<?xml version="1.0"?>', '<materialx version="1.38">',
@@ -120,7 +118,6 @@ def data_folder(sub):
 
 
 # ------------------------------------------------------------
-# The file of a basic material, written when it is first needed (the same text again when it exists).
 def basic_material_file(name, folder=None):
     if name not in BASIC_MATERIALS:
         raise KeyError(name)

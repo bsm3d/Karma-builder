@@ -108,7 +108,6 @@ def _write(folder, rel, data):
 
 
 # ------------------------------------------------------------
-# Unzip into a folder named after the archive. Nothing may land outside it and the size is capped. Returns the folder.
 def safe_extract(zip_path, base_folder):
     target = os.path.join(base_folder, os.path.splitext(os.path.basename(zip_path))[0])
     os.makedirs(target, exist_ok=True)
@@ -180,7 +179,6 @@ def download_ambientcg(session, rows, asset_id, resolution, fmt, folder, log, ca
 
 
 # ------------------------------------------------------------
-# Poly Haven: {asset id: information} for the textures.
 def polyhaven_catalog(session, cancel=None):
     import json
     data = _fetch(session, POLYHAVEN_ASSETS_URL, cancel, MAX_LIST_BYTES, params={"type": "textures"})

@@ -18,7 +18,6 @@ _CLASS_HINTS = ("viewport", "viewer", "glwidget", "openglwidget")
 
 
 # ------------------------------------------------------------
-# Selection of the Solaris viewport as USD prim paths, [] when the viewer cannot tell.
 def viewer_selection(viewer):
     getter = getattr(viewer, "currentSceneGraphSelection", None)
     if getter is None:

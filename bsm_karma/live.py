@@ -27,8 +27,6 @@ def _structure_of(config):
 class LiveUpdateMixin:
 
     # ------------------------------------------------------------------------
-    # Live update. Off: nothing happens until Build is pressed (slow machines). On: a change of any value
-    # rebuilds the network after a short pause, so a slider can be dragged without a build per step.
     LIVE_UPDATE_DELAY_MS = 350
 
     # ------------------------------------------------------------
@@ -96,7 +94,6 @@ class LiveUpdateMixin:
             _debug(message, "LOG")
 
     # ------------------------------------------------------------
-    # What differs from the last Build in the settings that change the node structure ([] when nothing does).
     def _live_structure_changes(self):
         built = self._live_structure
         if built is None:

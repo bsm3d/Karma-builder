@@ -18,7 +18,6 @@ MAX_PER_DROP = 200
 
 
 # ------------------------------------------------------------
-# What a screen shows (0 to 1) to the linear number a MaterialX color holds.
 def srgb_to_linear(value):
     value = min(max(float(value), 0.0), 1.0)
     return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
@@ -48,7 +47,6 @@ def _hue(rng, hue_from, hue_to):
 
 
 # ------------------------------------------------------------
-# The color as a screen shows it, to the linear color of the file.
 def random_color(rng, ranges, saturation_cap=1.0, value_floor=0.0):
     hue = _hue(rng, ranges["hue_from"], ranges["hue_to"])
     saturation = min(rng.uniform(ranges["sat_min"], ranges["sat_max"]), saturation_cap)
@@ -58,7 +56,6 @@ def random_color(rng, ranges, saturation_cap=1.0, value_floor=0.0):
 
 
 # ------------------------------------------------------------
-# The standard surface inputs of a random material (only the ones that differ from the defaults), and its kind.
 def random_values(seed, kind="Any", ranges=None):
     ranges = _clean_ranges(ranges)
     rng = random.Random("{}|{}|{}".format(int(seed), kind, json.dumps(ranges, sort_keys=True)))
@@ -81,7 +78,6 @@ def random_name(seed, kind, ranges):
 
 
 # ------------------------------------------------------------
-# The file of a random material: the same seed, kind and ranges give the same file.
 def random_material_file(seed, kind="Any", ranges=None, folder=None):
     folder = folder or data_folder("materials_random")
     kind_used, values = random_values(seed, kind, ranges)

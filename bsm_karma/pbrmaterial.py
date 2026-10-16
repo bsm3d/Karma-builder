@@ -21,7 +21,6 @@ MARKER_SEARCH_BYTES = 65536
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".exr", ".tga", ".tx", ".webp")
 DISP_SCALE_DEFAULT = 0.02
 
-# (slot, label, type of the map)
 SLOTS = (
     ("base_color", "Base Color", "color3"), ("roughness", "Roughness", "float"), ("metalness", "Metalness", "float"),
     ("normal", "Normal", "vector3"), ("ao", "Ambient Occlusion", "float"), ("height", "Displacement", "float"),
@@ -64,7 +63,6 @@ def _number(value, low, high, default):
 
 
 # ------------------------------------------------------------
-# A spec from anywhere (a file, the interface): only the known keys, numbers inside their ranges, plain image paths.
 def normalize_spec(spec):
     clean = default_spec(str((spec or {}).get("name", "PBR")))
     for key, value in ((spec or {}).get("values") or {}).items():
@@ -179,8 +177,6 @@ def _same(kind, left, right):
 
 
 # ------------------------------------------------------------
-# The text of the .mtlx file: one tiledimage per map, with what the options ask in between, into a standard surface. The spec
-# is kept in a comment, so the editor finds the maps and the options again.
 def build_pbr_mtlx(spec):
     kept = normalize_spec(spec)
     spec = copy.deepcopy(kept)
@@ -192,7 +188,6 @@ def build_pbr_mtlx(spec):
     handled = set()
 
     # the nodes come before the surface in the file; the surface is added to the tree after them
-    # base color: map, tint and brightness, ambient occlusion
     if "base_color" in maps:
         source = builder.image("base_color", "color3", uv)
         factor = tuple(float(v) * options["brightness"] for v in options["tint"])
@@ -209,7 +204,6 @@ def build_pbr_mtlx(spec):
         builder.connect("base_color", "color3", source)
         handled.add("base_color")
     elif "ao" in maps:
-        # ambient occlusion alone darkens the constant color
         ao = builder.image("ao", "float", uv)
         if options["ao_strength"] < 1.0 - 1e-9:
             builder.node("mix", "AO_strength", "float", bg=("float", "1", None), fg=("float", None, ao), mix=("float", "{:.6g}".format(options["ao_strength"]), None))
@@ -223,7 +217,6 @@ def build_pbr_mtlx(spec):
         if any(abs(v - 1.0) > 1e-9 for v in factor):
             spec["values"]["base_color"] = tuple(float(v) * f for v, f in zip(spec["values"].get("base_color", INPUT_DEFAULTS["base_color"]), factor))
 
-    # roughness: map, glossiness inverted, scale
     if "roughness" in maps:
         source = builder.image("roughness", "float", uv)
         if options["gloss"]:
@@ -241,7 +234,6 @@ def build_pbr_mtlx(spec):
         builder.connect("metalness", "float", builder.image("metalness", "float", uv))
         handled.add("metalness")
 
-    # normal: the map, its green channel flipped for a DirectX map, the normal map node
     if "normal" in maps:
         source = builder.image("normal", "vector3", uv)
         if options["normal_format"] == "DirectX":
@@ -263,7 +255,6 @@ def build_pbr_mtlx(spec):
         builder.connect("opacity", "color3", "O_color")
         handled.add("opacity")
 
-    # the constants of everything that is not a map
     for key in INPUT_TYPES:
         if key not in handled:
             builder.constant(key)
@@ -294,7 +285,6 @@ def _encode(spec):
 
 
 # ------------------------------------------------------------
-# The spec of a file this module wrote, None for any other file.
 def read_pbr_spec(text):
     found = MARKER_RE.search(text[:MARKER_SEARCH_BYTES])
     if not found:

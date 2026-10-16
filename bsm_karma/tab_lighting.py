@@ -76,7 +76,6 @@ class LightingTab:
 
         layout_lights.addWidget(grp_base)
 
-        # the lamps of the Studio, 3 Points and Interior modes
         self.grp_lamps = QtWidgets.QGroupBox("Lamp Colors")
         self.grp_lamps.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         self.form_lamps = QtWidgets.QFormLayout(self.grp_lamps)
@@ -192,7 +191,6 @@ class LightingTab:
         lay_rgb_amb.addLayout(lay_amb_g)
         lay_rgb_amb.addLayout(lay_amb_b)
 
-        # the swatch sits right under the label and follows the three sliders
         w_amb_label = QtWidgets.QWidget()
         lay_amb_label = QtWidgets.QVBoxLayout(w_amb_label)
         lay_amb_label.setContentsMargins(0, 0, 0, 0)
@@ -304,7 +302,6 @@ class LightingTab:
         self.chk_enable_fog.setEnabled(is_env_mode)
         self.chk_enable_clouds.setEnabled(is_env_mode)
 
-        # lamps: Studio has a key, 3 Points a key, a fill and a rim, Interior one window light (the key)
         self.grp_lamps.setVisible(mode in ["Studio", "3 Points", "Interior"])
         key_name = "Window" if mode == "Interior" else "Key"
         self.form_lamps.labelForField(self.spin_lamp_key_temp).setText("{} Temp. (K):".format(key_name))

@@ -52,7 +52,6 @@ def _debug_candidate_folders():
 
 
 # ------------------------------------------------------------
-# Path of the log file: the first folder that can be written to.
 def debug_log_path():
     if _debug_state["path"] and os.path.isdir(os.path.dirname(_debug_state["path"])):
         return _debug_state["path"]
@@ -70,7 +69,6 @@ def debug_log_path():
 
 
 # ------------------------------------------------------------
-# One backup is kept: bsm_karma_debug.log.1
 def _debug_rotate(path):
     try:
         if os.path.getsize(path) > DEBUG_LOG_MAX_BYTES:

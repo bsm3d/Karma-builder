@@ -245,7 +245,6 @@ def _create_physical_sky(stage, prev, cfg, log_callback):
         
         _set_first_existing_parm(sky, ("horizon_blur", "horizonblurfalloff"), float(cfg["sky_hz_blur"]), log_callback)
 
-        # H22 has scale parms, the sliders multiply their defaults
         if "sky_atm_rayleigh" in cfg:
             rayleigh = float(cfg["sky_atm_rayleigh"])
             mie = float(cfg["sky_atm_mie"])
@@ -327,7 +326,6 @@ def _create_fog_branch(stage, prev, cfg, log_callback):
 
 
 # ------------------------------------------------------------
-# SideFX's Quick Cloud Material (an Edit Material Properties LOP). Returns the node, or None.
 def _create_quick_cloud_material(stage, prev, cfg, log_callback):
     try:
         from husd import quickmaterials
@@ -382,7 +380,6 @@ def _create_cloud_layer_2d(stage, prev, cfg, log_callback):
         reference = float(cfg.get("hdri_int", 1.0)) * (2.0 ** float(cfg.get("hdri_ev", 0.0)))
     intensity = float(cfg.get("cloud2d_brightness", CLOUD2D_BRIGHTNESS)) * reference
     dome = _create_dome_light(stage, prev, intensity, path, log_callback, name=CLOUD_LAYER_NAME)
-    # the picture turns around the sky: the rotation of the dome follows the time
     drift = float(cfg.get("cloud2d_drift", 0.0))
     if dome.parm("ry") is not None:
         _animate_parm(dome.parm("ry"), drift / 60.0, log_callback)

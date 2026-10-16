@@ -93,8 +93,6 @@ def _insert_material_edit_in_chain(linker, edit):
 
 
 # ----------------------------------------------------------------------
-# Point the first entry of the Edit Material LOP at a material and load it. Returns what could not be done, one
-# text each.
 def _material_edit_load(edit, material_path):
     if _has_expression(material_path):
         return ["the material path contains an expression"]
@@ -145,7 +143,6 @@ def _linker_references(linker):
 
 
 # ----------------------------------------
-# (index, material_path, [prims]) per rule.
 def _linker_rules(linker):
     rules = []
     count = linker.parm("num_links").evalAsInt() if linker.parm("num_links") is not None else 0
@@ -185,7 +182,6 @@ def _unique_material_path(linker, wanted):
 
 
 # ----------------------------------------
-# Reference a material from a file and return its prim path. Same file and source prim reuses the reference.
 def _linker_add_reference(linker, file_path, file_prim_path, label):
     if any(_has_expression(text) for text in (file_path, file_prim_path, label)):
         raise ValueError("refusing a material path that contains an expression")

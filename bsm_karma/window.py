@@ -221,7 +221,6 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
 
     # ------------------------------------------------------------------------
     def done(self, result):
-        # Esc and reject() end the dialog without a close event.
         self._release_resources()
         super().done(result)
 
@@ -246,8 +245,6 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
 
     # --------------------------------------------------------
     # Presets: the text embedded in the HDA, else presets.json next to the code, else a minimal set.
-    # bug trouvé et fixé: le log n'existait pas encore quand les presets échouaient, le message est gardé pour plus
-    # tard
     def _load_presets(self):
         try:
             data = None
@@ -267,7 +264,6 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
                 self.cloud_presets = _valid_presets(data.get("cloud_presets", {}), ("dens", "alt", "scale"), "cloud", notes)
                 return
         except (OSError, ValueError, AttributeError) as e:
-            # The log tab does not exist yet while the dialog is being built: keep the message for later.
             self._pending_logs.append("Failed to load the presets: {}".format(e))
 
         self.presets = {"Mid (1080p / 256s)": {"rx": 1920, "ry": 1080, "spl": 256}}
@@ -417,7 +413,6 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
         return True
 
     # ------------------------------------------------------------
-    # The Build button says what is waiting for it: a change that Live Update does not apply by itself.
     def _set_build_hint(self, changed_labels):
         if changed_labels:
             self.btn_build.setText("Build to apply: {}".format(changed_labels))
@@ -437,7 +432,6 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
         return True
 
     # ------------------------------------------------------------
-    # room between the labels and the fields, so a long label does not touch its slider
     def _space_forms(self):
         for form in self.findChildren(QtWidgets.QFormLayout):
             form.setHorizontalSpacing(FORM_LABEL_GAP)
@@ -451,7 +445,6 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
                 continue   # Houdini's own gallery keeps its own combo boxes
             combo.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
             combo.setMinimumContentsLength(9)
-            # an explicit minimum wins over the size Qt computes from the longest item
             combo.setMinimumWidth(104)
             if combo.count():
                 combo.view().setMinimumWidth(combo.view().sizeHintForColumn(0) + 28)

@@ -52,7 +52,6 @@ def parse(text):
 
 
 # ------------------------------------------------------------
-# The text of a material file; a big file is refused before it is read.
 def read_text(path):
     if os.path.getsize(path) > MAX_FILE_BYTES:
         raise MtlxError("the file is too big")
@@ -74,7 +73,6 @@ def _named(root, tag, name):
 
 
 # ------------------------------------------------------------
-# The standard surface the first material uses; else the first standard surface of the file.
 def find_surface(root):
     for material in root.iter("surfacematerial"):
         for entry in material.findall("input"):
@@ -112,8 +110,6 @@ def parse_value(kind, text):
 
 
 # ------------------------------------------------------------
-# What the editor needs to know about a file: for each known input of the surface, its value, or that a texture or other
-# node drives it; and which texture helpers (normal map, displacement, tiled images) there are to scale.
 def describe(text):
     root = parse(text)
     surface = find_surface(root)
@@ -150,7 +146,6 @@ def _clear_connection(entry):
 
 
 # ------------------------------------------------------------
-# A multiply node in front of a connected input, so that a texture can be tinted or scaled without losing it.
 def _insert_multiply(container, surface, key, kind, factor):
     entry = _input(surface, key)
     if not _is_connected(entry):
@@ -229,7 +224,6 @@ def _encode(original, settings):
 
 
 # ------------------------------------------------------------
-# (original file name, settings) kept in a comment of a variant, None for a file this tool did not write.
 def read_embedded(text):
     found = EMBED_RE.search(text[:EMBED_SEARCH_BYTES])
     if not found:
@@ -247,7 +241,6 @@ def _settings_key(settings):
 
 
 # ------------------------------------------------------------
-# The original file and the settings of a material file: the file itself and no settings when the tool did not make it.
 def original_and_settings(path):
     try:
         with open(path, encoding="utf-8") as handle:
@@ -264,8 +257,6 @@ def original_and_settings(path):
 
 
 # ------------------------------------------------------------
-# Writes the variant of `original` with these settings next to it (its textures are found by their relative paths) and
-# returns its path. The same settings give the same file. The oldest variants of that file are removed.
 def write_variant(original, settings):
     text = read_text(original)
     new_text = apply_settings(text, settings)
@@ -300,7 +291,6 @@ def _prune(folder, stem, keep):
 
 
 # ------------------------------------------------------------
-# A named copy of the edited material: the tool's file for that name. The material inside takes the name.
 def write_named(original, settings, name, folder):
     text = read_text(original)
     new_text = apply_settings(text, settings)

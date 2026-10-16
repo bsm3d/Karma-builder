@@ -60,7 +60,6 @@ def _smoothstep(np, low, high, values):
 
 
 # ------------------------------------------------------------
-# Grey image, 0 to 1: clouds in the upper half (top row = zenith), nothing below the horizon.
 def render_cloud_layer(coverage, softness, scale, seed, size=CLOUD_TEXTURE_SIZE):
     import numpy as np
     width, height = size
@@ -73,7 +72,6 @@ def render_cloud_layer(coverage, softness, scale, seed, size=CLOUD_TEXTURE_SIZE)
     soft = 0.05 + 0.9 * float(min(max(softness, 0.0), 1.0))
     mask = _smoothstep(np, threshold - soft, threshold + soft, density)
 
-    # thicker clouds are brighter, the thin edges are faint
     shade = 0.55 + 0.45 * _smoothstep(np, threshold, threshold + 1.5 + soft, density)
     image = mask * shade
 
@@ -130,7 +128,6 @@ def write_exr_grey(path, array):
 
 
 # ------------------------------------------------------------
-# Path of the texture for these settings. The file name is a hash of them: the same settings reuse the file.
 def cloud_texture_path(coverage, softness, scale, seed, size=CLOUD_TEXTURE_SIZE):
     key = "{:.3f}|{:.3f}|{:.3f}|{}|{}".format(float(coverage), float(softness), float(scale), int(seed), tuple(size))
     name = "{}{}.exr".format(CLOUD_FILE_PREFIX, hashlib.md5(key.encode("utf-8"), usedforsecurity=False).hexdigest()[:12])

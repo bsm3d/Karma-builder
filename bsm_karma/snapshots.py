@@ -290,7 +290,6 @@ class SnapshotMixin:
         return result
 
     # ------------------------------------------------------------
-    # The whole frame, at the ratio of the image, centered in a dark frame the size of the preview. Nothing is cropped.
     def _update_snapshot_preview(self, rebuild=False):
         label = self.lbl_snapshot_preview
         if not self._snapshot_any_image():

@@ -163,7 +163,6 @@ class ViewportMixin:
             return False
 
     # ------------------------------------------------------------
-    # The tool's Karma viewport, else a Scene Viewer already on /stage, else any Scene Viewer.
     def _get_active_scene_viewer(self):
         viewer = self._karma_scene_viewer
         if viewer is not None:

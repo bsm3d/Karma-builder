@@ -87,8 +87,6 @@ def _drop_node(stage, name, log_callback, reason, removals):
 
 
 # --------------------------------------------------------------------------------
-# Merge the geometry LOP with the environment so materials can bind to it.
-# No source selected: the chain is left as it was and an old merge is removed.
 def _merge_geometry_source(stage, env_tip, cfg, log_callback, removals=None):
     geo_path = (cfg.get("geo_source") or "").strip()
     geo_node = hou.node(geo_path) if geo_path else None
@@ -118,7 +116,6 @@ def _merge_geometry_source(stage, env_tip, cfg, log_callback, removals=None):
 
 
 # --------------------------------------------------------------------------------
-# The lighting branch of the chosen scene mode. Returns the last node of it.
 def _build_lighting(stage, cam, cfg, log_callback, skipped):
     mode = cfg.get("scene_mode", "Environment")
     env_type = cfg.get("env_type", "Physical Sky")
@@ -175,8 +172,6 @@ def _build_lighting(stage, cam, cfg, log_callback, skipped):
 
 
 # --------------------------------------------------------------------------------
-# Material library, Material Linker, Edit Material, AOVs, render settings and ROP, each wired after the previous one.
-# Returns the Karma Render Settings node.
 def _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped, removals):
     try:
         mat = _create_material_library(stage, env_tip, cfg, log_callback)
@@ -237,7 +232,6 @@ def setup_karma_environment(cfg, log_callback):
         env_tip = _build_lighting(stage, cam, cfg, log_callback, skipped)
         env_tip = _merge_geometry_source(stage, env_tip, cfg, log_callback, removals)
         ks = _build_render_chain(stage, env_tip, cam_path, cfg, log_callback, skipped, removals)
-        # their consumers are rewired by now
         for name, reason in removals:
             _remove_tool_node(stage, name, log_callback, reason)
         _cleanup_environment_nodes(stage, cfg, log_callback)
@@ -247,7 +241,6 @@ def setup_karma_environment(cfg, log_callback):
             _layout_tool_nodes(stage)
         _debug_stage_dump(stage)
 
-        # le node karma settings reste le node actif et sélectionné après un build
         if ks:
             ks.setDisplayFlag(True)
             if not live:
@@ -260,7 +253,6 @@ def setup_karma_environment(cfg, log_callback):
 
 
 # ------------------------------------------------------------
-# The node graph of /stage: what the next build found or left behind.
 def _debug_stage_dump(stage):
     if not _debug_state["enabled"] or stage is None:
         return

@@ -101,7 +101,6 @@ def local_assets(text, roots, lister=None):
 
 
 # ------------------------------------------------------------
-# A picture of the material for its thumbnail: the color map next to the .mtlx file, or in a textures folder below it.
 def preview_picture(mtlx_path):
     folder = os.path.dirname(mtlx_path)
     candidates = []
@@ -120,7 +119,6 @@ def preview_picture(mtlx_path):
 
 
 # ------------------------------------------------------------
-# Square thumbnail, cropped from the middle of the picture; an empty icon when it cannot be read.
 def thumbnail(picture, edge):
     if not picture:
         return QtGui.QIcon()

@@ -30,7 +30,6 @@ from .util import _private_temp_dir
 from .window import KarmaBuilderUI
 
 
-# re-exported names: the public entry points and what the tests reach for
 __all__ = [
     "main", "KarmaBuilderUI", "setup_karma_environment", "SCRIPT_VERSION", "AMD_LIBRARY_URL", "AMD_SOURCE_ID",
     "USD_CAMERA_PREFIX", "_amd_library_reachable", "_bound_material_name", "_catalog_source_problem",

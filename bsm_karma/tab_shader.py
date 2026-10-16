@@ -27,7 +27,6 @@ import random
 EDIT_DELAY_MS = 250
 MY_MATERIALS_SHOWN = 24
 
-# the controls of the editor, one group each: (input, kind, label, minimum, maximum)
 GROUPS = (
     ("Base", None, (("base_color", "color", "Color", 0, 1), ("specular_roughness", "float", "Roughness", 0, 1), ("metalness", "float", "Metalness", 0, 1))),
     ("Subsurface (skin, wax, marble, leaves)", "subsurface", (("subsurface", "float", "Amount", 0, 1), ("subsurface_color", "color", "Color", 0, 1),
@@ -40,13 +39,11 @@ GROUPS = (
     ("Emission", "emission", (("emission", "float", "Strength", 0, 20), ("emission_color", "color", "Color", 0, 1))),
     ("Opacity", None, (("opacity", "grey", "Opacity", 0, 1),)),
 )
-# the multipliers for what is a texture: (setting, kind, label, minimum, maximum)
 TEXTURE_CONTROLS = (("tint", "color", "Tint", 0, 1), ("brightness", "float", "Brightness", 0, 3), ("rough_scale", "float", "Roughness x", 0, 3),
                     ("normal", "float", "Normal Strength", 0, 3), ("disp", "float", "Displacement", 0, 3), ("tiling", "float", "Tiling", 0.1, 10))
 
 
 # ------------------------------------------------------------
-# A basic material of the library: a click assigns it, a drag carries its file to a prim or the viewport.
 class LibraryButton(QtWidgets.QToolButton):
     dragStarted = QtCore.Signal()
     activated = QtCore.Signal(str)
@@ -109,7 +106,6 @@ class LibraryButton(QtWidgets.QToolButton):
 
 
 # ------------------------------------------------------------
-# A ball for a button: the base color (a linear color) lit from the top left.
 def ball_pixmap(rgb, size=44):
     color = QtGui.QColor(*[int(round(linear_to_display(c) * 255)) for c in rgb])
     pixmap = QtGui.QPixmap(size, size)
@@ -163,7 +159,6 @@ def _preset_color(values):
 
 
 # ------------------------------------------------------------
-# the surface input that each map of the PBR material drives
 PBR_DRIVEN = {"base_color": "base_color", "specular_roughness": "roughness", "metalness": "metalness", "emission_color": "emission", "opacity": "opacity"}
 
 
@@ -476,7 +471,6 @@ class ShaderTab:
         self._after_pbr_maps_changed()
 
     # ------------------------------------------------------------
-    # A map added or taken away changes which inputs a texture drives: write the file now and read it back.
     def _after_pbr_maps_changed(self):
         self._shader_timer.stop()
         self.apply_shader_edit()
@@ -488,7 +482,6 @@ class ShaderTab:
         self._fill_shader_materials()
 
     # ------------------------------------------------------------
-    # The spec of the file from the settings of the editor and the texture set.
     def _compose_pbr_spec(self):
         settings, state = self._shader_settings, self._pbr_state
         mods = dict(DEFAULT_MODS)
@@ -503,7 +496,6 @@ class ShaderTab:
         return {key: float(slider.value()) for key, slider in self._random_sliders.items()}
 
     # ------------------------------------------------------------
-    # The file of the next random material; the seed moves on, so a drag after a drag is another color.
     def _next_random_file(self):
         seed = int(self.sld_random_seed.value())
         path = random_material_file(seed, self.combo_random_kind.currentText(), self._random_ranges())
@@ -647,7 +639,6 @@ class ShaderTab:
             self.log_message("[WARN] Folder not opened: {}".format(exc))
 
     # ------------------------------------------------------------
-    # A basic or saved material, assigned to the prims selected in the list or in the viewport.
     @_guarded_slot
     def on_library_assign(self, path):
         paths, origin = self._assignment_targets()
@@ -671,7 +662,6 @@ class ShaderTab:
         return "file"
 
     # ------------------------------------------------------------
-    # The materials of the Material Linker, one entry each.
     def _fill_shader_materials(self, select_file=None):
         stage = hou.node("/stage")
         linker = _material_linker_node(stage) if stage is not None else None
@@ -851,7 +841,6 @@ class ShaderTab:
         self._shader_timer.start()
 
     # ------------------------------------------------------------
-    # The edited file replaces the original in the Material Linker; with nothing changed the original comes back.
     @_guarded_slot
     def apply_shader_edit(self):
         target = self._shader_target
@@ -890,7 +879,6 @@ class ShaderTab:
             return
         self._shader_remembered = {}
         if self._shader_target.get("pbr"):
-            # the texture set stays, everything else goes back to the defaults
             fresh = default_spec(self._pbr_state["name"])
             fresh["maps"] = dict(self._pbr_state["maps"])
             self._adopt_pbr_spec(fresh, self._shader_target["info"])
@@ -935,7 +923,6 @@ class ShaderTab:
         self._fill_my_materials()
 
     # ------------------------------------------------------------
-    # The material bound to the first selected prim.
     @_guarded_slot
     def on_shader_from_prim(self):
         paths, _origin = self._assignment_targets()

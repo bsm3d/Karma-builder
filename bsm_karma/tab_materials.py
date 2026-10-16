@@ -37,7 +37,6 @@ class MaterialsTab:
         row_source = QtWidgets.QHBoxLayout()
         self.combo_mat_source = QtWidgets.QComboBox()
         self.combo_mat_source.addItems(self.MATERIAL_SOURCES)
-        # the gallery opens on the shared catalog, so start on the matching entry
         self.combo_mat_source.setCurrentIndex(1)
         self.combo_mat_source.currentIndexChanged.connect(self.update_material_source_ui)
         self.btn_mat_connect = QtWidgets.QPushButton("Connect")
@@ -204,7 +203,6 @@ class MaterialsTab:
     #------------------------------------------------------------------------------------------
     def update_material_source_ui(self):
         self.w_mat_download.setVisible(self.combo_mat_source.currentText() == self.MATERIAL_SOURCES[0])
-        # without the catalog widget the source controls would do nothing
         has_gallery = self.mat_gallery is not None
         self.btn_mat_connect.setEnabled(has_gallery)
         self.combo_mat_source.setEnabled(has_gallery)
@@ -276,8 +274,6 @@ class MaterialsTab:
             QtWidgets.QApplication.restoreOverrideCursor()
 
     # ------------------------------------------------------------
-    # The catalog source of a .mtlx or USD file, and the line that says what it shows; (None, "") when Houdini cannot
-    # open it.
     def _material_file_source(self, path):
         source_file = _material_catalog_file(path)
         if source_file != path:
@@ -289,7 +285,6 @@ class MaterialsTab:
         return data_source, "Materials found in {}".format(path)
 
     # ------------------------------------------------------------
-    # A file chosen in the download window: show it in the catalog like the "USD / MaterialX File..." source.
     @_guarded_slot
     def _show_material_file(self, path):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
@@ -430,7 +425,6 @@ class MaterialsTab:
         self._assign_material_pairs([(asset, prim_paths) for asset in assets])
 
     # ------------------------------------------------------------
-    # pairs: [(material descriptor, prim paths)], all done in one step, so one prim list refresh and one undo.
     def _assign_material_pairs(self, pairs):
         pairs = [(asset, [p for p in prims if p]) for asset, prims in pairs]
         pairs = [(asset, prims) for asset, prims in pairs if asset and prims]
@@ -485,7 +479,6 @@ class MaterialsTab:
         return assets
 
     # ------------------------------------------------------------
-    # Files dragged from the download window. Only files of a download folder are taken: the drop could come from anywhere.
     def _local_assets_from_payload(self, payload):
         roots = [self._default_download_folder()]
         for sub in ("materials_basic", "my_materials", "materials_random"):
@@ -511,7 +504,6 @@ class MaterialsTab:
         return os.path.join(base, "bsm_karma", "mtlx").replace("\\", "/")
 
     # ------------------------------------------------------------
-    # A material of the download window, bound to the prims selected in the list or in the viewport.
     @_guarded_slot
     def on_downloaded_material_assign(self, path):
         paths, origin = self._assignment_targets()
@@ -539,7 +531,6 @@ class MaterialsTab:
         return good
 
     # ------------------------------------------------------------
-    # The prims chosen in the list win, the viewport selection is the fallback. Returns (paths, where they come from).
     def _assignment_targets(self):
         paths = self.tree_mat_targets.selected_paths()
         if paths:
@@ -589,7 +580,6 @@ class MaterialsTab:
             return
         viewer = self._get_active_scene_viewer()
         selected = viewer_selection(viewer) if viewer is not None else []
-        # like the list: dropping on a selected prim takes the whole selection
         paths = selected if prim_path in selected else [prim_path]
         self.log_message("[INFO] Dropped on {} in the viewport.".format(prim_path))
         self._assign_payload(payload, self._plain_prim_paths(paths))
@@ -613,8 +603,6 @@ class MaterialsTab:
             self._edit_catalog_material(network=True)
 
     # ------------------------------------------------------------
-    # Reference the selected material in the Material Linker (not assigned to anything) and open it for editing:
-    # in the linker's own panel, or as a node network through an Edit Material LOP placed after the linker.
     def _edit_catalog_material(self, network):
         payload = self.mat_browser.current_payload() if self.mat_browser is not None else ""
         if not payload:
@@ -677,7 +665,6 @@ class MaterialsTab:
         return reply == QtWidgets.QMessageBox.Yes
 
     # ------------------------------------------------------------
-    # Select the node, make it current (the parameter pane follows) and show it in a network editor.
     def _focus_node(self, node, dive=False):
         node.setSelected(True, clear_all_selected=True)
         try:

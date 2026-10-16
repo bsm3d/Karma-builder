@@ -134,7 +134,6 @@ class AtmosphereTab:
         self.sld_cloud2d_drift.setToolTip("The clouds turn around the sky by this many degrees per minute of animation (press Play). 0 keeps them still.")
         form_cloud2d.addRow("Drift (deg/min):", self.sld_cloud2d_drift)
         form_cloud.addRow(self.w_cloud_2d)
-        # the three forms line their sliders up on the same column
         for form in (form_cloud, form_cloud3d, form_cloud2d):
             for row in range(form.rowCount()):
                 item = form.itemAt(row, QtWidgets.QFormLayout.LabelRole)

@@ -104,8 +104,6 @@ def _icon_for(source, pref_dir):
 
 
 # ------------------------------------------------------------
-# Write the .shelf file, reload the shelves and put the shelf in a shelf set so it shows. Each step that cannot
-# be done is said in the report instead of stopping the others.
 def install_shelf(asset=False, source=None, type_name=ASSET_TYPE_NAME, pref_dir=None):
     report = []
     pref_dir = pref_dir or preferences_folder()
@@ -152,7 +150,6 @@ def _show_shelf():
 
 
 # ------------------------------------------------------------
-# From the package folder (a repository, or scripts/python): copy it if it is elsewhere, then the shelf.
 def install(show_message=True):
     source = os.path.dirname(os.path.abspath(__file__))
     pref_dir = preferences_folder()

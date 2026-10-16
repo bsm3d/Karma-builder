@@ -24,7 +24,6 @@ def _sample(count, wanted):
 
 
 # ------------------------------------------------------------
-# The rows and the columns to keep so that the preview has the ratio of the picture and at most `columns` columns.
 def _kept(width, height, columns):
     kept_columns = _sample(width, columns)
     kept_rows = _sample(height, max(1, int(round(height * len(kept_columns) / float(width)))))
@@ -128,7 +127,6 @@ def _exr_unpack(block, compression, limit):
         raw = np.frombuffer(bytes(out), dtype=np.uint8)
     else:
         return np.frombuffer(block, dtype=np.uint8)
-    # undo the predictor, then put the two halves back byte by byte
     delta = raw.astype(np.int16)
     delta[1:] -= 128
     flat = (np.cumsum(delta) & 255).astype(np.uint8)
@@ -215,7 +213,6 @@ def _read_exr(path, columns):
                 raise UnsupportedImage("a damaged block")
             payload = handle.read(size)
             expected = line_bytes * min(per_block, height - index * per_block)
-            # a block that did not shrink is stored as it is
             raw = payload if compression == 0 or size >= expected else bytes(_exr_unpack(payload, compression, expected))
             for line_number in by_block[index]:
                 line = []
@@ -236,7 +233,6 @@ def _read_exr(path, columns):
 
 
 # ------------------------------------------------------------
-# Linear light to 8-bit: exposure so that the middle of the picture is a mid grey, a soft shoulder, then gamma.
 def tone_map(rgb):
     import numpy as np
     rgb = np.nan_to_num(np.asarray(rgb, dtype=np.float32), nan=0.0, posinf=1e6, neginf=0.0)

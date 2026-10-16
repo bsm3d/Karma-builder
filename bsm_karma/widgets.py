@@ -26,7 +26,6 @@ def fit_spin(spin, widest_text, width=0):
 
 
 # --------------------------------------------------------
-# Whether `widget` is `ancestor` or lies under it: Houdini's own widgets (the material gallery) are left as they are.
 def inside(widget, ancestor):
     while ancestor is not None and widget is not None:
         if widget is ancestor:
@@ -64,8 +63,6 @@ class PopupRefreshComboBox(QtWidgets.QComboBox):
 
 
 # --------------------------------------------------------
-# The picture of the last snapshot. Its height follows its width so that the whole frame fits at the ratio of the image
-# (16:9 for a 1080p render), within the limits below; with no picture it is a short strip.
 class SnapshotPreview(QtWidgets.QLabel):
     EMPTY_HEIGHT = 110
     MIN_HEIGHT = 90
@@ -82,7 +79,6 @@ class SnapshotPreview(QtWidgets.QLabel):
         self.setFixedHeight(self.EMPTY_HEIGHT)
 
     # ------------------------------------------------------------
-    # ratio is height / width of the image, None when there is none
     def set_ratio(self, ratio):
         self._ratio = ratio if ratio and ratio > 0 else None
         self._fit_height()
@@ -107,8 +103,6 @@ class SnapshotPreview(QtWidgets.QLabel):
 
 
 # --------------------------------------------------------
-# The preview of an HDRI (a lat-long picture, 2:1): the whole picture in a frame that follows the width of the tab and
-# never asks for more room than that, whatever the size of the picture.
 class HdriPreview(SnapshotPreview):
     EMPTY_HEIGHT = 70
     MIN_HEIGHT = 60
@@ -155,7 +149,6 @@ class HdriPreview(SnapshotPreview):
 
 
 # --------------------------------------------------------
-# Small square showing an RGB value. Values above 1 (the sliders go up to 2) are clipped for display.
 class ColorSwatch(QtWidgets.QWidget):
     EDGE = QtGui.QColor("#3f4246")
 
@@ -186,7 +179,6 @@ class ColorSwatch(QtWidgets.QWidget):
 
 
 # --------------------------------------------------------
-# Buttons side by side that wrap to the next row when the width is short, so the tab never asks for more width than it has.
 class FlowLayout(QtWidgets.QLayout):
 
     # ------------------------------------------------------------
@@ -257,7 +249,6 @@ class FlowLayout(QtWidgets.QLayout):
 
 
 # --------------------------------------------------------
-# Linear value to the 0 to 1 number a screen shows, and back (sRGB).
 def linear_to_display(value):
     value = _clamp(float(value), 0.0, 1.0)
     return 12.92 * value if value <= 0.0031308 else 1.055 * value ** (1.0 / 2.4) - 0.055
@@ -269,8 +260,6 @@ def display_to_linear(value):
 
 
 # --------------------------------------------------------
-# A color field of the material editor: shows a linear color as a screen shows it, and opens the color chooser when it is
-# clicked. valueChanged(r, g, b) carries the new linear color.
 class ColorButton(ColorSwatch):
     valueChanged = QtCore.Signal(float, float, float)
 
@@ -303,12 +292,10 @@ def _asset_mime_type():
 
 
 # ------------------------------------------------------------
-# The drag of the list of downloaded materials (localmaterials.py) has a type of its own.
 LOCAL_MATERIAL_MIME = "application/x-bsm-karma-materials"
 
 
 # ------------------------------------------------------------
-# A drop that holds a catalog material or a downloaded one.
 def _drop_accepted(mime_data):
     return any(mime and mime_data.hasFormat(mime) for mime in (_asset_mime_type(), LOCAL_MATERIAL_MIME))
 
@@ -331,8 +318,6 @@ def _drop_event_pos(event):
 
 
 # ------------------------------------------------------------
-# Prim list that takes materials dragged from the asset gallery. A drop emits assetDropped(payload, paths),
-# and on a selected prim the whole selection is targeted.
 class MaterialTargetTree(QtWidgets.QTreeWidget):
     assetDropped = QtCore.Signal(str, str)
 
@@ -355,7 +340,6 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
         self._items = {}
 
     # ------------------------------------------------------------
-    # prims: [(path, parent_path, type_name)] in traversal order.
     def set_prims(self, prims, materials):
         selected = set(self.selected_paths())
         self.setUpdatesEnabled(False)
@@ -390,8 +374,6 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
         return [item.data(0, self.PATH_ROLE) for item in self.selectedItems()]
 
     # ------------------------------------------------------------
-    # Select the rows of these prims, return how many exist in the list.
-    # The current selection is kept when none of them is listed.
     def select_paths(self, paths):
         items = [self._items[path] for path in paths if path in self._items]
         if not items:
@@ -402,7 +384,6 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
         self.scrollToItem(items[0])
         return len(items)
 
-    # drag and drop
 
     # ----------------------------------------------------------------
     def _accepts(self, event):

@@ -14,8 +14,6 @@ VIEW_MODES = ("Thumbnails", "List", "Categories")
 
 
 # ------------------------------------------------------------
-# The gallery is Houdini's widget: its item view is found by type, and everything below only goes through the
-# standard Qt model API (selection, mimeData), so no private Houdini call is needed here.
 def find_gallery_view(gallery):
     if gallery is None:
         return None
@@ -29,7 +27,6 @@ def find_gallery_view(gallery):
 
 
 # ------------------------------------------------------------
-# The same text a drag from the gallery carries, so a button and a drop share one path.
 def payload_from_indexes(model, indexes):
     mime_type = _asset_mime_type()
     if model is None or not mime_type or not indexes:
@@ -64,7 +61,6 @@ def _model_call(model, name, *args):
 
 
 # ------------------------------------------------------------
-# A row with children is a folder. If the model cannot say, it is one when it reports rows below it.
 def _is_folder(model, index):
     try:
         return bool(_model_call(model, "hasChildren", index) or _model_call(model, "canFetchMore", index))
@@ -73,8 +69,6 @@ def _is_folder(model, index):
 
 
 # ------------------------------------------------------------
-# One line for the debug log: what kind of model the gallery has and what its first row offers, so the categories can
-# be built from what is really there.
 def describe_model(model):
     try:
         kind = " > ".join(klass.__name__ for klass in type(model).__mro__ if klass.__name__ not in ("object", "Object", "Shiboken"))
@@ -132,7 +126,6 @@ def _item_persistent(item):
 
 # --------------------------------------------------
 class _ModelItemsMixin:
-    # drags carry what the gallery would carry for the same rows
     def _indexes(self, items):
         indexes = [_to_index(_item_persistent(item)) for item in items]
         return [index for index in indexes if index is not None]
@@ -248,7 +241,6 @@ class MaterialBrowser(QtWidgets.QWidget):
             if view is not None:
                 view.viewport().installEventFilter(self._events)
 
-        # the text views read the gallery model: refill when it changes, with a short delay for bursts
         self._refill = QtCore.QTimer(self)
         self._refill.setSingleShot(True)
         self._refill.setInterval(300)
@@ -260,7 +252,6 @@ class MaterialBrowser(QtWidgets.QWidget):
             self.combo_view.setEnabled(False)
 
     # ------------------------------------------------------------
-    # Follow the model the gallery uses now: a new catalog source may give it another one.
     def rebind_model(self):
         model = self._gallery_view.model() if self._gallery_view is not None else None
         if model is self._bound_model:
@@ -302,7 +293,6 @@ class MaterialBrowser(QtWidgets.QWidget):
         try:
             rows = walk_model(model)
         except (TypeError, AttributeError, RuntimeError) as exc:
-            # the lists are a convenience: say so in the debug log and leave them empty, the thumbnails still work
             _debug("material browser: the catalog model cannot be listed ({}: {})".format(type(exc).__name__, exc), "WARN")
             rows = []
         if self.stack.currentIndex() == 1:

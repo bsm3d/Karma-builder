@@ -265,8 +265,6 @@ def _set_menu_token(node, parm_names, token, log_callback, label=None):
 
 
 # ----------------------------------------
-# bug trouvé et fixé: layoutChildren() sur tout /stage déplaçait aussi les nodes de l'utilisateur,
-# on ne range plus que ceux de l'outil
 def _layout_tool_nodes(stage):
     nodes = [node for node in stage.children() if _is_tool_node_candidate(node, node.name())]
     if nodes:

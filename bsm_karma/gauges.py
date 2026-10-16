@@ -260,7 +260,6 @@ class GaugeBar(QtWidgets.QWidget):
 
 
 # ----------------------------------------------------------------------
-# Float field with the amber gauge, optionally with tick labels (sun altitude and direction) under it.
 class FloatSlider(QtWidgets.QWidget):
     # real value, whether it came from dragging, typing, the arrow keys or setValue()
     valueChanged = QtCore.Signal(float)
@@ -288,7 +287,6 @@ class FloatSlider(QtWidgets.QWidget):
 
 
 # ----------------------------------------
-# Integer field with the same gauge.
 class IntSlider(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(int)
 

@@ -61,8 +61,6 @@ class _Worker(QtCore.QThread):
 
 
 # ------------------------------------------------------------
-# The downloaded materials, one row each with a thumbnail. A drag carries the files (localmaterials.local_payload) for
-# the prim list and the Solaris viewport of the tool, and tells the window that a drag has started.
 class DownloadedMaterialList(QtWidgets.QListWidget):
     dragStarted = QtCore.Signal()
 
@@ -342,7 +340,6 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
             self._log("Stopping ...")
 
     # ------------------------------------------------------------
-    # Names of the source: kept in memory for the session, asked once.
     @_guarded_slot
     def load_catalog(self):
         source = self.combo_source.currentText()
@@ -449,7 +446,6 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
         self._thumbnail_timer.start(0)
 
     # ------------------------------------------------------------
-    # Thumbnails a few at a time so that the window stays alive while 300 pictures are read.
     def _next_thumbnails(self):
         for _ in range(THUMBNAILS_AT_ONCE):
             if not self._thumbnail_queue:
@@ -479,7 +475,6 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
             self.assignRequested.emit(item.data(QtCore.Qt.UserRole))
 
     # ------------------------------------------------------------
-    # The files that the last download wrote: the ones of the list that are newer than its start.
     def _assign_new_files(self):
         fresh = [self.list_files.item(i) for i in range(self.list_files.count())
                  if os.path.getmtime(self.list_files.item(i).data(QtCore.Qt.UserRole)) >= self._started - 1]

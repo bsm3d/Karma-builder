@@ -25,12 +25,10 @@ def _slot_size(button):
 class ExportTab:
 
     def _build_export_tab(self, tabs):
-        # Compact: related controls share a row so the tab stays narrow (about 340 px).
         tab_out = QtWidgets.QWidget()
         self.form_out = QtWidgets.QFormLayout(tab_out)
         self.form_out.setFieldGrowthPolicy(QtWidgets.QFormLayout.AllNonFixedFieldsGrow)
 
-        # format and, for EXR, precision
         self.combo_output_format = QtWidgets.QComboBox()
         self.combo_output_format.addItems(["EXR", "PNG"])
         self.combo_output_format.currentIndexChanged.connect(self.update_output_format_ui)
@@ -44,7 +42,6 @@ class ExportTab:
         row_format.addWidget(self.combo_exr_precision, 1)
         self.form_out.addRow("Format:", row_format)
 
-        # single frame or range
         self.combo_trange = QtWidgets.QComboBox()
         self.combo_trange.addItems(["Single Frame", "Frame Range"])
         self.combo_trange.setCurrentText("Single Frame")
@@ -86,7 +83,6 @@ class ExportTab:
         layout_out.addWidget(btn_browse_out)
         self.form_out.addRow("Output:", layout_out)
 
-        # the four actions in a 2 x 2 grid
         self.btn_render_mplay = QtWidgets.QPushButton("Render to MPlay")
         self.btn_render_mplay.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_render_mplay.clicked.connect(self.on_render_mplay)
@@ -142,7 +138,6 @@ class ExportTab:
         row_snapshot.addWidget(self.btn_clear_snapshot_slots)
         lay_viewport_tools.addLayout(row_snapshot)
 
-        # the two slots on the left, the safe frame and compare options on their right
         self.btn_snapshot_slot_a = QtWidgets.QToolButton()
         self.btn_snapshot_slot_a.setCheckable(True)
         self.btn_snapshot_slot_a.clicked.connect(lambda *_: self._set_snapshot_slot_target("A"))
