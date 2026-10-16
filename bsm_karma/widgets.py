@@ -171,6 +171,109 @@ class ColorSwatch(QtWidgets.QWidget):
         painter.end()
 
 
+# --------------------------------------------------------
+# Buttons side by side that wrap to the next row when the width is short, so the tab never asks for more width than it has.
+class FlowLayout(QtWidgets.QLayout):
+
+    # ------------------------------------------------------------
+    def __init__(self, parent=None, spacing=6):
+        super().__init__(parent)
+        self._items = []
+        self._gap = spacing
+        self.setContentsMargins(0, 0, 0, 0)
+
+    # ------------------------------------------------------------
+    def addItem(self, item):
+        self._items.append(item)
+
+    def count(self):
+        return len(self._items)
+
+    def itemAt(self, index):
+        return self._items[index] if 0 <= index < len(self._items) else None
+
+    def takeAt(self, index):
+        return self._items.pop(index) if 0 <= index < len(self._items) else None
+
+    def expandingDirections(self):
+        return QtCore.Qt.Orientations(0) if hasattr(QtCore.Qt, "Orientations") else QtCore.Qt.Orientation(0)
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, width):
+        return self._arrange(QtCore.QRect(0, 0, width, 0), False)
+
+    def setGeometry(self, rect):
+        super().setGeometry(rect)
+        self._arrange(rect, True)
+
+    def sizeHint(self):
+        return self.minimumSize()
+
+    def minimumSize(self):
+        size = QtCore.QSize()
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        margins = self.contentsMargins()
+        return size + QtCore.QSize(margins.left() + margins.right(), margins.top() + margins.bottom())
+
+    # ------------------------------------------------------------
+    def _arrange(self, rect, apply):
+        margins = self.contentsMargins()
+        area = rect.adjusted(margins.left(), margins.top(), -margins.right(), -margins.bottom())
+        x, y, row_height = area.x(), area.y(), 0
+        for item in self._items:
+            hint = item.sizeHint()
+            if x + hint.width() > area.right() + 1 and row_height > 0:
+                x = area.x()
+                y += row_height + self._gap
+                row_height = 0
+            if apply:
+                item.setGeometry(QtCore.QRect(QtCore.QPoint(x, y), hint))
+            x += hint.width() + self._gap
+            row_height = max(row_height, hint.height())
+        return y + row_height - rect.y() + margins.bottom()
+
+
+# --------------------------------------------------------
+# Linear value to the 0 to 1 number a screen shows, and back (sRGB).
+def linear_to_display(value):
+    value = _clamp(float(value), 0.0, 1.0)
+    return 12.92 * value if value <= 0.0031308 else 1.055 * value ** (1.0 / 2.4) - 0.055
+
+
+def display_to_linear(value):
+    value = _clamp(float(value), 0.0, 1.0)
+    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+
+# --------------------------------------------------------
+# A color field of the material editor: shows a linear color as a screen shows it, and opens the color chooser when it is
+# clicked. valueChanged(r, g, b) carries the new linear color.
+class ColorButton(ColorSwatch):
+    valueChanged = QtCore.Signal(float, float, float)
+
+    # ------------------------------------------------------------
+    def __init__(self, width=60, height=18, parent=None):
+        super().__init__(width, height, parent)
+        self.setCursor(QtCore.Qt.PointingHandCursor)
+
+    # ------------------------------------------------------------
+    def shown_color(self):
+        return QtGui.QColor(*[int(round(linear_to_display(c) * 255)) for c in self._rgb])
+
+    # ------------------------------------------------------------
+    def mouseReleaseEvent(self, event):
+        if event.button() != QtCore.Qt.LeftButton or not self.rect().contains(event.pos()):
+            return
+        chosen = QtWidgets.QColorDialog.getColor(self.shown_color(), self.window(), "Color")
+        if chosen.isValid():
+            rgb = [display_to_linear(chosen.redF()), display_to_linear(chosen.greenF()), display_to_linear(chosen.blueF())]
+            self.set_rgb(*rgb)
+            self.valueChanged.emit(*rgb)
+
+
 # ------------------------------------------------------------
 def _asset_mime_type():
     try:

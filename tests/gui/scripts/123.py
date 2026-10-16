@@ -162,7 +162,8 @@ def step_layout():
 # The snapshot preview shows the whole frame at the ratio of the image, nothing cropped.
 def step_preview():
     ui = S["ui"]
-    ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(6)
+    tabs = ui.findChild(QtWidgets.QTabWidget)
+    tabs.setCurrentIndex([tabs.tabText(i) for i in range(tabs.count())].index("Export"))
     pump()
     image = QtGui.QImage(1920, 1080, QtGui.QImage.Format_RGB32)
     painter = QtGui.QPainter(image)

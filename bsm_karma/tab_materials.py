@@ -12,6 +12,7 @@ from .debuglog import _debug, _guarded_slot
 from .linker import (_get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain, _insert_material_linker_in_chain,
                      _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_edit_node, _material_linker_node)
 from .matviews import MaterialBrowser
+from .basicmaterials import data_folder
 from .localmaterials import is_local_payload, local_assets, local_payload
 from .mxdownload import MaterialDownloadDialog
 from .nodeutil import _is_tool_node_candidate, _paused_cooking
@@ -471,6 +472,11 @@ class MaterialsTab:
     # Files dragged from the download window. Only files of a download folder are taken: the drop could come from anywhere.
     def _local_assets_from_payload(self, payload):
         roots = [self._default_download_folder()]
+        for sub in ("materials_basic", "my_materials"):
+            try:
+                roots.append(data_folder(sub))
+            except OSError:
+                pass
         dialog = self._mx_dialog
         if dialog is not None:
             try:

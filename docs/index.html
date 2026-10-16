@@ -84,7 +84,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
       <ul>
         <li><a href="#fields">Numeric fields</a></li>
         <li><a href="#tab-scene">Scene</a></li><li><a href="#tab-lighting">Lighting</a></li>
-        <li><a href="#tab-atmosphere">Atmosphere</a></li><li><a href="#tab-materials">Materials</a></li>
+        <li><a href="#tab-atmosphere">Atmosphere</a></li><li><a href="#tab-materials">Materials</a></li><li><a href="#tab-shader">Shader</a></li>
         <li><a href="#tab-render">Render</a></li><li><a href="#tab-passes">Passes</a></li>
         <li><a href="#tab-export">Export</a></li><li><a href="#tab-log">Log and About</a></li>
       </ul></li>
@@ -385,6 +385,23 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 <p><strong>Load List</strong> asks the site for the names of its materials; the list can be filtered, and a click puts the name in the field. <strong>Open Website</strong> opens the source in your browser. When the run ends, the <code>.mtlx</code> files of the folder are listed with a thumbnail (the color map next to the file), the new one selected. <strong>Drag a material from that list onto a prim of the list in the Materials tab, or onto an object of the Solaris viewport</strong>: it is bound to that prim (to the whole selection when the prim you drop on is selected), exactly like a drag from the catalog. <strong>Assign to Selection</strong>, or a double click, binds it to the prims selected in the Materials tab list or in the viewport. Tick <strong>Assign to the selected prims when a download ends</strong> to bind a material as soon as it is unpacked: select the prims, type a name, press Download. <strong>Use in Catalog</strong> shows that file's materials in the catalog above, like the <em>USD / MaterialX File...</em> source. Only files of the download folder are taken from a drop. The default folder is <code>bsm_karma/mtlx</code> in your Houdini preferences; the folder and the source are remembered.</p>
 <p>What a server sends is not trusted: only https addresses on ambientCG and Poly Haven are used, one file may not exceed 800 MB, a path that leaves the folder, a backtick in a file name or a very large archive is refused, and names are limited to letters, digits, <code>_</code>, <code>.</code> and <code>-</code> (no leading dash). The materials come from the internet: check their licence, and treat the files like any file you did not make.</p>
 
+<h3 id="tab-shader">Shader</h3>
+<p>A simple editor for the material of a prim, and the tool's own basic materials, so that you do not have to go through MaterialX nodes for everyday changes.</p>
+<table>
+  <tr><th>Part</th><th>What it does</th></tr>
+  <tr><td>Material</td><td>The materials of the Material Linker (assigned from the Materials tab or from this one). Pick one, or press <em>From Prim Selection</em> for the material of the first selected prim. <em>Open Network</em> shows the Material Linker for the full MaterialX network.</td></tr>
+  <tr><td>Basic Materials</td><td>Sixteen materials the tool writes itself as small MaterialX files: Plastic, Rubber, Steel, Gold, Chrome, Copper, Glass, Frosted, Skin, Wax, Marble, Ceramic, Car Paint, Fabric, Leather, Emissive. <strong>Click</strong> one to assign it to the prims selected in the Materials tab list or in the viewport, or <strong>drag</strong> it onto a prim of the list or an object of the Solaris viewport.</td></tr>
+  <tr><td>My Materials</td><td>The materials you saved with <em>Save as My Material...</em>, in <code>bsm_karma/my_materials</code> of your Houdini preferences. They are used like the basic ones.</td></tr>
+  <tr><td>Base</td><td>Color (click the swatch), roughness, metalness.</td></tr>
+  <tr><td>Subsurface</td><td>Amount, color, radius per channel and scale, for skin, wax, marble and leaves. The check box turns the effect off and on.</td></tr>
+  <tr><td>Specular / Coat</td><td>Specular, IOR, coat and its roughness.</td></tr>
+  <tr><td>Transmission</td><td>Amount, tint, absorption depth and Thin Walled, for glass and liquids.</td></tr>
+  <tr><td>Sheen, Emission, Opacity</td><td>Fabric sheen, emissive color and strength, opacity.</td></tr>
+  <tr><td>Textures of this material</td><td>Only for a material with textures (the ones you download): tint, brightness, roughness multiplier, normal strength, displacement and tiling. They scale the textures without replacing them. An input that a texture drives is greyed in the groups above; change it here, or give it a value to replace the texture.</td></tr>
+</table>
+<p>How it works: the editor reads the <code>.mtlx</code> file of the material, changes the values in the text and writes a copy next to it (<code>name.bsm_xxxxxxxx.mtlx</code>), then points the Material Linker at the copy. The original is never modified and its textures keep working, since the copy lies next to them. Changes apply after a short pause, so a slider can be dragged. <em>Reset to Original</em> points the Material Linker at the original again; the last eight copies of each file are kept. <em>Save as My Material...</em> keeps what you see under a name (next to the textures when the material has some).</p>
+<p>It edits a standard surface. A material of another structure is shown as one that cannot be edited here, and <em>Open Network</em> is the way to change it. The editor does not change nodes of your own.</p>
+
 <h3 id="tab-render">Render</h3>
 <figure><img src="screenshots/render.png" alt="The Render tab" loading="lazy" width="600"></figure>
 <table>
@@ -514,6 +531,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <tr><td><code>test_material_linker.py</code></td><td>Geometry merge, references, rules, real USD bindings, the Edit Material node, rebuilds.</td></tr>
   <tr><td><code>test_cameras_nodes.py</code></td><td>Cameras, and the rule that nodes of yours are never touched.</td></tr>
   <tr><td><code>test_hdrireader.py</code></td><td>The HDRI preview readers: Radiance .hdr (flat and run-length), OpenEXR, tone mapping, damaged files.</td></tr>
+  <tr><td><code>test_materialeditor.py</code></td><td>The basic materials and the editing of .mtlx files: the files written, values changed, textures kept, variants, checks; USD opens the files.</td></tr>
   <tr><td><code>test_clouds2d.py</code></td><td>The 2D cloud picture: coverage, seamless, cache, valid OpenEXR.</td></tr>
   <tr><td><code>test_mxdownload.py</code></td><td>The ambientCG and Poly Haven requests, with a fake network: hostile links, sizes, paths, unzip.</td></tr>
   <tr><td><code>test_shelf.py</code></td><td>The shelf file, the copy of the package with its backup, the checks on the preferences folder.</td></tr>
@@ -612,6 +630,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <tr><td><code>debuglog</code></td><td>The debug log file and the guard around the button handlers.</td></tr>
   <tr><td><code>nodeutil</code></td><td>Create, mark and set nodes; ownership checks; pausing cooking.</td></tr>
   <tr><td><code>environment</code></td><td>Camera, lights, physical sky, fog and clouds.</td></tr>
+  <tr><td><code>basicmaterials</code>, <code>mtlxedit</code>, <code>tab_shader</code></td><td>The Shader tab: the standard surface inputs and the basic materials, the reading and writing of .mtlx files, the tab itself.</td></tr>
   <tr><td><code>localmaterials</code></td><td>Downloaded material files dragged onto prims: the payload, the checks on the files, thumbnails.</td></tr>
   <tr><td><code>hdrireader</code></td><td>Readers of Radiance .hdr and OpenEXR files for the HDRI preview, which Qt cannot open.</td></tr>
   <tr><td><code>clouds2d</code></td><td>The 2D cloud picture: noise, EXR file, cache.</td></tr>

@@ -22,6 +22,7 @@ from .tab_materials import MaterialsTab
 from .tab_passes import PassesTab
 from .tab_render import RenderTab
 from .tab_scene import SceneTab
+from .tab_shader import ShaderTab
 from .util import _normalized_path
 from .widgets import space_layouts
 from .viewport import ViewportMixin
@@ -43,7 +44,7 @@ def _valid_presets(entries, required, kind, notes):
 # --------------------------------------------------------
 # bug trouvé et fixé: super(Classe, self) casse après importlib.reload (TypeError sur l'ancien dialogue),
 # d'où super() sans argument partout :)
-class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderTab, PassesTab, ExportTab, ViewportMixin,
+class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderTab, RenderTab, PassesTab, ExportTab, ViewportMixin,
                      SnapshotMixin, LogTab, LiveUpdateMixin, QtWidgets.QDialog):
 
     def __init__(self, parent=None):
@@ -92,6 +93,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         self._build_lighting_tab(tabs)
         self._build_atmosphere_tab(tabs)
         self._build_materials_tab(tabs)
+        self._build_shader_tab(tabs)
         self._build_render_tab(tabs)
         self._build_passes_tab(tabs)
         self._build_export_tab(tabs)
