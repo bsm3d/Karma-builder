@@ -50,6 +50,15 @@ def selected_payload(view):
 
 
 # ------------------------------------------------------------
+# Houdini's gallery model may expose hasChildren and canFetchMore as private methods: fall back to the row count.
+def _is_folder(model, index):
+    try:
+        return bool(model.hasChildren(index) or model.canFetchMore(index))
+    except (TypeError, AttributeError, RuntimeError):
+        return model.rowCount(index) > 0
+
+
+# ------------------------------------------------------------
 # Leaves of the gallery model with the folder names above them. Only rows already loaded are read: asking a
 # lazy model for more could start a download.
 def walk_model(model, limit=MATERIAL_VIEW_LIMIT):
@@ -61,7 +70,7 @@ def walk_model(model, limit=MATERIAL_VIEW_LIMIT):
                 return
             index = model.index(row, 0, parent)
             text = str(index.data(QtCore.Qt.DisplayRole) or "")
-            if model.hasChildren(index) or model.canFetchMore(index):
+            if _is_folder(model, index):
                 # a folder; one that is not loaded yet shows nothing here, opening it in Thumbnails loads it
                 visit(index, trail + [text])
             else:
