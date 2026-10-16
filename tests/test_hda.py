@@ -59,6 +59,7 @@ t.check("button parameter with a Python callback", button is not None
         and "open_builder" in button.parmTemplate().scriptCallback()
         and button.parmTemplate().scriptCallbackLanguage() == hou.scriptLanguage.Python)
 t.check("version label shows the tool version", version in asset.parmTemplateGroup().find("tool_version").columnLabels())
+t.check("build label shows the build id of the code in the asset", k.BUILD_ID in asset.parmTemplateGroup().find("tool_build").columnLabels(), asset.parmTemplateGroup().find("tool_build").columnLabels())
 t.check("the node passes its input through", asset.stage().GetPrimAtPath("/ball").IsValid())
 t.check("it also cooks with nothing connected", (asset.setInput(0, None) or True) and asset.stage() is not None)
 

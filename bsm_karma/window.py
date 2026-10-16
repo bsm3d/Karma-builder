@@ -8,7 +8,7 @@ import sys
 from hutil.Qt import QtWidgets, QtCore, QtGui
 from .build import setup_karma_environment
 from .catalog import _CATALOG_WRAPPERS
-from .buildinfo import BUILD_ID, build_summary
+from .buildinfo import build_summary, build_tag
 from .config import FORM_LABEL_GAP, SCRIPT_VERSION
 from .debuglog import _debug, _debug_session_header, _guarded_slot
 from .live import LiveUpdateMixin, _structure_of
@@ -50,7 +50,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, RenderT
         if parent is None:
             parent = hou.qt.mainWindow()
         super().__init__(parent)
-        self.setWindowTitle("BSM Karma Builder {} (build {})".format(SCRIPT_VERSION, BUILD_ID))
+        self.setWindowTitle("BSM Karma Builder {} ({})".format(SCRIPT_VERSION, build_tag()))
         self.resize(540, 600)
         self.setMinimumSize(440, 420)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)

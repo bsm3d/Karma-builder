@@ -38,6 +38,16 @@ def package_sources():
     return {name[:-3]: read_text(PACKAGE, name) for name in sorted(os.listdir(folder)) if name.endswith(".py")}
 
 
+# ------------------------------------------------------------
+# The id of the code that goes into the asset, with the same function the tool uses to show its own id.
+def build_id():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("bsm_buildinfo_standalone", os.path.join(ROOT, PACKAGE, "buildinfo.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.folder_build_id(os.path.join(ROOT, PACKAGE))
+
+
 #------------------------------------------------------------
 def script_version():
     match = re.search(r'^SCRIPT_VERSION = "([^"]+)"', read_text(PACKAGE, "config.py"), re.MULTILINE)
@@ -102,6 +112,7 @@ def build(output):
     hou.hipFile.clear(suppress_save_prompt=True)
 
     version = script_version()
+    code_id = build_id()
     stage = hou.node("/stage")
     subnet = stage.createNode("subnet", "bsm_karma_builder")
     asset = subnet.createDigitalAsset(
@@ -132,6 +143,7 @@ def build(output):
     shelf_button.setHelp("Creates a shelf with a Karma Builder button that opens the window without needing this node.")
     ptg.append(shelf_button)
     ptg.append(hou.LabelParmTemplate("tool_version", "Version", column_labels=(version,)))
+    ptg.append(hou.LabelParmTemplate("tool_build", "Build", column_labels=(code_id,)))
     ptg.append(hou.LabelParmTemplate("requirements", "Requires", column_labels=("Houdini 21 or 22, Solaris and Karma",)))
     definition.setParmTemplateGroup(ptg)
 
@@ -149,7 +161,7 @@ def build(output):
         definition.addSection("icon.png", read_bytes(icon_path))
         definition.setIcon("opdef:/{}?icon.png".format(asset.type().nameWithCategory()))
     definition.setVersion(version)
-    definition.setComment("BSM Karma Builder {}. Licensed under PolyForm Noncommercial 1.0.0 (see the LICENSE.txt section).".format(version))
+    definition.setComment("BSM Karma Builder {} (build {}). Licensed under PolyForm Noncommercial 1.0.0 (see the LICENSE.txt section).".format(version, code_id))
 
     definition.save(output, template_node=asset)
     hou.hipFile.clear(suppress_save_prompt=True)

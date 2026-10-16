@@ -64,6 +64,14 @@ def build_origin():
 
 
 # ------------------------------------------------------------
+# For the title of the window: the id and a one word origin.
+def build_tag():
+    origin = build_origin()
+    word = "HDA" if origin.startswith("the HDA") else ("installed" if origin.startswith("an installed") else "folder")
+    return "build {}, {}".format(BUILD_ID, word)
+
+
+# ------------------------------------------------------------
 def build_location():
     path = globals().get("__file__") or ""
     if os.path.isfile(path):

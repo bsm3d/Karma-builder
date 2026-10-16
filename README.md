@@ -134,10 +134,11 @@ Working straight from the repository without copying: create `$HOUDINI_USER_PREF
 
 Every build of the tool has an id: 8 characters computed from the source of all its modules. It changes with any change of the code, and it is the same for the same code, wherever it runs from (a folder, `scripts/python` or the HDA). You find it:
 
-* in the **title of the window**: `BSM Karma Builder 2026.10.15.1 (build 34da9afd)`;
+* in the **title of the window**: `BSM Karma Builder 2026.10.15.1 (build a1b2c3d4, folder)`. The last word says where the code was loaded from: `folder` (the repository), `installed` (the copy in `scripts/python`) or `HDA`;
 * in the **About** tab, with where the code was loaded from (a folder, an installed copy in `scripts/python`, or the HDA);
 * in the first line of the **Log** and in the debug log;
-* in the Python Shell: `import bsm_karma; print(bsm_karma.build_info())`.
+* in the Python Shell: `import bsm_karma; print(bsm_karma.build_info())`;
+* on the **HDA node**, the **Build** line under its parameters: the build that was compiled into the asset.
 
 To know whether that is the code of the repository you think you have, run on the repository (Python only, no Houdini needed):
 
@@ -145,7 +146,7 @@ To know whether that is the code of the repository you think you have, run on th
 python tools/build_id.py
 ```
 
-It prints `build 34da9afd | version ... | 33 modules | ...`. Same id as the window: same code. A different id means Houdini runs another copy: an older `scripts/python` copy, an old HDA, or a package file pointing elsewhere. Run `bsm_karma.install()` again, or rebuild the HDA, then restart the tool and compare again. The version number alone is not enough: it only changes when I bump it, the id changes with every edit.
+It prints `build a1b2c3d4 | version ... | 33 modules | ...`. Same id as the window: same code. A different id means Houdini runs another copy: an older `scripts/python` copy, an old HDA, or a package file pointing elsewhere. Run `bsm_karma.install()` again, or rebuild the HDA, then restart the tool and compare again. The version number alone is not enough: it only changes when I bump it, the id changes with every edit.
 
 ### First start
 
@@ -160,6 +161,7 @@ It prints `build 34da9afd | version ... | 33 modules | ...`. Same id as the wind
 | `ModuleNotFoundError: No module named 'bsm_karma'` | The folder is not in `scripts/python` of the preferences of the Houdini you are running (21 and 22 have separate folders), or it is one level too deep. Check with `print(hou.text.expandString("$HOUDINI_USER_PREF_DIR"))`. |
 | The window does not open and the Python Shell shows an error | Copy the error. A missing `presets.json` is a common cause: copy the whole folder, not only the `.py` files. |
 | The shelf is not in the shelf bar | **+** at the right of the shelf tabs, then **BSM Karma**. Or restart Houdini. |
+| The HDA runs another build than the repository | Check which file Houdini loaded: `d = hou.nodeType(hou.lopNodeTypeCategory(), "bsm::karma_builder::1.0").definition()`, then `print(d.libraryFilePath())` and `print([n for n in d.sections() if "buildinfo" in n])`. An empty list means that asset was compiled before the build id existed: compile again and install that file (the path printed is the one in use: delete or replace it). The HDA window title ends with `HDA`; if it ends with `folder`, you opened the tool from the repository (the shelf button or `bsm_karma.main()`), not from the asset. |
 | The old version still runs | Two copies exist (for example `scripts/python` and a package file), or an old HDA is installed. Keep one. Rebuild the HDA after an update. |
 | `bsm_karma.install()` says the preferences folder is unknown | Houdini could not expand `$HOUDINI_USER_PREF_DIR`. Use the by-hand steps. |
 | The HDA node is not in the Tab menu | Restart Houdini, check that the file is in `otls`, and create the node from the Python Shell (B, step 3). |
