@@ -80,32 +80,60 @@ def render_cloud_layer(coverage, softness, scale, seed, size=CLOUD_TEXTURE_SIZE)
 
 
 # ------------------------------------------------------------
-# 8-bit grey PNG, written with zlib so no imaging library is needed.
-def write_png_grey(path, array):
+# OpenEXR file, RGB (the grey value in the three channels), 16-bit float, one scanline per ZIP block, written with
+# zlib so no imaging library is needed. Linear light: a 8-bit PNG would be read as sRGB and come out much darker.
+def write_exr_grey(path, array):
     import numpy as np
-    pixels = (np.clip(array, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
-    height, width = pixels.shape
-    raw = b"".join(b"\x00" + pixels[row].tobytes() for row in range(height))
+    values = np.asarray(array, dtype=np.float32)
+    height, width = values.shape
+    half = values.astype(np.float16)
 
-    def chunk(kind, data):
-        body = kind + data
-        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+    def attribute(name, kind, data):
+        return name + b"\x00" + kind + b"\x00" + struct.pack("<i", len(data)) + data
 
-    header = struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)
-    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b"")
+    channels = b"".join(name + b"\x00" + struct.pack("<iBxxxii", 1, 0, 1, 1) for name in (b"B", b"G", b"R")) + b"\x00"
+    window = struct.pack("<iiii", 0, 0, width - 1, height - 1)
+    header = (b"\x76\x2f\x31\x01" + struct.pack("<I", 2)
+              + attribute(b"channels", b"chlist", channels)
+              + attribute(b"compression", b"compression", b"\x02")
+              + attribute(b"dataWindow", b"box2i", window)
+              + attribute(b"displayWindow", b"box2i", window)
+              + attribute(b"lineOrder", b"lineOrder", b"\x00")
+              + attribute(b"pixelAspectRatio", b"float", struct.pack("<f", 1.0))
+              + attribute(b"screenWindowCenter", b"v2f", struct.pack("<ff", 0.0, 0.0))
+              + attribute(b"screenWindowWidth", b"float", struct.pack("<f", 1.0))
+              + b"\x00")
+
+    blocks = []
+    for row in range(height):
+        line = half[row].tobytes()
+        raw = np.frombuffer(line * 3, dtype=np.uint8)            # B, G and R rows, the same grey
+        shuffled = np.concatenate((raw[0::2], raw[1::2])).astype(np.int16)
+        delta = shuffled.copy()
+        delta[1:] = (shuffled[1:] - shuffled[:-1] + 384) & 255   # the predictor of OpenEXR's ZIP
+        packed = zlib.compress(delta.astype(np.uint8).tobytes(), 6)
+        if len(packed) >= len(raw):
+            packed = raw.tobytes()                              # stored as it is when it does not shrink
+        blocks.append(struct.pack("<ii", row, len(packed)) + packed)
+
+    start = len(header) + 8 * height
+    offsets, position = [], start
+    for block in blocks:
+        offsets.append(position)
+        position += len(block)
     with open(path, "wb") as handle:
-        handle.write(png)
+        handle.write(header + struct.pack("<{}Q".format(height), *offsets) + b"".join(blocks))
 
 
 # ------------------------------------------------------------
 # Path of the texture for these settings. The file name is a hash of them: the same settings reuse the file.
 def cloud_texture_path(coverage, softness, scale, seed, size=CLOUD_TEXTURE_SIZE):
     key = "{:.3f}|{:.3f}|{:.3f}|{}|{}".format(float(coverage), float(softness), float(scale), int(seed), tuple(size))
-    name = "{}{}.png".format(CLOUD_FILE_PREFIX, hashlib.md5(key.encode("utf-8"), usedforsecurity=False).hexdigest()[:12])
+    name = "{}{}.exr".format(CLOUD_FILE_PREFIX, hashlib.md5(key.encode("utf-8"), usedforsecurity=False).hexdigest()[:12])
     folder = _cache_folder()
     path = "{}/{}".format(folder, name)
     if not os.path.isfile(path):
-        write_png_grey(path, render_cloud_layer(coverage, softness, scale, seed, size))
+        write_exr_grey(path, render_cloud_layer(coverage, softness, scale, seed, size))
         _debug("cloud texture written: {}".format(path))
         _forget_old_textures(folder, keep=path)
     return path
@@ -114,7 +142,7 @@ def cloud_texture_path(coverage, softness, scale, seed, size=CLOUD_TEXTURE_SIZE)
 # ------------------------------------------------------------
 def _forget_old_textures(folder, keep):
     try:
-        files = [os.path.join(folder, n) for n in os.listdir(folder) if n.startswith(CLOUD_FILE_PREFIX) and n.endswith(".png")]
+        files = [os.path.join(folder, n) for n in os.listdir(folder) if n.startswith(CLOUD_FILE_PREFIX) and n.endswith((".exr", ".png"))]
         files.sort(key=os.path.getmtime, reverse=True)
         for old in files[CLOUD_FILES_KEPT:]:
             if os.path.normcase(os.path.abspath(old)) != os.path.normcase(os.path.abspath(keep)):

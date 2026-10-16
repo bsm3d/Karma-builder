@@ -121,6 +121,7 @@ LIVE_STRUCTURE_KEYS = ("scene_mode", "env_type", "sky_mode", "enable_fog", "enab
 
 # cloud types of the Atmosphere tab: a volume (slow, lit, parallax) or a 2D layer on a second dome light (fast)
 CLOUD_TYPES = ["3D Volume (slow, realistic)", "2D Layer (fast, backdrop)"]
+CLOUD2D_BRIGHTNESS = 1.5
 CLOUD_LAYER_NAME = "cloud_layer_2d"
 
 

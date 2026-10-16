@@ -1,4 +1,4 @@
-# 2D cloud picture: shape, coverage, seamless, deterministic, cached, a valid PNG.
+# 2D cloud picture: shape, coverage, seamless, deterministic, cached, a valid OpenEXR.
 #
 # Revision : 15-10-2026 | Auteur : BSM
 import os
@@ -38,22 +38,38 @@ small = clouds.cloud_texture_path(0.5, 0.4, 3.0, 7, (1024, 512))
 t.check("a smaller picture has its own file", small != path and os.path.isfile(small))
 
 data = open(path, "rb").read()
-t.check("PNG signature", data[:8] == b"\x89PNG\r\n\x1a\n")
-width, height, depth, color = struct.unpack(">IIBB", data[16:26])
-t.check("header: 2048 x 1024, 8-bit grey", (width, height, depth, color) == (2048, 1024, 8, 0), (width, height, depth, color))
-pos, idat = 8, b""
-while pos < len(data):
-    length, kind = struct.unpack(">I4s", data[pos:pos + 8])
-    body = data[pos + 8:pos + 8 + length]
-    crc = struct.unpack(">I", data[pos + 8 + length:pos + 12 + length])[0]
-    t.check("chunk {} crc".format(kind.decode()), zlib.crc32(kind + body) & 0xFFFFFFFF == crc)
-    if kind == b"IDAT":
-        idat += body
-    pos += 12 + length
-raw = zlib.decompress(idat)
-rows = np.frombuffer(raw, dtype=np.uint8).reshape(height, width + 1)
-t.check("filter byte 0 on every row", int(rows[:, 0].max()) == 0)
-t.check("pixels match the picture", int(np.abs(rows[:, 1:].astype(int) - (image * 255 + 0.5).astype(int)).max()) <= 1)
+t.check("OpenEXR signature and version 2", data[:4] == b"\x76\x2f\x31\x01" and struct.unpack("<I", data[4:8])[0] == 2)
+pos, attributes = 8, {}
+while data[pos] != 0:
+    end = data.index(b"\x00", pos)
+    name = data[pos:end].decode()
+    kind_end = data.index(b"\x00", end + 1)
+    size = struct.unpack("<i", data[kind_end + 1:kind_end + 5])[0]
+    attributes[name] = data[kind_end + 5:kind_end + 5 + size]
+    pos = kind_end + 5 + size
+pos += 1
+t.check("header: 2048 x 1024 window, ZIPS compression", attributes["dataWindow"] == struct.pack("<iiii", 0, 0, 2047, 1023) and attributes["compression"] == b"\x02")
+t.check("header: three 16-bit float channels B, G, R", attributes["channels"].count(struct.pack("<i", 1)) >= 3 and attributes["channels"].startswith(b"B\x00") and b"G\x00" in attributes["channels"] and b"R\x00" in attributes["channels"])
+offsets = struct.unpack("<1024Q", data[pos:pos + 8 * 1024])
+t.check("the offset table points at the scanlines in order", all(struct.unpack("<i", data[offset:offset + 4])[0] == row for row, offset in enumerate(offsets)))
+worst = 0.0
+for row in (0, 100, 511, 1023):
+    size = struct.unpack("<i", data[offsets[row] + 4:offsets[row] + 8])[0]
+    packed = data[offsets[row] + 8:offsets[row] + 8 + size]
+    raw_size = 2048 * 2 * 3
+    if size < raw_size:
+        delta = np.frombuffer(zlib.decompress(packed), dtype=np.uint8).astype(np.int16)
+        delta[1:] -= 128
+        half = (np.cumsum(delta) & 255).astype(np.uint8)
+        restored = np.empty(raw_size, dtype=np.uint8)
+        restored[0::2] = half[:raw_size // 2]
+        restored[1::2] = half[raw_size // 2:]
+    else:
+        restored = np.frombuffer(packed, dtype=np.uint8)
+    red = np.frombuffer(restored[2 * 2048 * 2:].tobytes(), dtype=np.float16).astype(np.float32)
+    blue = np.frombuffer(restored[:2 * 2048].tobytes(), dtype=np.float16).astype(np.float32)
+    worst = max(worst, float(np.abs(red - image[row]).max()), float(np.abs(blue - image[row]).max()))
+t.check("scanlines decode to the picture (16-bit float precision)", worst < 1e-3, worst)
 
 for seed in range(100, 110):
     clouds.cloud_texture_path(0.5, 0.4, 3.0, seed)

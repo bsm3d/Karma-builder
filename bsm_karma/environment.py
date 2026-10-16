@@ -2,8 +2,9 @@
 # Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
 
 import hou
+import os
 from .clouds2d import CLOUD_TEXTURE_SIZE, cloud_texture_path
-from .config import CAMERA_CREATE_LABEL, CLOUD_LAYER_NAME, DEFAULT_CLOUD_MATERIAL_PATH, GENERATED_CAMERA_NAME, QUICK_CLOUD_NAME, USD_CAMERA_PREFIX
+from .config import CAMERA_CREATE_LABEL, CLOUD2D_BRIGHTNESS, CLOUD_LAYER_NAME, DEFAULT_CLOUD_MATERIAL_PATH, GENERATED_CAMERA_NAME, QUICK_CLOUD_NAME, USD_CAMERA_PREFIX
 from .nodeutil import _get_or_create_node, _is_tool_node_candidate, _mark_tool_node, _pset, _remove_tool_node, _safe_connect, _set_first_existing_parm, _set_first_existing_parm_tuple, _set_light_color, _set_usd_input
 from .util import _apply_saturation, _apply_tint, _kelvin_to_rgb
 
@@ -178,7 +179,8 @@ def _create_physical_sky(stage, prev, cfg, log_callback):
         
         # volumes absorb sky light, boost it when fog or clouds are on
         sky_int = float(cfg["sky_int"])
-        if cfg.get("enable_fog") or cfg.get("enable_clouds"):
+        # fog and 3D clouds are volumes that dim the sky behind them; the 2D layer is a picture, it does not
+        if cfg.get("enable_fog") or (cfg.get("enable_clouds") and int(cfg.get("cloud_type", 0)) == 0):
             sky_int *= 4.0
 
         if not _set_first_existing_parm(sky, ("sky_intensity", "skyintensity"), sky_int, log_callback):
@@ -297,13 +299,23 @@ def _create_quick_cloud_material(stage, prev, cfg, log_callback):
 
 # ------------------------------------------------------------
 # 2D clouds: a procedural cloud picture on a second dome light, added to the sky. No geometry, no volume: it renders
-# like any dome. A live update uses a smaller picture, the next Build writes the full one.
+# like any dome. A live update uses a smaller picture, the next Build writes the full one. The brightness slider is
+# relative to the sky (1 = as bright as the sky), so the clouds stay visible whatever the sky intensity is.
 def _create_cloud_layer_2d(stage, prev, cfg, log_callback):
     size = (CLOUD_TEXTURE_SIZE[0] // 2, CLOUD_TEXTURE_SIZE[1] // 2) if cfg.get("live") else CLOUD_TEXTURE_SIZE
     path = cloud_texture_path(
         cfg.get("cloud2d_coverage", 0.45), cfg.get("cloud2d_softness", 0.4), cfg.get("cloud2d_scale", 3.0),
         cfg.get("cloud2d_seed", 7), size)
-    return _create_dome_light(stage, prev, float(cfg.get("cloud2d_brightness", 0.6)), path, log_callback, name=CLOUD_LAYER_NAME)
+    if cfg.get("env_type", "Physical Sky") == "Physical Sky":
+        reference = float(cfg.get("sky_int", 1.0))
+    else:
+        reference = float(cfg.get("hdri_int", 1.0)) * (2.0 ** float(cfg.get("hdri_ev", 0.0)))
+    intensity = float(cfg.get("cloud2d_brightness", CLOUD2D_BRIGHTNESS)) * reference
+    dome = _create_dome_light(stage, prev, intensity, path, log_callback, name=CLOUD_LAYER_NAME)
+    log_callback("[INFO] 2D clouds: dome light {} at intensity {:.2f} ({} x the {} {:.2f}), picture {}".format(
+        dome.name(), intensity, "{:.2f}".format(float(cfg.get("cloud2d_brightness", CLOUD2D_BRIGHTNESS))),
+        "sky intensity" if cfg.get("env_type", "Physical Sky") == "Physical Sky" else "HDRI intensity", reference, os.path.basename(path)))
+    return dome
 
 
 # ------------------------------------------------------------

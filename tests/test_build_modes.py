@@ -85,7 +85,7 @@ build(env_type="HDRI Image", enable_clouds=False, hdri_path=out_dir + "/sky.exr"
 t.check("disabling clouds removes the material node", stage.node("quickcloudmaterial") is None and stage.node("assign_cloud_shader") is None)
 
 # --- 2D clouds: a second dome light with a generated picture ---
-build(enable_clouds=True, cloud_type=1, cloud2d_brightness=0.8)
+build(enable_clouds=True, cloud_type=1, cloud2d_brightness=0.8, sky_int=2.0)
 layer = stage.node("cloud_layer_2d")
 t.check("2D clouds: a dome light node", layer is not None and layer.type().name() == "domelight")
 t.check("2D clouds: merged with the sky", layer in stage.node("env_merge").inputs(), [n.name() for n in stage.node("env_merge").inputs()])
@@ -97,7 +97,13 @@ texture = cloud_prims[0].GetAttribute("inputs:texture:file").Get() if cloud_prim
 texture_path = str(texture.path) if texture is not None and hasattr(texture, "path") else str(texture)
 t.check("2D clouds: the light reads a generated picture", bool(cloud_prims) and "bsm_clouds_" in texture_path, texture_path)
 t.check("2D clouds: the picture exists", os.path.isfile(texture_path.replace("\\", "/")), texture_path)
-t.check("2D clouds: intensity", abs(float(cloud_prims[0].GetAttribute("inputs:intensity").Get()) - 0.8) < 1e-6 if cloud_prims else False)
+t.check("2D clouds: intensity is the brightness times the sky intensity", abs(float(cloud_prims[0].GetAttribute("inputs:intensity").Get()) - 1.6) < 1e-6 if cloud_prims else False)
+t.check("2D clouds: the picture is an EXR", texture_path.lower().endswith(".exr"), texture_path)
+sky_parm = next((n for n in ("sky_intensity", "skyintensity") if stage.node("physical_sky").parm(n) is not None), None)
+t.check("2D clouds: the sky is not made brighter (that is for volumes)", sky_parm is not None and abs(val("physical_sky", sky_parm) - 2.0) < 1e-6, (sky_parm, val("physical_sky", sky_parm) if sky_parm else None))
+build(enable_clouds=True, cloud_type=0, sky_int=2.0)
+t.check("3D clouds: the sky is brighter to compensate the volume", sky_parm is not None and abs(val("physical_sky", sky_parm) - 8.0) < 1e-6, val("physical_sky", sky_parm) if sky_parm else None)
+build(enable_clouds=True, cloud_type=1, cloud2d_brightness=0.8, sky_int=2.0)
 build(enable_clouds=True, cloud_type=0)
 t.check("back to 3D clouds: the 2D layer is removed, the volume is back", stage.node("cloud_layer_2d") is None and stage.node("cloud_geo") is not None)
 build(enable_clouds=True, cloud_type=1)

@@ -3,7 +3,7 @@
 
 import hou
 from hutil.Qt import QtWidgets
-from .config import CLOUD_TYPES
+from .config import CLOUD2D_BRIGHTNESS, CLOUD_TYPES
 from .debuglog import _guarded_slot
 from .gauges import FloatSlider, IntSlider
 from .previews import AtmosphereVisualWidget
@@ -113,8 +113,9 @@ class AtmosphereTab:
         self.sld_cloud2d_scale = FloatSlider(1.0, 12.0, 3.0)
         self.sld_cloud2d_scale.setToolTip("Number of large cloud masses around the horizon.")
         form_cloud2d.addRow("Cloud Size:", self.sld_cloud2d_scale)
-        self.sld_cloud2d_brightness = FloatSlider(0.0, 4.0, 0.6)
-        self.sld_cloud2d_brightness.setToolTip("Intensity of the cloud dome light. It also lights the scene a little, like sky bounce.")
+        self.sld_cloud2d_brightness = FloatSlider(0.0, 8.0, CLOUD2D_BRIGHTNESS)
+        self.sld_cloud2d_brightness.setToolTip("Brightness of the clouds relative to the sky (1 = as bright as the sky). "
+                                               "They also light the scene a little, like sky bounce.")
         form_cloud2d.addRow("Brightness:", self.sld_cloud2d_brightness)
         self.sld_cloud2d_seed = IntSlider(0, 999, 7)
         self.sld_cloud2d_seed.setToolTip("Another number, another cloud pattern.")

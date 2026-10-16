@@ -246,7 +246,7 @@ def _create_render_settings(stage, cam_path, prev, cfg, log_callback):
     _set_first_existing_parm(ks, ("varianceaa_thresh", "oracle_variance", "adaptivethreshold", "noiselevel", "variancethreshold"), noise_lvl, log_callback)
 
     vol_limit = int(cfg.get("volume_limit", 8))
-    if cfg.get("enable_clouds") and cfg.get("enable_fog") and vol_limit < 8:
+    if cfg.get("enable_clouds") and int(cfg.get("cloud_type", 0)) == 0 and cfg.get("enable_fog") and vol_limit < 8:
         vol_limit = max(vol_limit, 8)
     _set_first_existing_parm(ks, ("volumelimit", "volume_limit", "volumeraylimit"), float(vol_limit), log_callback)
 
