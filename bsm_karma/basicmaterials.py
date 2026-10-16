@@ -1,5 +1,5 @@
 # basicmaterials.py - BSM Karma Builder - the inputs of the MaterialX standard surface and the tool's own basic materials
-# Version : 2026.10.15.1 | Revision : 16-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
 
 import os
 import re

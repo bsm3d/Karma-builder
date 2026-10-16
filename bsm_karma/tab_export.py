@@ -1,5 +1,5 @@
 # tab_export.py - BSM Karma Builder - Export tab: output, render buttons and viewport tools
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 import hou
 import os

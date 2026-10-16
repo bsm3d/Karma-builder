@@ -1,5 +1,5 @@
 # mxsources.py - BSM Karma Builder - download MaterialX materials from ambientCG and Poly Haven (no extra install)
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 #
 # The requests made here follow what the open source materialxmaterials tool (Bernard Kwok, Apache 2.0,
 # https://pypi.org/project/materialxmaterials/) does, minus its MaterialX dependency: ambientCG gives a list of

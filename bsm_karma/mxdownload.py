@@ -1,5 +1,5 @@
 # mxdownload.py - BSM Karma Builder - window to download MaterialX materials from ambientCG and Poly Haven
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 import hou
 import os

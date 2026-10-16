@@ -1,5 +1,5 @@
 # debuglog.py - BSM Karma Builder - debug log file and the guard around the button handlers
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 import datetime
 import functools

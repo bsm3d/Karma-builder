@@ -1,5 +1,5 @@
 # tab_scene.py - BSM Karma Builder - Scene tab: mode, quality, camera and the tool's own nodes
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 import hou
 from hutil.Qt import QtWidgets, QtCore

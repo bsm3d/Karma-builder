@@ -1,5 +1,5 @@
 # hdrireader.py - BSM Karma Builder - small readers for the HDRI preview: Radiance .hdr and OpenEXR, which Qt cannot open
-# Version : 2026.10.15.1 | Revision : 16-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
 
 import os
 import struct

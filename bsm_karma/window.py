@@ -1,5 +1,5 @@
 # window.py - BSM Karma Builder - the dialog: assembles the tabs, collects the settings, runs the build
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 import hou
 import json

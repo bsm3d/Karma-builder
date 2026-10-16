@@ -1,5 +1,5 @@
 # styles.py - BSM Karma Builder - colors and style sheets
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 from hutil.Qt import QtGui
 

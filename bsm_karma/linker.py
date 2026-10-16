@@ -1,5 +1,5 @@
 # linker.py - BSM Karma Builder - Material Linker rules and references
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 import hou
 import re

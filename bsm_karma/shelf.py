@@ -1,5 +1,5 @@
 # shelf.py - BSM Karma Builder - create the shelf button (and install the package) from inside Houdini
-# Version : 2026.10.15.1 | Revision : 16-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
 
 import hou
 import os
@@ -154,7 +154,7 @@ def install(show_message=True):
     pref_dir = preferences_folder()
     report = [install_package(source, pref_dir)]
     report += install_shelf(asset=False, source=source, pref_dir=pref_dir)
-    report.append("Build {} (the window title and the About tab show it).".format(BUILD_ID))
+    report.append("Build {} (the window title and the first line of the Log show it).".format(BUILD_ID))
     report.append("Press the 'Karma Builder' button to open the tool.")
     text = "\n".join(report)
     print(text)

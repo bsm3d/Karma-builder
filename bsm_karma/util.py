@@ -1,5 +1,5 @@
 # util.py - BSM Karma Builder - small helpers: math, colors, paths, temp folder
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 import atexit
 import hou

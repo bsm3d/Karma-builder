@@ -1,5 +1,5 @@
 # logo.py - BSM Karma Builder - the logo of the About tab, embedded so it travels with the HDA and the package
-# Version : 2026.10.16.1 | Revision : 16-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
 
 import base64
 

@@ -1,5 +1,5 @@
 # live.py - BSM Karma Builder - live update: rebuild when a value changes
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 from hutil.Qt import QtWidgets
 from .config import LIVE_STRUCTURE_KEYS

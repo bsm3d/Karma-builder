@@ -1,5 +1,5 @@
 # localmaterials.py - BSM Karma Builder - downloaded material files dragged onto prims: payload, checks, thumbnails
-# Version : 2026.10.15.1 | Revision : 16-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 16-10-2026 | Auteur : BSM
 
 import json
 import os

@@ -1,9 +1,9 @@
 # config.py - BSM Karma Builder - constants shared by the whole tool
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 import re
 
-SCRIPT_VERSION = "2026.10.15.1"
+SCRIPT_VERSION = "1.0.0"
 
 
 TOOL_NODE_TAG_KEY = "bsm_karma_managed"

@@ -1,5 +1,5 @@
 # tab_passes.py - BSM Karma Builder - Passes tab: AOVs
-# Version : 2026.10.15.1 | Revision : 15-10-2026 | Auteur : BSM
+# Version : 1.0.0 | Revision : 15-10-2026 | Auteur : BSM
 
 from hutil.Qt import QtWidgets
 from .widgets import wrap_tab

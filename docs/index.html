@@ -72,7 +72,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 <div class="layout">
 <nav aria-label="Table of contents">
   <div class="brand">BSM Karma Builder</div>
-  <div class="ver">Version 2026.10.15.1 &middot; Houdini 21 / 22</div>
+  <div class="ver">Version 1.0.0 &middot; Houdini 21 / 22</div>
   <ol>
     <li><a href="#overview">Overview</a></li>
     <li><a href="#install">Installation</a>
@@ -477,7 +477,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
   <tr><td><code>[WARN]</code></td><td>Something could not be done. The build usually continues. Typical cause: a parameter or node type that does not exist in your Houdini version.</td></tr>
   <tr><td><code>[ERROR]</code></td><td>The build or an action stopped, for example because a node of yours has the same name as a tool node. The traceback is in the <a href="#debug-log">debug log file</a>.</td></tr>
 </table>
-<p>Each build starts with a line giving the Houdini version. <strong>About</strong> shows the version of the tool, the license, and <strong>which build is running</strong>: an id of 8 characters computed from the source of every module, and where the code was loaded from (a folder, a copy in <code>scripts/python</code>, or the HDA). The same id is in the title of the window, followed by one word that says where the code was loaded from (<code>folder</code>, <code>installed</code> or <code>HDA</code>), in the first line of the Log and in the debug log. On the HDA node, the <strong>Build</strong> line under its parameters shows the build that was compiled into the asset. It changes with every edit of the code, and it is the same for the same code wherever it runs from. <code>python tools/build_id.py</code> prints the id of the repository (Python only, no Houdini): if it matches the window, Houdini runs that code.</p>
+<p>Each build starts with a line giving the Houdini version. <strong>About</strong> shows the logo, the version of the tool (a number like 1.0.0), the credits and the license. <strong>Which build is running</strong> is told by an id of 8 characters computed from the source of every module, and where the code was loaded from (a folder, a copy in <code>scripts/python</code>, or the HDA): it is in the title of the window, followed by one word that says where the code was loaded from (<code>folder</code>, <code>installed</code> or <code>HDA</code>), in the first line of the Log and in the debug log. On the HDA node, the <strong>Build</strong> line under its parameters shows the build that was compiled into the asset. It changes with every edit of the code, and it is the same for the same code wherever it runs from. <code>python tools/build_id.py</code> prints the id of the repository (Python only, no Houdini): if it matches the window, Houdini runs that code.</p>
 <figure><img src="screenshots/about.png" alt="The About tab" loading="lazy" width="600"></figure>
 <h4 id="debug-log">Debug log file</h4>
 <p>Below the Log, <strong>Write a debug log file</strong> (on by default) copies everything to a text file, <code>bsm_karma_debug.log</code>. It is more complete than the Log tab and is the file to send when something fails. It records:</p>
@@ -656,7 +656,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 <p>Licensed under the <a href="../LICENSE">PolyForm Noncommercial License 1.0.0</a>: free for personal, educational and any other noncommercial use. Studios and commercial use need a commercial license; see <code>Informations/COMMERCIAL_LICENSE.txt</code>. Versions published before 30 September 2026 were released under GPL-3.0.</p>
 <p>Credits: the material downloads follow the requests of the open source <a href="https://pypi.org/project/materialxmaterials/">materialxmaterials</a> tool (Bernard Kwok, Apache 2.0), without using its code or its MaterialX dependency. The materials themselves come from <a href="https://matlib.gpuopen.com">AMD GPUOpen</a>, <a href="https://ambientcg.com">ambientCG</a> and <a href="https://polyhaven.com/textures">Poly Haven</a>, under their own terms.</p>
 
-<footer>BSM Karma Builder 2026.10.15.1 &middot; Author: BSM</footer>
+<footer>BSM Karma Builder 1.0.0 &middot; Author: BSM</footer>
 </main>
 </div>
 </body>

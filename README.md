@@ -96,8 +96,7 @@ The asset never creates a shelf or a menu by itself, that is what the button and
 
 Every build of the tool has an id: 8 characters computed from the source of all its modules. It changes with any change of the code, and it is the same for the same code, wherever it runs from (a folder, `scripts/python` or the HDA). You find it:
 
-* in the **title of the window**: `BSM Karma Builder 2026.10.15.1 (build a1b2c3d4, folder)`. The last word says where the code was loaded from: `folder` (the repository), `installed` (the copy in `scripts/python`) or `HDA`;
-* in the **About** tab, with where the code was loaded from (a folder, an installed copy in `scripts/python`, or the HDA);
+* in the **title of the window**: `BSM Karma Builder 1.0.0 (build a1b2c3d4, folder)`. The last word says where the code was loaded from: `folder` (the repository), `installed` (the copy in `scripts/python`) or `HDA`;
 * in the first line of the **Log** and in the debug log;
 * in the Python Shell: `import bsm_karma; print(bsm_karma.build_info())`;
 * on the **HDA node**, the **Build** line under its parameters: the build that was compiled into the asset.
