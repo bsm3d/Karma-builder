@@ -1,37 +1,61 @@
-BSM KARMA BUILDER — COMMERCIAL LICENSE
-======================================
+BSM Karma Builder - Commercial License
 
 Copyright (c) 2026 BSM
-GitHub : https://github.com/bsm3d/bsm-karma-builder
+GitHub : https://github.com/bsm3d/Karma-builder
 
-BSM Karma Builder is distributed under the PolyForm Noncommercial License 1.0.0
-for free personal, educational and other noncommercial use.
+BSM Karma Builder is distributed under the PolyForm Noncommercial License 1.0.0 (file
+LICENSE at the root of the repository). This file says when that license is not enough
+and a commercial license is needed. If the two texts differ, LICENSE prevails.
 
 A COMMERCIAL LICENSE IS REQUIRED for any of the following:
 
-  - Use within a studio, company, or professional production pipeline
-  - Internal use by a team or organisation, even without redistribution
+  - Use within a studio, a company or a professional production pipeline
+  - Use by freelancers and independent contractors in work that is paid or billed to a client
+  - Internal use by a team or an organisation, even without any redistribution
   - Integration into a proprietary or closed-source pipeline or product
-  - Redistribution as part of a commercial product, tool, or service
-  - Use as part of a paid service or SaaS offering
+  - Use as part of a paid service, a subscription or a SaaS offering
+  - Any sale, rental or other paid distribution of the software or of a work based on it
 
-This includes, but is not limited to:
-  - Animation and VFX studios
-  - Game development studios
-  - Advertising and post-production companies
-  - Independent contractors billing clients where BSM Karma Builder is part of the workflow
+This includes, but is not limited to: animation and VFX studios, game studios,
+advertising and post-production companies, and training companies that charge for a
+course in which the software is used.
 
 FREE USE IS PERMITTED for:
-  - Individual personal projects
-  - Educational use (students, teachers, academic institutions)
-  - Noncommercial open-source projects
-  - Evaluation and testing (up to 30 days before commercial deployment)
 
-TO OBTAIN A COMMERCIAL LICENSE:
+  - Personal projects
+  - Education: students, teachers, schools and academic institutions
+  - Research and noncommercial open-source projects
+  - Evaluation and testing, up to 30 days, before any commercial deployment
+
+NOT PERMITTED WITHOUT A WRITTEN LICENSE, in any case:
+
+  - Selling, reselling, renting or sub-licensing the software, in whole or in part
+  - Distributing it, or a modified version of it, under another name or without
+    the author's name
+  - Removing or changing the author's name, the "Required Notice" line or the license
+    texts in any copy
+  - Offering it, or a modified version of it, as a paid product, a paid download or a
+    paid service
+
+CREDIT
+
+  Every copy that is allowed, a modified copy included, keeps the author's name and
+  the license texts. A product or a service that is allowed by a commercial license
+  shows "BSM Karma Builder by Benoît Saint-Moulin, www.bsm3d.com" unless the written
+  license says otherwise.
+
+ROYALTIES
+
+  A license for a product or a service that sells the software, or a work based on it,
+  can include a share of the revenue. It is agreed in writing before the first sale.
+
+TO OBTAIN A COMMERCIAL LICENSE
   Email : bsm@bsm3d.com
 
-Pricing is negotiated based on studio size and usage.
-Single-seat, team, and site licenses are available.
+The terms depend on the kind of use and on the size of the team, and are agreed in
+writing before the use starts.
 
-This file does not constitute a legally binding contract on its own.
-A formal license agreement will be issued upon request.
+Versions published before 30 September 2026 were released under the GNU GPL v3. Copies
+obtained at that time remain under GPL v3.
+
+This file is not a contract on its own. A formal license agreement is issued on request.
