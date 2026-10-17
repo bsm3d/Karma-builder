@@ -10,11 +10,11 @@ declare(strict_types=1);
 require __DIR__ . '/inc/bootstrap.php';
 require __DIR__ . '/inc/db.php';
 require __DIR__ . '/inc/stats.php';
+require __DIR__ . '/inc/contact.php';
 
 const ADMIN_SESSION_SECONDS = 7200;
 const LOGIN_ATTEMPTS = 10;
 const LOGIN_WINDOW = 900;
-const ADMIN_TOPICS = ['question' => 'A question', 'bug' => 'A bug report', 'license' => 'A commercial license', 'other' => 'Something else'];
 
 send_security_headers(true);
 header('Content-Type: text/html; charset=utf-8');
@@ -185,7 +185,7 @@ admin_head('Dashboard');
 <?php foreach ($messages as $m) : ?>
 <article class="message<?= $m['is_read'] ? '' : ' new' ?>">
   <header>
-    <strong><?= e($m['name']) ?></strong> &lt;<?= e($m['email']) ?>&gt; &middot; <?= e(ADMIN_TOPICS[$m['topic']] ?? $m['topic']) ?> &middot; <?= e(date('Y-m-d H:i', (int)$m['ts'])) ?><?= $m['mailed'] ? '' : ' &middot; <em>not mailed</em>' ?>
+    <strong><?= e($m['name']) ?></strong> &lt;<?= e($m['email']) ?>&gt; &middot; <?= e(TOPICS[$m['topic']] ?? $m['topic']) ?> &middot; <?= e(date('Y-m-d H:i', (int)$m['ts'])) ?><?= $m['mailed'] ? '' : ' &middot; <em>not mailed</em>' ?>
   </header>
   <p><?= nl2br(e($m['message'])) ?></p>
   <form class="inline" method="post" action="admin.php?days=<?= $days ?>">

@@ -14,11 +14,13 @@ function db(): PDO
     if ($pdo !== null) {
         return $pdo;
     }
-    $folder = __DIR__ . '/../data';
+    // `data_dir` can be a folder outside the web root. Inside it, the file has a name nobody can guess, in case a deny rule fails.
+    $folder = rtrim((string)cfg('data_dir', __DIR__ . '/../data'), '/\\');
     if (!is_dir($folder) && !mkdir($folder, 0750, true) && !is_dir($folder)) {
         throw new RuntimeException('The data folder cannot be created.');
     }
-    $pdo = new PDO('sqlite:' . $folder . '/site.sqlite', null, null, [
+    $file = 'site-' . substr(hash_hmac('sha256', 'database', (string)cfg('salt')), 0, 16) . '.sqlite';
+    $pdo = new PDO('sqlite:' . $folder . '/' . $file, null, null, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
@@ -44,16 +46,32 @@ function rate_ok(string $bucket, int $max, int $window): bool
 {
     $pdo = db();
     $now = time();
-    $count = $pdo->prepare('SELECT COUNT(*) FROM limits WHERE bucket = ? AND ts > ?');
-    $count->execute([$bucket, $now - $window]);
-    if ((int)$count->fetchColumn() >= $max) {
-        return false;
+    // count and insert in one transaction that takes the write lock first: two requests that arrive together cannot both pass
+    $pdo->exec('BEGIN IMMEDIATE');
+    try {
+        $count = $pdo->prepare('SELECT COUNT(*) FROM limits WHERE bucket = ? AND ts > ?');
+        $count->execute([$bucket, $now - $window]);
+        $allowed = (int)$count->fetchColumn() < $max;
+        if ($allowed) {
+            $pdo->prepare('INSERT INTO limits (bucket, ts) VALUES (?, ?)')->execute([$bucket, $now]);
+        }
+        if (random_int(1, 50) === 1) {
+            $pdo->prepare('DELETE FROM limits WHERE ts < ?')->execute([$now - 86400]);
+        }
+        $pdo->exec('COMMIT');
+    } catch (Throwable $error) {
+        $pdo->exec('ROLLBACK');
+        throw $error;
     }
-    $pdo->prepare('INSERT INTO limits (bucket, ts) VALUES (?, ?)')->execute([$bucket, $now]);
-    if (random_int(1, 50) === 1) {
-        $pdo->prepare('DELETE FROM limits WHERE ts < ?')->execute([$now - 86400]);
-    }
-    return true;
+    return $allowed;
+}
+
+// ------------------------------------------------------------
+function rate_count(string $bucket, int $window): int
+{
+    $count = db()->prepare('SELECT COUNT(*) FROM limits WHERE bucket = ? AND ts > ?');
+    $count->execute([$bucket, time() - $window]);
+    return (int)$count->fetchColumn();
 }
 
 // ------------------------------------------------------------

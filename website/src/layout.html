@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
+<meta name="robots" content="{{robots}}">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<link rel="canonical" href="{{canonical}}">
+<link rel="icon" type="image/png" href="{{asset:img/favicon.png}}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{site_url}}/assets/img/shots/scene.png">
+<meta name="theme-color" content="#d9622b">
+<link rel="stylesheet" href="{{asset:css/site.css}}">
+{{head_extra}}</head>
+<body data-page="{{page}}">
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="{{asset:img/logo.png}}" alt="" width="38" height="40"><span>{{name}}</span></a>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Main">
+{{nav}}      <a class="btn small" href="/go.php?to=github" rel="noopener" target="_blank">Download</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+{{content}}</main>
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <strong>{{name}}</strong> {{version}}<br>
+      <span class="muted">A Karma render setup tool for SideFX Houdini 21 and 22.</span>
+    </div>
+    <div>
+      <a href="/guide/">User guide</a> &middot; <a href="/faq/">FAQ</a> &middot;
+      <a href="/contact/">Contact</a> &middot; <a href="{{github_url}}" rel="noopener" target="_blank">GitHub</a>
+    </div>
+    <div class="muted">
+      By <a href="https://www.bsm3d.com" rel="noopener" target="_blank">Benoît Saint-Moulin</a>.
+      Visits are counted without cookies and without storing your address (<a href="/faq/#privacy">details</a>).
+    </div>
+  </div>
+</footer>
+<script src="{{asset:js/site.js}}" defer></script>
+</body>
+</html>

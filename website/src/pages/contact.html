@@ -1,0 +1,25 @@
+<div class="wrap narrow">
+  <h1>Contact</h1>
+  <p class="lead">A question, a bug, or a license for your studio. For a bug, add your Houdini version and what the Log tab says (the <a href="{{url:faq}}#debug">FAQ</a> explains where to find it).</p>
+  <div id="form-status" role="status" aria-live="polite" hidden></div>
+  <form id="contact-form" class="form" method="post" action="/contact.php" data-token-url="/token.php" novalidate hidden>
+    <input type="hidden" name="token" value="">
+    <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label></div>
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" maxlength="80" required autocomplete="name">
+    <label for="email">Your email address</label>
+    <input id="email" name="email" type="email" maxlength="190" required autocomplete="email">
+    <label for="topic">About</label>
+    <select id="topic" name="topic">
+      <option value="question">A question</option>
+      <option value="bug">A bug report</option>
+      <option value="license">A commercial license</option>
+      <option value="other">Something else</option>
+    </select>
+    <label for="message">Your message</label>
+    <textarea id="message" name="message" rows="9" maxlength="5000" required></textarea>
+    <p class="muted small">Your message is stored on this site and mailed to me, only to answer you.</p>
+    <button class="btn" type="submit" disabled>Send</button>
+  </form>
+  <noscript><div class="callout warn"><strong>JavaScript is needed.</strong> The form checks that you are not a robot with a small script. Please turn JavaScript on for this page.</div></noscript>
+</div>

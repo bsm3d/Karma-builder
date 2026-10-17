@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
+<meta name="robots" content="noai, noimageai">
+<title>BSM Karma Builder | Karma render setup for Houdini</title>
+<meta name="description" content="BSM Karma Builder builds and updates a complete Karma render setup in Houdini Solaris: camera, sky, lights, materials, render settings. For Houdini 21 and 22.">
+<link rel="canonical" href="https://karma.example.com/">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png?v=8fd65b69">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BSM Karma Builder | Karma render setup for Houdini">
+<meta property="og:description" content="BSM Karma Builder builds and updates a complete Karma render setup in Houdini Solaris: camera, sky, lights, materials, render settings. For Houdini 21 and 22.">
+<meta property="og:url" content="https://karma.example.com/">
+<meta property="og:image" content="https://karma.example.com/assets/img/shots/scene.png">
+<meta name="theme-color" content="#d9622b">
+<link rel="stylesheet" href="/assets/css/site.css?v=c59e5702">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"BSM Karma Builder","applicationCategory":"DeveloperApplication","operatingSystem":"Windows, Linux, macOS (inside SideFX Houdini 21 and 22)","softwareVersion":"1.0.0","author":{"@type":"Person","name":"Benoît Saint-Moulin","url":"https://www.bsm3d.com"},"description":"A tool for SideFX Houdini that builds and updates a Karma render setup in Solaris."}</script>
+</head>
+<body data-page="home">
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="/assets/img/logo.png?v=431c43bf" alt="" width="38" height="40"><span>BSM Karma Builder</span></a>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Main">
+      <a href="/" aria-current="page">Home</a>
+      <a href="/guide/">User guide</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/contact/">Contact</a>
+      <a class="btn small" href="/go.php?to=github" rel="noopener" target="_blank">Download</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-text">
+      <p class="eyebrow">For SideFX Houdini 21 and 22</p>
+      <h1>A Karma render setup in one window</h1>
+      <p class="lead">Camera, sky, lights, fog, clouds, materials, render variables and render settings: built in Solaris, then refined from the same window without losing what you did by hand.</p>
+      <p class="actions">
+        <a class="btn" href="/go.php?to=github" rel="noopener" target="_blank">Download</a>
+        <a class="btn ghost" href="/guide/">Read the user guide</a>
+      </p>
+      <p class="muted small">Free for personal, educational and noncommercial use. <a href="/faq/#license">Studios and professional work: see the license</a>.</p>
+    </div>
+    <figure class="hero-shot">
+      <img src="/assets/img/shots/scene.png?v=c582df30" alt="The Scene tab of the BSM Karma Builder window" width="600" height="443">
+    </figure>
+  </div>
+</section>
+
+<section class="wrap band">
+  <h2>What it builds</h2>
+  <p>One button creates the same chain you would wire by hand. Run it again and it updates its own nodes: nodes you made yourself are never touched.</p>
+  <div class="chain" role="img" aria-label="The chain of nodes: camera, lighting, atmosphere, material library, linker, render variables, Karma settings, render ROP">
+    <span>camera</span><i>&rarr;</i><span>sky or dome</span><i>&rarr;</i><span class="opt">fog</span><i>&rarr;</i><span class="opt">clouds</span><i>&rarr;</i><span>materials</span><i>&rarr;</i><span>AOVs</span><i>&rarr;</i><span>Karma settings</span><i>&rarr;</i><span>render ROP</span>
+  </div>
+</section>
+
+<section class="wrap band">
+  <h2>What you get</h2>
+  <div class="cards">
+    <article class="card"><h3>Four lighting setups</h3><p>Environment with a physical sky or an HDRI, Studio, 3 Points, and Interior with a window light and an optional view outside. Temperature and tint for every lamp.</p></article>
+    <article class="card"><h3>Sky, fog and clouds</h3><p>Karma physical sky with presets, volumetric atmosphere, fog, 3D or fast 2D clouds, and a wind or drift that moves them with the time.</p></article>
+    <article class="card"><h3>Materials without MaterialX nodes</h3><p>Sixteen basic materials, a general purpose PBR material with a texture set, random materials, and a simple editor for the everyday inputs.</p></article>
+    <article class="card"><h3>Free material downloads</h3><p>Browse ambientCG and Poly Haven, drag a material onto a prim of the list or onto an object of the Solaris viewport.</p></article>
+    <article class="card"><h3>Live update</h3><p>Move a slider and the render setup follows after a short pause. Changes that add or remove nodes wait for the Build button, so a running Karma viewport is not restarted for nothing.</p></article>
+    <article class="card"><h3>Safe to run again</h3><p>Only the nodes it created carry its tag. Yours are never deleted, rewired or moved, and the tool says so when a name is already taken.</p></article>
+  </div>
+</section>
+
+<section class="wrap band">
+  <h2>In pictures</h2>
+  <div class="shots">
+    <figure><img src="/assets/img/shots/lighting.png?v=34a9a5d2" alt="The Lighting tab" loading="lazy" width="600" height="880"><figcaption>Lighting: sky, HDRI, lamps</figcaption></figure>
+    <figure><img src="/assets/img/shots/materials.png?v=e7f13d28" alt="The Materials tab with the catalog" loading="lazy" width="600" height="860"><figcaption>Materials: catalog and drag and drop</figcaption></figure>
+    <figure><img src="/assets/img/shots/export.png?v=7eecfd2e" alt="The Export tab with the viewport snapshots" loading="lazy" width="600" height="578"><figcaption>Export: snapshots and render buttons</figcaption></figure>
+  </div>
+</section>
+
+<section class="wrap band two">
+  <div>
+    <h2>Requirements</h2>
+    <ul>
+      <li>SideFX Houdini 21 or 22, with Solaris (LOPs) and Karma.</li>
+      <li>Nothing else to install: the interface only uses what ships with Houdini.</li>
+      <li>Install by unpacking a folder and double-clicking <code>Install.bat</code> (Windows), or with a package file (Linux, macOS). The <a href="/guide/#install">guide</a> has the steps.</li>
+    </ul>
+  </div>
+  <div>
+    <h2>License</h2>
+    <p>Published under the PolyForm Noncommercial License 1.0.0: free for personal, educational and other noncommercial use, with the source available. Using it in a studio or on paid work needs a commercial license. <a href="/contact/">Get in touch</a> to talk about it.</p>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <h2>Try it on your next render</h2>
+    <p class="actions"><a class="btn" href="/go.php?to=github" rel="noopener" target="_blank">Download</a> <a class="btn ghost" href="/faq/">Read the FAQ</a></p>
+  </div>
+</section>
+</main>
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <strong>BSM Karma Builder</strong> 1.0.0<br>
+      <span class="muted">A Karma render setup tool for SideFX Houdini 21 and 22.</span>
+    </div>
+    <div>
+      <a href="/guide/">User guide</a> &middot; <a href="/faq/">FAQ</a> &middot;
+      <a href="/contact/">Contact</a> &middot; <a href="https://github.com/bsm3d/Karma-builder" rel="noopener" target="_blank">GitHub</a>
+    </div>
+    <div class="muted">
+      By <a href="https://www.bsm3d.com" rel="noopener" target="_blank">Benoît Saint-Moulin</a>.
+      Visits are counted without cookies and without storing your address (<a href="/faq/#privacy">details</a>).
+    </div>
+  </div>
+</footer>
+<script src="/assets/js/site.js?v=e3908fe5" defer></script>
+</body>
+</html>

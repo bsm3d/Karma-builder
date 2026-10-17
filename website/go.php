@@ -12,6 +12,14 @@ require __DIR__ . '/inc/db.php';
 require __DIR__ . '/inc/stats.php';
 
 // ------------------------------------------------------------
+if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', ['GET', 'HEAD'], true)) {
+    http_response_code(405);
+    header('Allow: GET, HEAD');
+    exit;
+}
+// only a click counts: not a HEAD of a link checker, not the prefetch of a browser that has not been asked for the page
+$counts = ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET'
+    && !in_array(strtolower((string)($_SERVER['HTTP_SEC_PURPOSE'] ?? $_SERVER['HTTP_PURPOSE'] ?? '')), ['prefetch', 'prefetch;prerender', 'prerender'], true);
 $repo = rtrim((string)cfg('github_url', 'https://github.com/bsm3d/Karma-builder'), '/');
 $target = isset($_GET['to']) && is_string($_GET['to']) ? $_GET['to'] : '';
 
@@ -26,7 +34,7 @@ switch ($target) {
 
 // the counter must never be the reason a download fails
 try {
-    if (rate_ok('go:' . visitor_hash(false), 30, 60)) {
+    if ($counts && rate_ok('go:' . visitor_hash(false), 30, 60)) {
         record_download($target);
     }
 } catch (Throwable $error) {

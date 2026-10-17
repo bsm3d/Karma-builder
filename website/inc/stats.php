@@ -16,7 +16,7 @@ function is_bot(string $agent): bool
     if ($agent === '') {
         return true;
     }
-    return (bool)preg_match('~bot|crawl|spider|slurp|curl|wget|python|java/|httpclient|headless|lighthouse|preview|fetch|monitor|scan|facebookexternalhit~i', $agent);
+    return (bool)preg_match('~bot|crawl|spider|slurp|curl|wget|python|java/|httpclient|headless|lighthouse|preview|fetch|monitor|scan|facebookexternalhit|chatgpt|claude|perplexity|openai|anthropic|cohere|diffbot|ahrefs|semrush|mj12|imagesift|omgili|bytedance~i', $agent);
 }
 
 // ------------------------------------------------------------

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
+<meta name="robots" content="noai, noimageai">
+<title>Contact | BSM Karma Builder</title>
+<meta name="description" content="Write to the author of BSM Karma Builder: a question, a bug report, or a commercial license for your studio.">
+<link rel="canonical" href="https://karma.example.com/contact/">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png?v=8fd65b69">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Contact | BSM Karma Builder">
+<meta property="og:description" content="Write to the author of BSM Karma Builder: a question, a bug report, or a commercial license for your studio.">
+<meta property="og:url" content="https://karma.example.com/contact/">
+<meta property="og:image" content="https://karma.example.com/assets/img/shots/scene.png">
+<meta name="theme-color" content="#d9622b">
+<link rel="stylesheet" href="/assets/css/site.css?v=c59e5702">
+</head>
+<body data-page="contact">
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="/assets/img/logo.png?v=431c43bf" alt="" width="38" height="40"><span>BSM Karma Builder</span></a>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/guide/">User guide</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/contact/" aria-current="page">Contact</a>
+      <a class="btn small" href="/go.php?to=github" rel="noopener" target="_blank">Download</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+<div class="wrap narrow">
+  <h1>Contact</h1>
+  <p class="lead">A question, a bug, or a license for your studio. For a bug, add your Houdini version and what the Log tab says (the <a href="/faq/#debug">FAQ</a> explains where to find it).</p>
+  <div id="form-status" role="status" aria-live="polite" hidden></div>
+  <form id="contact-form" class="form" method="post" action="/contact.php" data-token-url="/token.php" novalidate hidden>
+    <input type="hidden" name="token" value="">
+    <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label></div>
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" maxlength="80" required autocomplete="name">
+    <label for="email">Your email address</label>
+    <input id="email" name="email" type="email" maxlength="190" required autocomplete="email">
+    <label for="topic">About</label>
+    <select id="topic" name="topic">
+      <option value="question">A question</option>
+      <option value="bug">A bug report</option>
+      <option value="license">A commercial license</option>
+      <option value="other">Something else</option>
+    </select>
+    <label for="message">Your message</label>
+    <textarea id="message" name="message" rows="9" maxlength="5000" required></textarea>
+    <p class="muted small">Your message is stored on this site and mailed to me, only to answer you.</p>
+    <button class="btn" type="submit" disabled>Send</button>
+  </form>
+  <noscript><div class="callout warn"><strong>JavaScript is needed.</strong> The form checks that you are not a robot with a small script. Please turn JavaScript on for this page.</div></noscript>
+</div>
+</main>
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <strong>BSM Karma Builder</strong> 1.0.0<br>
+      <span class="muted">A Karma render setup tool for SideFX Houdini 21 and 22.</span>
+    </div>
+    <div>
+      <a href="/guide/">User guide</a> &middot; <a href="/faq/">FAQ</a> &middot;
+      <a href="/contact/">Contact</a> &middot; <a href="https://github.com/bsm3d/Karma-builder" rel="noopener" target="_blank">GitHub</a>
+    </div>
+    <div class="muted">
+      By <a href="https://www.bsm3d.com" rel="noopener" target="_blank">Benoît Saint-Moulin</a>.
+      Visits are counted without cookies and without storing your address (<a href="/faq/#privacy">details</a>).
+    </div>
+  </div>
+</footer>
+<script src="/assets/js/site.js?v=e3908fe5" defer></script>
+</body>
+</html>

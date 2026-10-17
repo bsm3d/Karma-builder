@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
+<meta name="robots" content="noai, noimageai">
+<title>FAQ | BSM Karma Builder</title>
+<meta name="description" content="Answers about BSM Karma Builder: Houdini versions, license for students, freelancers and studios, installation problems, privacy.">
+<link rel="canonical" href="https://karma.example.com/faq/">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png?v=8fd65b69">
+<meta property="og:type" content="website">
+<meta property="og:title" content="FAQ | BSM Karma Builder">
+<meta property="og:description" content="Answers about BSM Karma Builder: Houdini versions, license for students, freelancers and studios, installation problems, privacy.">
+<meta property="og:url" content="https://karma.example.com/faq/">
+<meta property="og:image" content="https://karma.example.com/assets/img/shots/scene.png">
+<meta name="theme-color" content="#d9622b">
+<link rel="stylesheet" href="/assets/css/site.css?v=c59e5702">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does BSM Karma Builder do?","acceptedAnswer":{"@type":"Answer","text":"It builds and updates a complete Karma render setup in Houdini Solaris (LOPs): a camera, a sky or dome light, fog and clouds, a material library, render variables, Karma render settings and a USD Render ROP. You run it from a window inside Houdini and can run it as many times as you like."}},{"@type":"Question","name":"Which Houdini versions does it support?","acceptedAnswer":{"@type":"Answer","text":"Houdini 21 and 22, with Solaris and Karma. The tool uses the Houdini 22 parameter names and tries older names when they are missing. A parameter that your version does not have is skipped, and the Log tab says which one."}},{"@type":"Question","name":"Does it work with Houdini Apprentice, Indie and FX?","acceptedAnswer":{"@type":"Answer","text":"It is a package of Python files that runs inside Houdini and is installed with a package file, so no license-specific asset file is involved. If you build the optional HDA yourself, build it with the Houdini license of the people who will open it: files saved with Indie or Apprentice cannot be opened by commercial licenses. I have not tested every Houdini tier."}},{"@type":"Question","name":"Does it work with Karma CPU and Karma XPU?","acceptedAnswer":{"@type":"Answer","text":"Yes, you choose the engine in the Scene tab. The volumetric atmosphere and the 2D clouds can behave differently in the two: if something does not show in one, try the other."}},{"@type":"Question","name":"Will it change my scene or my nodes?","acceptedAnswer":{"@type":"Answer","text":"Only the nodes it created. Each one carries a tag, and the tool never deletes, rewires, moves or retags a node without it. If one of your nodes already has the name of a tool node, the build stops with a message and leaves yours alone."}},{"@type":"Question","name":"Does it send anything anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The tool only uses the network when you press Download in the Materials tab (ambientCG, Poly Haven) or connect the AMD library, and nothing about you or your scene is sent."}},{"@type":"Question","name":"Is it free?","acceptedAnswer":{"@type":"Answer","text":"It is free for personal, educational and other noncommercial use under the PolyForm Noncommercial License 1.0.0, and the source is available. Using it in a studio, or on paid client work, needs a commercial license."}},{"@type":"Question","name":"I am a student or a teacher.","acceptedAnswer":{"@type":"Answer","text":"Educational use is free. Use it for your coursework and your own projects."}},{"@type":"Question","name":"I am a freelancer or I work in a studio.","acceptedAnswer":{"@type":"Answer","text":"Work that is paid, or done inside a company, is commercial use. Write to me with a few words about how you would use it and we find a license that fits."}},{"@type":"Question","name":"Can I redistribute it, change it or sell it?","acceptedAnswer":{"@type":"Answer","text":"You can change it for your own noncommercial use. You can pass on copies for noncommercial use if you keep the license text and the copyright notice. You cannot sell it, include it in a commercial product or service, or remove the author name."}},{"@type":"Question","name":"What about the old GPL versions?","acceptedAnswer":{"@type":"Answer","text":"Versions published before 30 September 2026 were released under the GPL-3.0 and stay under it. Everything after is under the PolyForm Noncommercial License."}},{"@type":"Question","name":"I installed it but I do not see the menu.","acceptedAnswer":{"@type":"Answer","text":"Restart Houdini after Install.bat. The menu is BSM -\u003e Karma Builder, and the shelf BSM Karma is available from the + next to the shelf tabs. If nothing appears, check that the package file exists in the packages folder of the Houdini version you start. The guide lists the folders."}},{"@type":"Question","name":"The sky is black with Volumetric Atmosphere.","acceptedAnswer":{"@type":"Answer","text":"Check three things: the sun is above the horizon (a negative Solar Altitude is night), you look through the Karma viewport of the Export tab and not a standard viewport, and the camera sees far enough (the tool raises it for the camera it makes). The troubleshooting table has the details."}},{"@type":"Question","name":"Houdini freezes for a long time after a change.","acceptedAnswer":{"@type":"Answer","text":"A running Karma viewport restarts when nodes are added or removed. Switch Live Update off, change what you need, then press Build Environment Only. Trying the CPU engine can also help on a heavy scene."}},{"@type":"Question","name":"Where do I find the log to report a problem?","acceptedAnswer":{"@type":"Answer","text":"In the Log tab: it shows every message, and Open Folder opens the folder of the debug log file. Send that file with your Houdini version through the contact page."}},{"@type":"Question","name":"A material was not assigned.","acceptedAnswer":{"@type":"Answer","text":"The Log tab gives the reason: no prim selected, the file holds an expression, or the Material Linker of your version has another layout. Select prims in the list of the Materials tab or in the viewport, then assign again."}},{"@type":"Question","name":"Do you track visitors of this site?","acceptedAnswer":{"@type":"Answer","text":"The visits are counted, without cookies and without storing your address: the count keeps the page, the day, the site you came from, and a code that is a hash of your address and browser mixed with a secret and the day, so it cannot be followed from one day to the next. Nothing is counted if your browser sends Do Not Track or Global Privacy Control, and robots are ignored. No cookie is set on this site. The contact form protects itself with a signed token that the page asks for when it opens, and it keeps a salted hash of your address for an hour to limit abuse."}},{"@type":"Question","name":"What happens to my message?","acceptedAnswer":{"@type":"Answer","text":"It is stored on the server of this site and mailed to me, and it is used only to answer you. Ask me to delete it and I will."}}]}</script>
+</head>
+<body data-page="faq">
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="/assets/img/logo.png?v=431c43bf" alt="" width="38" height="40"><span>BSM Karma Builder</span></a>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/guide/">User guide</a>
+      <a href="/faq/" aria-current="page">FAQ</a>
+      <a href="/contact/">Contact</a>
+      <a class="btn small" href="/go.php?to=github" rel="noopener" target="_blank">Download</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+<div class="wrap narrow">
+  <h1>FAQ</h1>
+  <p class="lead">Short answers. The <a href="/guide/">user guide</a> has the full detail, and the <a href="/contact/">contact page</a> is the way to reach me.</p>
+  <h2>General</h2>
+  <details class="qa" id="what">
+    <summary>What does BSM Karma Builder do?</summary>
+    <p>It builds and updates a complete Karma render setup in Houdini Solaris (LOPs): a camera, a sky or dome light, fog and clouds, a material library, render variables, Karma render settings and a USD Render ROP. You run it from a window inside Houdini and can run it as many times as you like.</p>
+  </details>
+  <details class="qa" id="versions">
+    <summary>Which Houdini versions does it support?</summary>
+    <p>Houdini 21 and 22, with Solaris and Karma. The tool uses the Houdini 22 parameter names and tries older names when they are missing. A parameter that your version does not have is skipped, and the Log tab says which one.</p>
+  </details>
+  <details class="qa" id="licenses">
+    <summary>Does it work with Houdini Apprentice, Indie and FX?</summary>
+    <p>It is a package of Python files that runs inside Houdini and is installed with a package file, so no license-specific asset file is involved. If you build the optional HDA yourself, build it with the Houdini license of the people who will open it: files saved with Indie or Apprentice cannot be opened by commercial licenses. I have not tested every Houdini tier.</p>
+  </details>
+  <details class="qa" id="engines">
+    <summary>Does it work with Karma CPU and Karma XPU?</summary>
+    <p>Yes, you choose the engine in the Scene tab. The volumetric atmosphere and the 2D clouds can behave differently in the two: if something does not show in one, try the other.</p>
+  </details>
+  <details class="qa" id="safe">
+    <summary>Will it change my scene or my nodes?</summary>
+    <p>Only the nodes it created. Each one carries a tag, and the tool never deletes, rewires, moves or retags a node without it. If one of your nodes already has the name of a tool node, the build stops with a message and leaves yours alone.</p>
+  </details>
+  <details class="qa" id="offline">
+    <summary>Does it send anything anywhere?</summary>
+    <p>No. The tool only uses the network when you press Download in the Materials tab (ambientCG, Poly Haven) or connect the AMD library, and nothing about you or your scene is sent.</p>
+  </details>
+  <h2>License</h2>
+  <details class="qa" id="license">
+    <summary>Is it free?</summary>
+    <p>It is free for personal, educational and other noncommercial use under the PolyForm Noncommercial License 1.0.0, and the source is available. Using it in a studio, or on paid client work, needs a commercial license.</p>
+  </details>
+  <details class="qa" id="students">
+    <summary>I am a student or a teacher.</summary>
+    <p>Educational use is free. Use it for your coursework and your own projects.</p>
+  </details>
+  <details class="qa" id="pro">
+    <summary>I am a freelancer or I work in a studio.</summary>
+    <p>Work that is paid, or done inside a company, is commercial use. <a href="/contact/">Write to me</a> with a few words about how you would use it and we find a license that fits.</p>
+  </details>
+  <details class="qa" id="resell">
+    <summary>Can I redistribute it, change it or sell it?</summary>
+    <p>You can change it for your own noncommercial use. You can pass on copies for noncommercial use if you keep the license text and the copyright notice. You cannot sell it, include it in a commercial product or service, or remove the author name.</p>
+  </details>
+  <details class="qa" id="old">
+    <summary>What about the old GPL versions?</summary>
+    <p>Versions published before 30 September 2026 were released under the GPL-3.0 and stay under it. Everything after is under the PolyForm Noncommercial License.</p>
+  </details>
+  <h2>Install and use</h2>
+  <details class="qa" id="no-menu">
+    <summary>I installed it but I do not see the menu.</summary>
+    <p>Restart Houdini after Install.bat. The menu is <strong>BSM &rarr; Karma Builder</strong>, and the shelf <strong>BSM Karma</strong> is available from the <strong>+</strong> next to the shelf tabs. If nothing appears, check that the package file exists in the packages folder of the Houdini version you start. The <a href="/guide/#install">guide</a> lists the folders.</p>
+  </details>
+  <details class="qa" id="black">
+    <summary>The sky is black with Volumetric Atmosphere.</summary>
+    <p>Check three things: the sun is above the horizon (a negative Solar Altitude is night), you look through the Karma viewport of the Export tab and not a standard viewport, and the camera sees far enough (the tool raises it for the camera it makes). The <a href="/guide/#troubleshooting">troubleshooting table</a> has the details.</p>
+  </details>
+  <details class="qa" id="freeze">
+    <summary>Houdini freezes for a long time after a change.</summary>
+    <p>A running Karma viewport restarts when nodes are added or removed. Switch Live Update off, change what you need, then press Build Environment Only. Trying the CPU engine can also help on a heavy scene.</p>
+  </details>
+  <details class="qa" id="debug">
+    <summary>Where do I find the log to report a problem?</summary>
+    <p>In the Log tab: it shows every message, and <em>Open Folder</em> opens the folder of the debug log file. Send that file with your Houdini version through the <a href="/contact/">contact page</a>.</p>
+  </details>
+  <details class="qa" id="assign">
+    <summary>A material was not assigned.</summary>
+    <p>The Log tab gives the reason: no prim selected, the file holds an expression, or the Material Linker of your version has another layout. Select prims in the list of the Materials tab or in the viewport, then assign again.</p>
+  </details>
+  <h2>Privacy</h2>
+  <details class="qa" id="privacy">
+    <summary>Do you track visitors of this site?</summary>
+    <p>The visits are counted, without cookies and without storing your address: the count keeps the page, the day, the site you came from, and a code that is a hash of your address and browser mixed with a secret and the day, so it cannot be followed from one day to the next. Nothing is counted if your browser sends Do Not Track or Global Privacy Control, and robots are ignored. No cookie is set on this site. The contact form protects itself with a signed token that the page asks for when it opens, and it keeps a salted hash of your address for an hour to limit abuse.</p>
+  </details>
+  <details class="qa" id="messages">
+    <summary>What happens to my message?</summary>
+    <p>It is stored on the server of this site and mailed to me, and it is used only to answer you. Ask me to delete it and I will.</p>
+  </details>
+  <p class="callout">Still stuck? <a href="/contact/">Send me a message</a>.</p>
+</div>
+</main>
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <strong>BSM Karma Builder</strong> 1.0.0<br>
+      <span class="muted">A Karma render setup tool for SideFX Houdini 21 and 22.</span>
+    </div>
+    <div>
+      <a href="/guide/">User guide</a> &middot; <a href="/faq/">FAQ</a> &middot;
+      <a href="/contact/">Contact</a> &middot; <a href="https://github.com/bsm3d/Karma-builder" rel="noopener" target="_blank">GitHub</a>
+    </div>
+    <div class="muted">
+      By <a href="https://www.bsm3d.com" rel="noopener" target="_blank">Benoît Saint-Moulin</a>.
+      Visits are counted without cookies and without storing your address (<a href="/faq/#privacy">details</a>).
+    </div>
+  </div>
+</footer>
+<script src="/assets/js/site.js?v=e3908fe5" defer></script>
+</body>
+</html>

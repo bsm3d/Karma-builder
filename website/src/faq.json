@@ -1,0 +1,114 @@
+{
+ "groups": [
+  {
+   "title": "General",
+   "items": [
+    {
+     "id": "what",
+     "q": "What does BSM Karma Builder do?",
+     "a": "It builds and updates a complete Karma render setup in Houdini Solaris (LOPs): a camera, a sky or dome light, fog and clouds, a material library, render variables, Karma render settings and a USD Render ROP. You run it from a window inside Houdini and can run it as many times as you like."
+    },
+    {
+     "id": "versions",
+     "q": "Which Houdini versions does it support?",
+     "a": "Houdini 21 and 22, with Solaris and Karma. The tool uses the Houdini 22 parameter names and tries older names when they are missing. A parameter that your version does not have is skipped, and the Log tab says which one."
+    },
+    {
+     "id": "licenses",
+     "q": "Does it work with Houdini Apprentice, Indie and FX?",
+     "a": "It is a package of Python files that runs inside Houdini and is installed with a package file, so no license-specific asset file is involved. If you build the optional HDA yourself, build it with the Houdini license of the people who will open it: files saved with Indie or Apprentice cannot be opened by commercial licenses. I have not tested every Houdini tier."
+    },
+    {
+     "id": "engines",
+     "q": "Does it work with Karma CPU and Karma XPU?",
+     "a": "Yes, you choose the engine in the Scene tab. The volumetric atmosphere and the 2D clouds can behave differently in the two: if something does not show in one, try the other."
+    },
+    {
+     "id": "safe",
+     "q": "Will it change my scene or my nodes?",
+     "a": "Only the nodes it created. Each one carries a tag, and the tool never deletes, rewires, moves or retags a node without it. If one of your nodes already has the name of a tool node, the build stops with a message and leaves yours alone."
+    },
+    {
+     "id": "offline",
+     "q": "Does it send anything anywhere?",
+     "a": "No. The tool only uses the network when you press Download in the Materials tab (ambientCG, Poly Haven) or connect the AMD library, and nothing about you or your scene is sent."
+    }
+   ]
+  },
+  {
+   "title": "License",
+   "items": [
+    {
+     "id": "license",
+     "q": "Is it free?",
+     "a": "It is free for personal, educational and other noncommercial use under the PolyForm Noncommercial License 1.0.0, and the source is available. Using it in a studio, or on paid client work, needs a commercial license."
+    },
+    {
+     "id": "students",
+     "q": "I am a student or a teacher.",
+     "a": "Educational use is free. Use it for your coursework and your own projects."
+    },
+    {
+     "id": "pro",
+     "q": "I am a freelancer or I work in a studio.",
+     "a": "Work that is paid, or done inside a company, is commercial use. <a href=\"{{url:contact}}\">Write to me</a> with a few words about how you would use it and we find a license that fits."
+    },
+    {
+     "id": "resell",
+     "q": "Can I redistribute it, change it or sell it?",
+     "a": "You can change it for your own noncommercial use. You can pass on copies for noncommercial use if you keep the license text and the copyright notice. You cannot sell it, include it in a commercial product or service, or remove the author name."
+    },
+    {
+     "id": "old",
+     "q": "What about the old GPL versions?",
+     "a": "Versions published before 30 September 2026 were released under the GPL-3.0 and stay under it. Everything after is under the PolyForm Noncommercial License."
+    }
+   ]
+  },
+  {
+   "title": "Install and use",
+   "items": [
+    {
+     "id": "no-menu",
+     "q": "I installed it but I do not see the menu.",
+     "a": "Restart Houdini after Install.bat. The menu is <strong>BSM &rarr; Karma Builder</strong>, and the shelf <strong>BSM Karma</strong> is available from the <strong>+</strong> next to the shelf tabs. If nothing appears, check that the package file exists in the packages folder of the Houdini version you start. The <a href=\"{{url:guide}}#install\">guide</a> lists the folders."
+    },
+    {
+     "id": "black",
+     "q": "The sky is black with Volumetric Atmosphere.",
+     "a": "Check three things: the sun is above the horizon (a negative Solar Altitude is night), you look through the Karma viewport of the Export tab and not a standard viewport, and the camera sees far enough (the tool raises it for the camera it makes). The <a href=\"{{url:guide}}#troubleshooting\">troubleshooting table</a> has the details."
+    },
+    {
+     "id": "freeze",
+     "q": "Houdini freezes for a long time after a change.",
+     "a": "A running Karma viewport restarts when nodes are added or removed. Switch Live Update off, change what you need, then press Build Environment Only. Trying the CPU engine can also help on a heavy scene."
+    },
+    {
+     "id": "debug",
+     "q": "Where do I find the log to report a problem?",
+     "a": "In the Log tab: it shows every message, and <em>Open Folder</em> opens the folder of the debug log file. Send that file with your Houdini version through the <a href=\"{{url:contact}}\">contact page</a>."
+    },
+    {
+     "id": "assign",
+     "q": "A material was not assigned.",
+     "a": "The Log tab gives the reason: no prim selected, the file holds an expression, or the Material Linker of your version has another layout. Select prims in the list of the Materials tab or in the viewport, then assign again."
+    }
+   ]
+  },
+  {
+   "title": "Privacy",
+   "items": [
+    {
+     "id": "privacy",
+     "q": "Do you track visitors of this site?",
+     "a": "The visits are counted, without cookies and without storing your address: the count keeps the page, the day, the site you came from, and a code that is a hash of your address and browser mixed with a secret and the day, so it cannot be followed from one day to the next. Nothing is counted if your browser sends Do Not Track or Global Privacy Control, and robots are ignored. No cookie is set on this site. The contact form protects itself with a signed token that the page asks for when it opens, and it keeps a salted hash of your address for an hour to limit abuse."
+    },
+    {
+     "id": "messages",
+     "q": "What happens to my message?",
+     "a": "It is stored on the server of this site and mailed to me, and it is used only to answer you. Ask me to delete it and I will."
+    }
+   ]
+  }
+ ]
+}

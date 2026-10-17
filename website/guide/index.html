@@ -1,10 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
+<meta name="robots" content="noai, noimageai">
+<title>User guide | BSM Karma Builder</title>
+<meta name="description" content="How to install and use BSM Karma Builder in Houdini: quick start, what gets built, every tab of the window, presets, troubleshooting.">
+<link rel="canonical" href="https://karma.example.com/guide/">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png?v=8fd65b69">
+<meta property="og:type" content="website">
+<meta property="og:title" content="User guide | BSM Karma Builder">
+<meta property="og:description" content="How to install and use BSM Karma Builder in Houdini: quick start, what gets built, every tab of the window, presets, troubleshooting.">
+<meta property="og:url" content="https://karma.example.com/guide/">
+<meta property="og:image" content="https://karma.example.com/assets/img/shots/scene.png">
+<meta name="theme-color" content="#d9622b">
+<link rel="stylesheet" href="/assets/css/site.css?v=c59e5702">
+</head>
+<body data-page="guide">
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/"><img src="/assets/img/logo.png?v=431c43bf" alt="" width="38" height="40"><span>BSM Karma Builder</span></a>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/guide/" aria-current="page">User guide</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/contact/">Contact</a>
+      <a class="btn small" href="/go.php?to=github" rel="noopener" target="_blank">Download</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+<div class="wrap guide">
+  <nav class="toc" aria-label="Table of contents"><ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#install">Installation</a>
+      <ul><li><a href="#install-bat">Install.bat</a></li><li><a href="#install-package">Package file</a></li><li><a href="#install-hda">As an HDA</a></li></ul></li>
+    <li><a href="#quickstart">Quick start</a></li>
+    <li><a href="#network">What gets built</a>
+      <ul><li><a href="#modes">Scene modes</a></li><li><a href="#incremental">Rebuilding safely</a></li></ul></li>
+    <li><a href="#ui">Interface reference</a>
+      <ul>
+        <li><a href="#fields">Numeric fields</a></li>
+        <li><a href="#tab-scene">Scene</a></li><li><a href="#tab-lighting">Lighting</a></li>
+        <li><a href="#tab-atmosphere">Atmosphere</a></li><li><a href="#tab-materials">Materials</a></li><li><a href="#tab-shader">Shader</a></li>
+        <li><a href="#tab-render">Render</a></li><li><a href="#tab-passes">Passes</a></li>
+        <li><a href="#tab-export">Export</a></li><li><a href="#tab-log">Log and About</a></li>
+      </ul></li>
+    <li><a href="#presets">Presets</a></li>
+    <li><a href="#compat">Houdini versions</a></li>
+    <li><a href="#security">Safety checks</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+    <li><a href="#license">License and credits</a></li>
+</ol></nav>
+  <article class="doc">
+    <h1>User guide</h1>
+    <p class="lead">Version 1.0.0, for Houdini 21 and 22. Something not here? Try the <a href="/faq/">FAQ</a> or <a href="/contact/">write to me</a>.</p>
 <h2 id="overview">Overview</h2>
 <p>Setting up a Karma render means wiring the same nodes again and again: a camera, a sky or dome light, a material library, render vars, Karma Render Settings and a USD Render ROP. BSM Karma Builder does this from one window. You choose a scene mode, adjust sliders and press <strong>Build Environment Only</strong>; the tool creates the nodes in <code>/stage</code>, connects them in a fixed order and sets their parameters.</p>
 <p>The tool is meant to be run many times. It finds the nodes it created earlier and updates them instead of recreating them, so a render setup can be refined from the same window without losing hand edits, and your own nodes are never touched (see <a href="#incremental">Rebuilding safely</a>).</p>
 <p>Besides the render setup, it helps with materials: browse a MaterialX catalog as thumbnails, a list or categories, assign a material to prims by drag and drop (on a list or on the Solaris viewport) or with a button, open a material as a node network, and download free MaterialX materials from ambientCG and Poly Haven without leaving Houdini.</p>
 
 <figure>
-  <img src="{{assets}}/img/shots/scene.png" alt="The Scene tab of the BSM Karma Builder window" loading="lazy" width="600">
+  <img src="/assets/img/shots/scene.png?v=c582df30" alt="The Scene tab of the BSM Karma Builder window" loading="lazy" width="600">
   <figcaption>The window, on the Scene tab. It opens compact and the <strong>Build Environment Only</strong> button stays visible at the bottom of every tab.</figcaption>
 </figure>
 
@@ -133,7 +193,7 @@
 
 <h3 id="tab-lighting">Lighting</h3>
 <div class="shots">
-  <figure><img src="{{assets}}/img/shots/lighting.png" alt="The Lighting tab with the Karma Physical Sky controls" loading="lazy"><figcaption>Physical sky on the <em>Golden Hour</em> preset. The compass and the side view show the sun. The small square under <em>Ambient Tint</em> shows the colour of the three sliders.</figcaption></figure>
+  <figure><img src="/assets/img/shots/lighting.png?v=34a9a5d2" alt="The Lighting tab with the Karma Physical Sky controls" loading="lazy"><figcaption>Physical sky on the <em>Golden Hour</em> preset. The compass and the side view show the sun. The small square under <em>Ambient Tint</em> shows the colour of the three sliders.</figcaption></figure>
 </div>
 <h4>General Lights / HDRI</h4>
 <table>
@@ -169,8 +229,8 @@
 <h3 id="tab-atmosphere">Atmosphere</h3>
 <p>Fog and clouds are only built in <em>Environment</em> mode; in the other modes the two groups are disabled and ignored. A diagram at the bottom shows the fog height and the cloud altitude to scale.</p>
 <div class="shots">
-  <figure><img src="{{assets}}/img/shots/atmosphere_3d_clouds.png" alt="The Atmosphere tab with 3D volume clouds" loading="lazy"><figcaption>Fog and 3D volume clouds.</figcaption></figure>
-  <figure><img src="{{assets}}/img/shots/atmosphere_2d_clouds.png" alt="The Atmosphere tab with the 2D cloud layer" loading="lazy"><figcaption>Fog and the 2D cloud layer.</figcaption></figure>
+  <figure><img src="/assets/img/shots/atmosphere_3d_clouds.png?v=7322308b" alt="The Atmosphere tab with 3D volume clouds" loading="lazy"><figcaption>Fog and 3D volume clouds.</figcaption></figure>
+  <figure><img src="/assets/img/shots/atmosphere_2d_clouds.png?v=28b3a15d" alt="The Atmosphere tab with the 2D cloud layer" loading="lazy"><figcaption>Fog and the 2D cloud layer.</figcaption></figure>
 </div>
 <h4>Fog</h4>
 <p>A <strong>Karma Fog Box</strong> LOP named <code>atmosphere_fog</code>, centered at the fog height.</p>
@@ -216,9 +276,9 @@
 <h3 id="tab-materials">Materials</h3>
 <p>Assign materials from a catalog to the prims of your geometry, by drag and drop or with a button. The tool writes the assignments in a <strong>Material Linker</strong> node. The top half is the catalog, the bottom half the prims of the <em>Geometry</em> source.</p>
 <div class="shots">
-  <figure><img src="{{assets}}/img/shots/materials.png" alt="The Materials tab, catalog as thumbnails" loading="lazy"><figcaption>Thumbnails view (the entries are samples). Under the catalog: the status line with the <strong>Download...</strong> button, the prims of the geometry with the material bound to each, and the assignment buttons.</figcaption></figure>
-  <figure><img src="{{assets}}/img/shots/materials_list.png" alt="The Materials tab, catalog as a list" loading="lazy"><figcaption>List view: the same materials as one alphabetical list.</figcaption></figure>
-  <figure><img src="{{assets}}/img/shots/materials_categories.png" alt="The Materials tab, catalog by categories" loading="lazy"><figcaption>Categories view: the same materials grouped by folder, with the count of each group.</figcaption></figure>
+  <figure><img src="/assets/img/shots/materials.png?v=e7f13d28" alt="The Materials tab, catalog as thumbnails" loading="lazy"><figcaption>Thumbnails view (the entries are samples). Under the catalog: the status line with the <strong>Download...</strong> button, the prims of the geometry with the material bound to each, and the assignment buttons.</figcaption></figure>
+  <figure><img src="/assets/img/shots/materials_list.png?v=18bf3cc4" alt="The Materials tab, catalog as a list" loading="lazy"><figcaption>List view: the same materials as one alphabetical list.</figcaption></figure>
+  <figure><img src="/assets/img/shots/materials_categories.png?v=d5592b02" alt="The Materials tab, catalog by categories" loading="lazy"><figcaption>Categories view: the same materials grouped by folder, with the count of each group.</figcaption></figure>
 </div>
 
 <h4>Catalog</h4>
@@ -242,7 +302,7 @@
 
 <h4>Right click on a material</h4>
 <figure>
-  <img src="{{assets}}/img/shots/materials_menu.png" alt="The context menu of a material" loading="lazy">
+  <img src="/assets/img/shots/materials_menu.png?v=495d5dd0" alt="The context menu of a material" loading="lazy">
   <figcaption>The menu of a material in the catalog.</figcaption>
 </figure>
 <table>
@@ -267,7 +327,7 @@
 <h4 id="download">Download materials</h4>
 <p>The <strong>Download...</strong> button opens a window that downloads MaterialX materials from <strong>ambientCG</strong> or <strong>Poly Haven</strong>. Nothing has to be installed: the tool makes the requests itself, with the <code>requests</code> module that ships with Houdini. The download runs in the background, Houdini stays usable, and <strong>Stop</strong> ends it.</p>
 <figure>
-  <img src="{{assets}}/img/shots/materials_download.png" alt="The download window" loading="lazy" width="560">
+  <img src="/assets/img/shots/materials_download.png?v=fb996630" alt="The download window" loading="lazy" width="560">
   <figcaption>The download window after a run: the names of the site, the log, and the downloaded materials with their thumbnails, ready to drag.</figcaption>
 </figure>
 <table>
@@ -298,7 +358,7 @@
 <p>It edits a standard surface. A material of another structure is shown as one that cannot be edited here, and <em>Open Network</em> is the way to change it. The editor does not change nodes of your own.</p>
 
 <h3 id="tab-render">Render</h3>
-<figure><img src="{{assets}}/img/shots/render.png" alt="The Render tab" loading="lazy" width="600"></figure>
+<figure><img src="/assets/img/shots/render.png?v=39805210" alt="The Render tab" loading="lazy" width="600"></figure>
 <table>
   <tr><th>Control</th><th>Default</th><th>Description</th></tr>
   <tr><td>Image Denoiser</td><td>Optix (GPU)</td><td>None, Optix (GPU) or OIDN (CPU).</td></tr>
@@ -310,7 +370,7 @@
 </table>
 
 <h3 id="tab-passes">Passes</h3>
-<figure><img src="{{assets}}/img/shots/passes.png" alt="The Passes tab" loading="lazy" width="600"></figure>
+<figure><img src="/assets/img/shots/passes.png?v=617b6082" alt="The Passes tab" loading="lazy" width="600"></figure>
 <p>Controls the <code>standard_aovs</code> node (Karma Standard Render Vars). Untick <em>Enable AOVs</em> and the node is removed.</p>
 <table>
   <tr><th>Pass</th><th>Karma variable</th></tr>
@@ -337,7 +397,7 @@
 <p><strong>AOV Output.</strong> <em>One multilayer EXR</em> writes all passes in one file; unticked, they are split into one file per pass. <em>16-bit (half) passes</em> sets the precision of the passes other than the beauty. The beauty follows the <em>Precision</em> of the Export tab.</p>
 
 <h3 id="tab-export">Export</h3>
-<figure><img src="{{assets}}/img/shots/export.png" alt="The Export tab" loading="lazy" width="600"></figure>
+<figure><img src="/assets/img/shots/export.png?v=7eecfd2e" alt="The Export tab" loading="lazy" width="600"></figure>
 <table>
   <tr><th>Control</th><th>Description</th></tr>
   <tr><td>Format, Precision</td><td>EXR or PNG, and for EXR the precision (16-bit or 32-bit float), on one row. The precision is hidden for PNG.</td></tr>
@@ -359,7 +419,7 @@
 </ul>
 
 <h3 id="tab-log">Log and About</h3>
-<figure><img src="{{assets}}/img/shots/log.png" alt="The Log tab" loading="lazy" width="600"><figcaption>The Log tab, with the debug log option and the path of the file.</figcaption></figure>
+<figure><img src="/assets/img/shots/log.png?v=726633c9" alt="The Log tab" loading="lazy" width="600"><figcaption>The Log tab, with the debug log option and the path of the file.</figcaption></figure>
 <p>The <strong>Log</strong> tab records everything the tool does, with a time stamp and a level:</p>
 <table>
   <tr><th>Level</th><th>Meaning</th></tr>
@@ -369,7 +429,7 @@
   <tr><td><code>[ERROR]</code></td><td>The build or an action stopped, for example because a node of yours has the same name as a tool node. The traceback is in the <a href="#debug-log">debug log file</a>.</td></tr>
 </table>
 <p>Each build starts with a line giving the Houdini version. <strong>About</strong> shows the logo, the version of the tool (a number like 1.0.0), the credits and the license. <strong>Which build is running</strong> is told by an id of 8 characters computed from the source of every module, and where the code was loaded from (a folder, a copy in <code>scripts/python</code>, or the HDA): it is in the title of the window, followed by one word that says where the code was loaded from (<code>folder</code>, <code>installed</code> or <code>HDA</code>), in the first line of the Log and in the debug log. On the HDA node, the <strong>Build</strong> line under its parameters shows the build that was compiled into the asset. It changes with every edit of the code, and it is the same for the same code wherever it runs from. <code>python tools/build_id.py</code> prints the id of the repository (Python only, no Houdini): if it matches the window, Houdini runs that code.</p>
-<figure><img src="{{assets}}/img/shots/about.png" alt="The About tab" loading="lazy" width="600"></figure>
+<figure><img src="/assets/img/shots/about.png?v=0ddd03e5" alt="The About tab" loading="lazy" width="600"></figure>
 <h4 id="debug-log">Debug log file</h4>
 <p>Below the Log, <strong>Write a debug log file</strong> (on by default) copies everything to a text file, <code>bsm_karma_debug.log</code>. It is more complete than the Log tab and is the file to send when something fails. It records:</p>
 <ul>
@@ -461,3 +521,25 @@
 <p>Credits: the material downloads follow the requests of the open source <a href="https://pypi.org/project/materialxmaterials/">materialxmaterials</a> tool (Bernard Kwok, Apache 2.0), without using its code or its MaterialX dependency. The materials themselves come from <a href="https://matlib.gpuopen.com">AMD GPUOpen</a>, <a href="https://ambientcg.com">ambientCG</a> and <a href="https://polyhaven.com/textures">Poly Haven</a>, under their own terms.</p>
 
 <footer>BSM Karma Builder 1.0.0 &middot; Author: BSM</footer>
+  </article>
+</div>
+</main>
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <strong>BSM Karma Builder</strong> 1.0.0<br>
+      <span class="muted">A Karma render setup tool for SideFX Houdini 21 and 22.</span>
+    </div>
+    <div>
+      <a href="/guide/">User guide</a> &middot; <a href="/faq/">FAQ</a> &middot;
+      <a href="/contact/">Contact</a> &middot; <a href="https://github.com/bsm3d/Karma-builder" rel="noopener" target="_blank">GitHub</a>
+    </div>
+    <div class="muted">
+      By <a href="https://www.bsm3d.com" rel="noopener" target="_blank">Benoît Saint-Moulin</a>.
+      Visits are counted without cookies and without storing your address (<a href="/faq/#privacy">details</a>).
+    </div>
+  </div>
+</footer>
+<script src="/assets/js/site.js?v=e3908fe5" defer></script>
+</body>
+</html>

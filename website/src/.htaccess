@@ -1,4 +1,4 @@
-# nothing in this folder is meant to be served
+# the sources of the pages are built into the site, they are not served
 <IfModule mod_authz_core.c>
   Require all denied
 </IfModule>
