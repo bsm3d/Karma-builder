@@ -9,7 +9,7 @@ and a commercial license is needed. If the two texts differ, LICENSE prevails.
 
 A COMMERCIAL LICENSE IS REQUIRED for any of the following:
 
-  - Use within a studio, a company or a professional production pipeline
+  - Use within a studio, a company or a professional production pipeline (testing excepted, see below)
   - Use by freelancers and independent contractors in work that is paid or billed to a client
   - Internal use by a team or an organisation, even without any redistribution
   - Integration into a proprietary or closed-source pipeline or product
@@ -25,7 +25,8 @@ FREE USE IS PERMITTED for:
   - Personal projects
   - Education: students, teachers, schools and academic institutions
   - Research and noncommercial open-source projects
-  - Evaluation and testing, up to 30 days, before any commercial deployment
+  - Testing, in a studio or a company too: trying the software on test scenes, without
+    production or client work, for up to 30 days before any commercial deployment
 
 NOT PERMITTED WITHOUT A WRITTEN LICENSE, in any case:
 
