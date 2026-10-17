@@ -43,10 +43,10 @@ LimitRequestBody 65536
   </FilesMatch>
 </IfModule>
 
-# robots that collect the site to train models are shut out (robots.txt says the same, this one does not rely on good manners).
-# The assistants that fetch a page because a person asked for it are not in this list.
+# AI robots and AI assistants of every kind are shut out, the ones that fetch a page because a person asked included
+# (robots.txt says the same, this one does not rely on good manners)
 <IfModule mod_setenvif.c>
-  SetEnvIfNoCase User-Agent "(GPTBot|ClaudeBot|Claude-Web|anthropic-ai|CCBot|Bytespider|Amazonbot|meta-externalagent|FacebookBot|cohere-ai|Diffbot|ImagesiftBot|Omgilibot|omgili|PetalBot|Timpibot|Scrapy|ai2bot|PerplexityBot|YouBot)" ai_crawler
+  SetEnvIfNoCase User-Agent "(GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|Claude-User|Claude-SearchBot|anthropic-ai|CCBot|Bytespider|Amazonbot|meta-externalagent|meta-externalfetcher|FacebookBot|cohere-ai|Diffbot|ImagesiftBot|Omgilibot|omgili|PetalBot|Timpibot|Scrapy|ai2bot|PerplexityBot|Perplexity-User|MistralAI-User|DuckAssistBot|YouBot|Google-CloudVertexBot|GoogleAgent-Mariner)" ai_crawler
 </IfModule>
 <IfModule mod_authz_core.c>
   <RequireAll>

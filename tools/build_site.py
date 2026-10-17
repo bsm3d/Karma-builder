@@ -178,9 +178,10 @@ def main():
     urls = "".join("  <url><loc>{}</loc><changefreq>{}</changefreq></url>\n".format(site_url + path, freq)
                    for path, freq in (("/", "weekly"), ("/guide/", "weekly"), ("/faq/", "monthly"), ("/contact/", "yearly")))
     write(os.path.join(SITE, "sitemap.xml"), '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + "</urlset>\n")
-    # robots that collect pages to train models (the .htaccess shuts the same names out for the ones that ignore this file)
-    ai_robots = ("GPTBot", "ClaudeBot", "Claude-Web", "anthropic-ai", "CCBot", "Bytespider", "Amazonbot", "meta-externalagent", "FacebookBot", "cohere-ai",
-                 "Diffbot", "ImagesiftBot", "Omgilibot", "PetalBot", "Timpibot", "PerplexityBot", "YouBot", "Google-Extended", "Applebot-Extended")
+    # AI robots and assistants, the ones that fetch a page for a person included (the .htaccess shuts the same names out for the ones that ignore this file)
+    ai_robots = ("GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot", "Claude-Web", "Claude-User", "Claude-SearchBot", "anthropic-ai", "CCBot", "Bytespider",
+                 "Amazonbot", "meta-externalagent", "meta-externalfetcher", "FacebookBot", "cohere-ai", "Diffbot", "ImagesiftBot", "Omgilibot", "PetalBot", "Timpibot",
+                 "PerplexityBot", "Perplexity-User", "MistralAI-User", "DuckAssistBot", "YouBot", "Google-CloudVertexBot", "GoogleAgent-Mariner", "Google-Extended", "Applebot-Extended")
     robots = "".join("User-agent: {}\n".format(name) for name in ai_robots) + "Disallow: /\n\n"
     robots += "User-agent: *\nDisallow: /admin.php\nDisallow: /hit.php\nDisallow: /go.php\nDisallow: /contact.php\nDisallow: /token.php\nDisallow: /data/\nAllow: /\n\n"
     write(os.path.join(SITE, "robots.txt"), robots + "Sitemap: {}/sitemap.xml\n".format(site_url))

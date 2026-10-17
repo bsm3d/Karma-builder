@@ -42,7 +42,7 @@ Without Apache, the rules of `.htaccess` have to be done in the configuration of
 
 ## What is counted
 
-Page views, with the day, the page, the host of the site the visitor came from, the kind of device, and a code that is a hash of the address and the browser with a secret and the day, so it cannot be followed from one day to the next. No cookie, no address stored. Nothing is counted for a browser that sends Do Not Track or Global Privacy Control, nor for robots (including the crawlers of AI companies and the assistants that fetch a page for a person). Download clicks are counted the same way, and only for a real click: not a HEAD, not a prefetch. Figures older than about 400 days are deleted from time to time.
+Page views, with the day, the page, the host of the site the visitor came from, the kind of device, and a code that is a hash of the address and the browser with a secret and the day, so it cannot be followed from one day to the next. No cookie, no address stored. Nothing is counted for a browser that sends Do Not Track or Global Privacy Control, nor for robots (including AI crawlers and AI assistants). Download clicks are counted the same way, and only for a real click: not a HEAD, not a prefetch. Figures older than about 400 days are deleted from time to time.
 
 ## The contact form
 
@@ -60,7 +60,7 @@ The message is stored first, then mailed: a mail server that is down loses nothi
 
 ## Against robots, spam and AI
 
-* The crawlers that collect pages to train models are in `robots.txt` (`Disallow: /`), in every page (`noai, noimageai`), and shut out by name in `.htaccess` (403), which does not depend on their good manners. `robots.txt` itself stays readable by everyone. The assistants that fetch a page because a person asked (ChatGPT-User, Claude-User, Perplexity-User) are not blocked, they are only not counted. To block them too, add their names to the list in `.htaccess`.
+* AI robots and AI assistants are all refused: the crawlers that collect pages to train models and the assistants that fetch a page because a person asked (ChatGPT-User, Claude-User, Perplexity-User and others). They are in `robots.txt` (`Disallow: /`), in every page (`noai, noimageai`), and shut out by name in `.htaccess` (403), which does not depend on their good manners. `robots.txt` itself stays readable by everyone. The list is in `tools/build_site.py` (robots.txt) and in `.htaccess`; `attack.py` fails if the two differ. A person who pastes an address into an assistant gets nothing from the site, by choice.
 * AI-written spam goes through the same gates as any other: limits, token, time on the page, hidden field, links, repeated text.
 * The contact form is the only thing that writes. Everything printed in the admin page goes through `htmlspecialchars`. Every query is a prepared statement.
 

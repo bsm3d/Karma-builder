@@ -299,7 +299,12 @@ def run(target):
     htaccess = open(os.path.join(SITE, ".htaccess"), encoding="utf-8").read()
     for name in ("GPTBot", "ClaudeBot", "CCBot", "Bytespider", "Amazonbot", "meta-externalagent", "Diffbot"):
         check("the .htaccess blocks " + name, name in htaccess)
-    check("the assistants that a person sends are not blocked by the .htaccess", not re.search(r"ChatGPT-User|Claude-User|Perplexity-User", htaccess))
+    for name in ("ChatGPT-User", "Claude-User", "Perplexity-User", "OAI-SearchBot", "Claude-SearchBot", "MistralAI-User", "DuckAssistBot"):
+        check("the .htaccess and robots.txt block the assistant " + name, name in htaccess and re.search(r"User-agent: %s\n(User-agent: .*\n)*Disallow: /\n" % re.escape(name), robots) is not None)
+    names = re.findall(r"^User-agent: (\S+)$", robots, re.M)
+    missing = [n for n in names if n not in ("*", "Google-Extended", "Applebot-Extended") and n.lower() not in htaccess.lower()]
+    check("every robot of robots.txt is also in the .htaccess (the two that are not an agent string excepted)", not missing, missing)
+    check("the site never says that it was made with AI", not re.search(r"\bAI\b|artificial intelligence|ChatGPT|Claude|Copilot|LLM", "".join(call("GET", p)[3] for p in ("/", "/guide/", "/faq/", "/contact/")).replace("noai", "")), "")
 
 
 if __name__ == "__main__":

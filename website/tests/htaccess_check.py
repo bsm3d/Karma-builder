@@ -81,11 +81,12 @@ def main():
     check("a trailing-slash redirect stays on the site", call(base, "GET", "/guide")[1].get("location", "/").startswith(("/", base)), call(base, "GET", "/guide")[1].get("location"))
 
     for agent in ("GPTBot/1.0", "Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)", "CCBot/2.0 (https://commoncrawl.org/faq/)", "Bytespider; spider-feedback@bytedance.com",
-                  "Mozilla/5.0 (compatible; Amazonbot/0.1)", "meta-externalagent/1.1", "Diffbot/0.1", "anthropic-ai", "cohere-ai", "PerplexityBot/1.0", "Scrapy/2.11"):
+                  "Mozilla/5.0 (compatible; Amazonbot/0.1)", "meta-externalagent/1.1", "Diffbot/0.1", "anthropic-ai", "cohere-ai", "PerplexityBot/1.0", "Scrapy/2.11", "Mozilla/5.0 AppleWebKit/537.36 (compatible; ChatGPT-User/1.0; +https://openai.com/bot)",
+                  "Claude-User/1.0", "Claude-SearchBot/1.0", "Perplexity-User/1.0", "OAI-SearchBot/1.0", "MistralAI-User/1.0", "DuckAssistBot/1.1"):
         status, reply, text = call(base, "GET", "/", headers={"User-Agent": agent})
         check("a training crawler is refused: " + agent[:40], status in (403, 404) and "Karma Builder" not in text.split("<title>")[-1][:0], status)
     for agent in ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-                  "Mozilla/5.0 (compatible; bingbot/2.0)", "ChatGPT-User/1.0", "Claude-User/1.0", "Perplexity-User/1.0", "curl/8.0", "Mozilla/5.0 (X11) Firefox/120"):
+                  "Mozilla/5.0 (compatible; bingbot/2.0)", "curl/8.0", "Mozilla/5.0 (X11) Firefox/120"):
         status, reply, text = call(base, "GET", "/", headers={"User-Agent": agent})
         check("not refused: " + agent[:40], status == 200, status)
     check("a training crawler can still read robots.txt to learn that it is not welcome", call(base, "GET", "/robots.txt", headers={"User-Agent": "GPTBot/1.0"})[0] == 200)
