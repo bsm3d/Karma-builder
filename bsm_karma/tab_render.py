@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Render tab: denoiser, filter and ray limits

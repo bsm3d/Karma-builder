@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : private page for the owner: statistics, download clicks and the messages of the contact form
 // PHP : 8.1 and later

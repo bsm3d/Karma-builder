@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Small helpers: math, colors, paths, temp folder

@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : PythonModule of the HDA (hou.phm() on the node): serves the modules stored in the asset as a package
@@ -32,7 +32,7 @@ class SectionLoader(importlib.abc.Loader):
     # --------------------------------------------------
     def exec_module(self, module):
         key = "__init__" if module.__name__ == MODULE_NAME else module.__name__[len(MODULE_NAME) + 1:]
-        module.__file__ = "{}.py (embedded in the BSM Karma Builder HDA)".format(key)
+        module.__file__ = "{}.py (embedded in the Karma Builder HDA)".format(key)
         exec(compile(self.sources[key], key + ".py", "exec"), module.__dict__)
 
 
@@ -105,7 +105,7 @@ def _tool_or_message(node, type_name):
     except Exception:   # a damaged or incomplete asset: tell the user, leave nothing half loaded
         import traceback
         forget_package()
-        hou.ui.displayMessage("BSM Karma Builder could not load its code from this asset.\nRebuild it with: hython build_hda.py",
+        hou.ui.displayMessage("Karma Builder could not load its code from this asset.\nRebuild it with: hython build_hda.py",
                               details=traceback.format_exc(), severity=hou.severityType.Error)
         return None
 

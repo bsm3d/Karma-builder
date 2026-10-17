@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : what the contact form accepts and what is done with a message: checks, storage, mail
 // PHP : 8.1 and later

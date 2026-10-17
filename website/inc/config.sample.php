@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : settings of the site. Copy this file to config.php (never committed) and fill it in
 // PHP : 8.1 and later (PDO SQLite)

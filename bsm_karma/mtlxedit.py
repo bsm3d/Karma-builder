@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Read and change a MaterialX .mtlx file for the material editor

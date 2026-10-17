@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Create the shelf button (and install the package) from inside Houdini
@@ -14,7 +14,7 @@ from .debuglog import _debug
 from .util import _has_expression
 
 SHELF_NAME = "bsm_karma"
-SHELF_LABEL = "BSM Karma"
+SHELF_LABEL = "Karma Builder"
 TOOL_NAME = "bsm_karma_builder"
 TOOL_LABEL = "Karma Builder"
 DEFAULT_ICON = "PLASMA_App"
@@ -30,7 +30,7 @@ bsm_karma.main()
 SCRIPT_ASSET = """import hou
 node_type = hou.nodeType(hou.lopNodeTypeCategory(), "{type_name}")
 if node_type is None:
-    hou.ui.displayMessage("The BSM Karma Builder asset is not installed in this Houdini.")
+    hou.ui.displayMessage("The Karma Builder asset is not installed in this Houdini.")
 else:
     node_type.hdaModule().open_builder()
 """
@@ -48,7 +48,7 @@ def build_shelf_xml(script, icon=DEFAULT_ICON):
     return ('<?xml version="1.0" encoding="UTF-8"?>\n<shelfDocument>\n'
             '  <toolshelf name="{shelf}" label="{shelf_label}">\n    <memberTool name="{tool}"/>\n  </toolshelf>\n\n'
             '  <tool name="{tool}" label="{label}" icon="{icon}">\n'
-            '    <helpText><![CDATA[Opens BSM Karma Builder: Karma lighting, sky, atmosphere, materials and render settings in /stage.]]></helpText>\n'
+            '    <helpText><![CDATA[Opens Karma Builder: Karma lighting, sky, atmosphere, materials and render settings in /stage.]]></helpText>\n'
             '    <script scriptType="python"><![CDATA[{script}]]></script>\n  </tool>\n</shelfDocument>\n').format(
         shelf=SHELF_NAME, shelf_label=SHELF_LABEL, tool=TOOL_NAME, label=TOOL_LABEL, icon=escape(icon, {'"': "&quot;"}),
         script=script)
@@ -161,7 +161,7 @@ def install(show_message=True):
     print(text)
     if show_message:
         try:
-            hou.ui.displayMessage("BSM Karma Builder installed.", details=text)
+            hou.ui.displayMessage("Karma Builder installed.", details=text)
         except (hou.Error, AttributeError):
             pass
     return report

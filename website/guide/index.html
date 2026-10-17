@@ -5,23 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'self'">
 <meta name="robots" content="noai, noimageai">
-<title>User guide | BSM Karma Builder</title>
-<meta name="description" content="How to install and use BSM Karma Builder in Houdini: quick start, what gets built, every tab of the window, presets, troubleshooting.">
+<title>User guide | Karma Builder</title>
+<meta name="description" content="How to install and use Karma Builder in Houdini: quick start, what gets built, every tab of the window, presets, troubleshooting.">
 <link rel="canonical" href="https://karma.example.com/guide/">
 <link rel="icon" type="image/png" href="/assets/img/favicon.png?v=8fd65b69">
 <meta property="og:type" content="website">
-<meta property="og:title" content="User guide | BSM Karma Builder">
-<meta property="og:description" content="How to install and use BSM Karma Builder in Houdini: quick start, what gets built, every tab of the window, presets, troubleshooting.">
+<meta property="og:title" content="User guide | Karma Builder">
+<meta property="og:description" content="How to install and use Karma Builder in Houdini: quick start, what gets built, every tab of the window, presets, troubleshooting.">
 <meta property="og:url" content="https://karma.example.com/guide/">
 <meta property="og:image" content="https://karma.example.com/assets/img/shots/scene.png">
 <meta name="theme-color" content="#d9622b">
-<link rel="stylesheet" href="/assets/css/site.css?v=c59e5702">
+<link rel="stylesheet" href="/assets/css/site.css?v=b3185281">
 </head>
 <body data-page="guide">
 <a class="skip" href="#main">Skip to the content</a>
 <header class="top">
   <div class="wrap bar">
-    <a class="brand" href="/"><img src="/assets/img/logo.png?v=431c43bf" alt="" width="38" height="40"><span>BSM Karma Builder</span></a>
+    <a class="brand" href="/"><img src="/assets/img/logo.png?v=431c43bf" alt="" width="38" height="40"><span>Karma Builder</span></a>
     <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
     <nav id="menu" class="menu" aria-label="Main">
       <a href="/">Home</a>
@@ -59,12 +59,12 @@
     <h1>User guide</h1>
     <p class="lead">Version 1.0.0, for Houdini 21 and 22. Something not here? Try the <a href="/faq/">FAQ</a> or <a href="/contact/">write to me</a>.</p>
 <h2 id="overview">Overview</h2>
-<p>Setting up a Karma render means wiring the same nodes again and again: a camera, a sky or dome light, a material library, render vars, Karma Render Settings and a USD Render ROP. BSM Karma Builder does this from one window. You choose a scene mode, adjust sliders and press <strong>Build Environment Only</strong>; the tool creates the nodes in <code>/stage</code>, connects them in a fixed order and sets their parameters.</p>
+<p>Setting up a Karma render means wiring the same nodes again and again: a camera, a sky or dome light, a material library, render vars, Karma Render Settings and a USD Render ROP. Karma Builder does this from one window. You choose a scene mode, adjust sliders and press <strong>Build Environment Only</strong>; the tool creates the nodes in <code>/stage</code>, connects them in a fixed order and sets their parameters.</p>
 <p>The tool is meant to be run many times. It finds the nodes it created earlier and updates them instead of recreating them, so a render setup can be refined from the same window without losing hand edits, and your own nodes are never touched (see <a href="#incremental">Rebuilding safely</a>).</p>
 <p>Besides the render setup, it helps with materials: browse a MaterialX catalog as thumbnails, a list or categories, assign a material to prims by drag and drop (on a list or on the Solaris viewport) or with a button, open a material as a node network, and download free MaterialX materials from ambientCG and Poly Haven without leaving Houdini.</p>
 
 <figure>
-  <img src="/assets/img/shots/scene.png?v=c582df30" alt="The Scene tab of the BSM Karma Builder window" loading="lazy" width="600">
+  <img src="/assets/img/shots/scene.png?v=c582df30" alt="The Scene tab of the Karma Builder window" loading="lazy" width="600">
   <figcaption>The window, on the Scene tab. It opens compact and the <strong>Build Environment Only</strong> button stays visible at the bottom of every tab.</figcaption>
 </figure>
 
@@ -80,7 +80,7 @@
 <ol>
   <li>Get the repository (clone it or unpack the zip) and keep the folder where it is.</li>
   <li>Double-click <strong>Install.bat</strong>. If Windows shows &ldquo;Windows protected your PC&rdquo;, choose <em>More info</em>, then <em>Run anyway</em>.</li>
-  <li>Restart Houdini. Use the menu <strong>BSM &rarr; Karma Builder</strong>. The shelf <strong>BSM Karma</strong> is available from the <strong>+</strong> next to the shelf tabs.</li>
+  <li>Restart Houdini. Use the menu <strong>BSM &rarr; Karma Builder</strong>. The shelf <strong>Karma Builder</strong> is available from the <strong>+</strong> next to the shelf tabs.</li>
 </ol>
 <p>Install.bat writes one small file, <code>packages/bsm_karma.json</code>, in the preferences folder of each Houdini 21 or 22 it finds. The file points Houdini at the folder, nothing is copied, so updating is just updating the folder. If you move the folder, run Install.bat again. <strong>Uninstall.bat</strong> removes the file.</p>
 
@@ -156,10 +156,10 @@
   <li><strong>keeps the default material</strong>: <code>pbr_surface</code> receives its default values once, when it is created;</li>
   <li><strong>removes</strong> only its own nodes that the current mode no longer uses, and does it last: the new network is built and wired first, so what is displayed never depends on a node that is about to disappear;</li>
   <li><strong>pauses cooking</strong> while it works (Houdini's update mode goes to Manual, then back to what it was, even after an error), so a running Karma viewport restarts once at the end instead of after every node. A session already in Manual mode is left as it is. Clear All Tool Nodes does the same;</li>
-  <li><strong>never touches your nodes</strong>: the tool recognizes its own nodes only by the mark it put on them. A node of yours is never deleted, rewired, moved or marked, even if it has the same name or the same type as one of the tool's nodes. If one has the name the tool needs, the build stops with an error that names it (<code>[ERROR] ... was not created by BSM Karma Builder</code>); rename it and build again.</li>
+  <li><strong>never touches your nodes</strong>: the tool recognizes its own nodes only by the mark it put on them. A node of yours is never deleted, rewired, moved or marked, even if it has the same name or the same type as one of the tool's nodes. If one has the name the tool needs, the build stops with an error that names it (<code>[ERROR] ... was not created by Karma Builder</code>); rename it and build again.</li>
 </ul>
 <div class="callout warn"><strong>Clear All Tool Nodes</strong>Deletes the nodes the tool built in <code>/stage</code>, after a confirmation that lists them. Nodes you made are never in that list. A tool node that is wired to something outside the tool's own nodes is skipped and reported in the Log. The deletion is a single undo step.</div>
-<p>Each build, and each material assignment, is also one undo step (<em>BSM Karma - Build</em>, <em>BSM Karma - Assign Material</em>).</p>
+<p>Each build, and each material assignment, is also one undo step (<em>Karma Builder - Build</em>, <em>Karma Builder - Assign Material</em>).</p>
 <h2 id="ui">Interface reference</h2>
 <p>The window has one tab per topic and a <strong>Build Environment Only</strong> button that stays visible at the bottom. It opens compact (about 540 &times; 600 pixels) and can be narrowed to about 400 pixels without a horizontal scroll bar; each tab scrolls vertically when it does not fit. Drop-down lists are only as wide as the field they sit in, and their full text shows when opened. The screenshots below use sample data.</p>
 <h3 id="fields">Numeric fields</h3>
@@ -188,7 +188,7 @@
   <tr><td>Live Update</td><td>See below.</td></tr>
 </table>
 <h4 id="live-update">Live Update (<em>Rebuild on change</em>)</h4>
-<p>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: a change of a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma - Live Update</em>.</p>
+<p>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: a change of a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>Karma Builder - Live Update</em>.</p>
 <div class="callout warn"><strong>Some changes wait for the Build button</strong>A change that adds or removes nodes, or switches the engine, is not applied live: <em>Scene Mode</em>, <em>Environment</em>, <em>Sky Rendering</em>, fog, clouds, <em>Cloud Type</em>, AOVs, <em>Engine</em>, camera, geometry source and cloud material path. A running Karma viewport restarts on such a change and Houdini can freeze for minutes. The Log says what changed, and Live Update goes on after the next <strong>Build Environment Only</strong>. Live Update also waits for a first Build. Camera and material lists are refreshed by a normal Build.</div>
 
 <h3 id="tab-lighting">Lighting</h3>
@@ -520,14 +520,14 @@
 <p>Licensed under the <a href="https://github.com/bsm3d/Karma-builder/blob/main/LICENSE">PolyForm Noncommercial License 1.0.0</a>: free for personal, educational and any other noncommercial use. Studios and commercial use need a commercial license; see <code>Informations/COMMERCIAL_LICENSE.txt</code>. Versions published before 30 September 2026 were released under GPL-3.0.</p>
 <p>Credits: the material downloads follow the requests of the open source <a href="https://pypi.org/project/materialxmaterials/">materialxmaterials</a> tool (Bernard Kwok, Apache 2.0), without using its code or its MaterialX dependency. The materials themselves come from <a href="https://matlib.gpuopen.com">AMD GPUOpen</a>, <a href="https://ambientcg.com">ambientCG</a> and <a href="https://polyhaven.com/textures">Poly Haven</a>, under their own terms.</p>
 
-<footer>BSM Karma Builder 1.0.0 &middot; Author: BSM</footer>
+<footer>Karma Builder 1.0.0 &middot; Author: BSM</footer>
   </article>
 </div>
 </main>
 <footer class="foot">
   <div class="wrap foot-grid">
     <div>
-      <strong>BSM Karma Builder</strong> 1.0.0<br>
+      <strong>Karma Builder</strong> 1.0.0<br>
       <span class="muted">A Karma render setup tool for SideFX Houdini 21 and 22.</span>
     </div>
     <div>
@@ -540,6 +540,6 @@
     </div>
   </div>
 </footer>
-<script src="/assets/js/site.js?v=e3908fe5" defer></script>
+<script src="/assets/js/site.js?v=f5ccd101" defer></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Camera, lights, sky, fog and clouds
@@ -335,7 +335,7 @@ def _create_quick_cloud_material(stage, prev, cfg, log_callback):
 
     node = stage.node(QUICK_CLOUD_NAME)
     if node is not None and not _is_tool_node_candidate(node):
-        log_callback("[WARN] {} was not created by BSM Karma Builder: left untouched, no Quick Cloud Material.".format(node.path()))
+        log_callback("[WARN] {} was not created by Karma Builder: left untouched, no Quick Cloud Material.".format(node.path()))
         return None
     if node is None:
         node = stage.createNode("editmaterialproperties", QUICK_CLOUD_NAME)

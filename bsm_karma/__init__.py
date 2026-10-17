@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Entry point of the bsm_karma package
@@ -75,7 +75,7 @@ def main(kwargs=None):
         _debug_exception("main")
         traceback.print_exc()
         try:
-            hou.ui.displayMessage("BSM Karma Builder could not open its window.\n\nDetails are in the debug log:\n{}".format(
+            hou.ui.displayMessage("Karma Builder could not open its window.\n\nDetails are in the debug log:\n{}".format(
                 debug_log_path()), severity=hou.severityType.Error)
         except hou.Error:
             pass

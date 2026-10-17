@@ -1,4 +1,4 @@
-# BSM Karma Builder website
+# Karma Builder website
 # Benoît Saint-Moulin | www.bsm3d.com
 # Function : attack tests of the site: injection, XSS, header injection, odd bodies, bad methods, file leaks, bursts, robots, spam
 # PHP : 8.1 and later (php on the path)

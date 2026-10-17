@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Helpers to create, mark and set nodes
@@ -71,7 +71,7 @@ def _get_or_create_node(parent, node_type, node_name):
     elif not _is_tool_node_candidate(n, node_name):
         # a node of the user's that only shares the name: the tool leaves it alone and stops
         raise hou.OperationFailed(
-            "{} ({}) was not created by BSM Karma Builder: rename it, the tool never changes nodes it did not build.".format(
+            "{} ({}) was not created by Karma Builder: rename it, the tool never changes nodes it did not build.".format(
                 n.path(), _base_node_type_name(n)))
     _mark_tool_node(n)
     return n

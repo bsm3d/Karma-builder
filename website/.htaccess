@@ -1,4 +1,4 @@
-# BSM Karma Builder website - Apache settings (mod_headers, mod_expires)
+# Karma Builder website - Apache settings (mod_headers, mod_expires)
 Options -Indexes -MultiViews
 DirectoryIndex index.html index.php
 ErrorDocument 404 /404.html

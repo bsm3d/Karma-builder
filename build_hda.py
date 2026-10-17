@@ -1,7 +1,7 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
-# Function : Builds the BSM Karma Builder HDA from the project files (hython build_hda.py [output.hda])
+# Function : Builds the Karma Builder HDA from the project files (hython build_hda.py [output.hda])
 # Houdini : 21 and 22 (run with hython)
 # Version : 1.0.0
 #
@@ -20,7 +20,7 @@ PACKAGE = "bsm_karma"
 DEFAULT_OUTPUT = os.path.join(ROOT, "bsm_karma_builder.hda")
 
 OP_NAME = "bsm::karma_builder::1.0"
-OP_LABEL = "BSM Karma Builder"
+OP_LABEL = "Karma Builder"
 SOURCE_PREFIX = "bsm_karma_src_"
 
 # ------------------------------------------------------------
@@ -60,13 +60,13 @@ def script_version():
     return match.group(1)
 
 
-HELP = '''= BSM Karma Builder =
+HELP = '''= Karma Builder =
 
 #type: node
 #context: lop
 #icon: LOP/subnet
 
-"""Opens BSM Karma Builder, the tool that builds Karma lighting, sky, atmosphere, materials and render
+"""Opens Karma Builder, the tool that builds Karma lighting, sky, atmosphere, materials and render
 settings in /stage."""
 
 This node carries the whole tool. It passes its input through unchanged, so it can sit anywhere in a
@@ -83,7 +83,7 @@ Open Karma Builder:
 Create Shelf Button:
     #id: create_shelf
 
-    Creates a shelf called BSM Karma with a Karma Builder button that opens the window, so the node is not
+    Creates a shelf called Karma Builder with a Karma Builder button that opens the window, so the node is not
     needed again.
 
 @related
@@ -140,7 +140,7 @@ def build(output):
         script_callback="hou.phm().open_builder(kwargs['node'])",
         script_callback_language=hou.scriptLanguage.Python,
     )
-    button.setHelp("Opens the BSM Karma Builder window.")
+    button.setHelp("Opens the Karma Builder window.")
     ptg.append(button)
     shelf_button = hou.ButtonParmTemplate(
         "create_shelf", "Create Shelf Button",
@@ -168,7 +168,7 @@ def build(output):
         definition.addSection("icon.png", read_bytes(icon_path))
         definition.setIcon("opdef:/{}?icon.png".format(asset.type().nameWithCategory()))
     definition.setVersion(version)
-    definition.setComment("BSM Karma Builder {} (build {}). Licensed under PolyForm Noncommercial 1.0.0 (see the LICENSE.txt section).".format(version, code_id))
+    definition.setComment("Karma Builder {} (build {}). Licensed under PolyForm Noncommercial 1.0.0 (see the LICENSE.txt section).".format(version, code_id))
 
     definition.save(output, template_node=asset)
     hou.hipFile.clear(suppress_save_prompt=True)

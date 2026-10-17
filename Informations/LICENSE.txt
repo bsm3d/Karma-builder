@@ -1,9 +1,9 @@
-BSM Karma Builder - License
+Karma Builder - License
 
 Copyright (c) 2026 BSM
 GitHub : https://github.com/bsm3d/Karma-builder
 
-BSM Karma Builder is licensed under the PolyForm Noncommercial License 1.0.0. The full
+Karma Builder is licensed under the PolyForm Noncommercial License 1.0.0. The full
 text is in the LICENSE file at the root of the repository and at
 https://polyformproject.org/licenses/noncommercial/1.0.0
 

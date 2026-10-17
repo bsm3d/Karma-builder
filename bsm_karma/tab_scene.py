@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Scene tab: mode, quality, camera and the tool's own nodes
@@ -271,7 +271,7 @@ class SceneTab:
 
         with _paused_cooking():
             try:
-                with hou.undos.group("BSM Karma - Clear Tool Nodes"):
+                with hou.undos.group("Karma Builder - Clear Tool Nodes"):
                     _delete_impl()
             except hou.Error:
                 _delete_impl()

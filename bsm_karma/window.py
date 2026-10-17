@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : The dialog: assembles the tabs, collects the settings, runs the build
@@ -56,7 +56,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
         if parent is None:
             parent = hou.qt.mainWindow()
         super().__init__(parent)
-        self.setWindowTitle("BSM Karma Builder {} ({})".format(SCRIPT_VERSION, build_tag()))
+        self.setWindowTitle("Karma Builder {} ({})".format(SCRIPT_VERSION, build_tag()))
         self.resize(540, 600)
         self.setMinimumSize(440, 420)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
@@ -425,7 +425,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
     @_guarded_slot
     def on_build(self):
         self._live_seen.clear()
-        if not self._run_build(self.log_message, "BSM Karma - Build"):
+        if not self._run_build(self.log_message, "Karma Builder - Build"):
             return False
         self.refresh_stage_cameras()
         self.refresh_material_targets()

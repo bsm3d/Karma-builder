@@ -1,4 +1,4 @@
-# BSM Karma Builder website
+# Karma Builder website
 
 Four pages (home, user guide, FAQ, contact), a contact form and private statistics.
 

@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : The logo of the About tab, embedded so it travels with the HDA and the package
@@ -7,7 +7,7 @@
 
 import base64
 
-# PNG, 188 x 200, the flower of the BSM Karma icon
+# PNG, 188 x 200, the flower of the Karma Builder icon
 LOGO_PNG_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAALwAAADICAMAAABlJHtOAAABe2lDQ1BJQ0MgUHJvZmlsZQAAeJx1kbtLA0EQh788RNGIghYWFkE0"
     "lUqMELSxSNAoqEUSwVeTXF5CHsddRIKtYBtQEG18FfoXaCtYC4KiCGItloo2Gs65JJAgZpbZ+fa3O8PuLFjDaSWj292Qyea1YMDn"

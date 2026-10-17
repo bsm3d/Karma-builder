@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : the SQLite database (stats, messages, rate limits) opened with PDO, tables created on first use
 // PHP : 8.1 and later (pdo_sqlite)

@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Small readers for the HDRI preview: Radiance .hdr and OpenEXR, which Qt cannot open

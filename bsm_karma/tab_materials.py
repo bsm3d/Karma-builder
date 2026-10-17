@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Materials tab: catalog, geometry source and assignments
@@ -430,7 +430,7 @@ class MaterialsTab:
         pairs = [(asset, prims) for asset, prims in pairs if asset and prims]
         if not pairs:
             return
-        with hou.undos.group("BSM Karma - Assign Material"):
+        with hou.undos.group("Karma Builder - Assign Material"):
             linker = self._ensure_material_linker()
             if linker is None:
                 return
@@ -617,7 +617,7 @@ class MaterialsTab:
         if network and not self._confirm_replace_edited_material(asset["label"]):
             return
         problems = []
-        with hou.undos.group("BSM Karma - Edit Material"):
+        with hou.undos.group("Karma Builder - Edit Material"):
             with _paused_cooking(self.log_message):
                 linker = self._ensure_material_linker()
                 if linker is None:
@@ -719,7 +719,7 @@ class MaterialsTab:
         if linker is None or not prim_paths:
             self.log_message("[INFO] Nothing to remove: select assigned prims in the list.")
             return
-        with hou.undos.group("BSM Karma - Remove Material Assignment"):
+        with hou.undos.group("Karma Builder - Remove Material Assignment"):
             removed = _linker_unassign(linker, prim_paths)
         self.log_message("[OK] Removed the assignment on {} prim(s).".format(removed))
         self.refresh_material_targets()

@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : gives the contact form its signed token (the pages are static files and cannot carry one)
 // PHP : 8.1 and later

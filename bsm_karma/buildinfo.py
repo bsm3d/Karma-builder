@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Which build is running, and where it was loaded from
@@ -82,4 +82,4 @@ def build_location():
 
 # ------------------------------------------------------------
 def build_summary(version):
-    return "BSM Karma Builder {} | build {} | from {}: {}".format(version, BUILD_ID, build_origin(), build_location())
+    return "Karma Builder {} | build {} | from {}: {}".format(version, BUILD_ID, build_origin(), build_location())

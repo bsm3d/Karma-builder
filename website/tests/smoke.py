@@ -1,4 +1,4 @@
-# BSM Karma Builder website
+# Karma Builder website
 # Benoît Saint-Moulin | www.bsm3d.com
 # Function : functional tests of the site: a copy of it runs on the PHP built-in server and every check is a real request
 # PHP : 8.1 and later (php on the path)

@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Live update: rebuild when a value changes
@@ -127,6 +127,6 @@ class LiveUpdateMixin:
         self._set_build_hint("")
         self._live_building = True
         try:
-            self._run_build(self._live_log, "BSM Karma - Live Update", live=True)
+            self._run_build(self._live_log, "Karma Builder - Live Update", live=True)
         finally:
             self._live_building = False

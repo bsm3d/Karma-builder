@@ -1,4 +1,4 @@
-# BSM Karma Builder website
+# Karma Builder website
 # Benoît Saint-Moulin | www.bsm3d.com
 # Function : checks the .htaccess on a real Apache (headers, deny rules, 404 page, robots that train models, big bodies)
 # PHP : not needed (Python 3 only)

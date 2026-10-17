@@ -1,4 +1,4 @@
-# install_windows.ps1 - installs BSM Karma Builder as a Houdini package, or removes it (-Uninstall).
+# install_windows.ps1 - installs Karma Builder as a Houdini package, or removes it (-Uninstall).
 #
 # Run it through Install.bat / Uninstall.bat at the root of the repository. It writes one small file,
 # packages/bsm_karma.json, in the preferences folder of every Houdini 21 or later found in your Documents folder. That
@@ -37,7 +37,7 @@ function Finish($code) {
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
 $marker = Join-Path (Join-Path $root "bsm_karma") "__init__.py"
 if (-not (Test-Path -LiteralPath $marker)) {
-    Say "This script must stay in the tools folder of BSM Karma Builder (bsm_karma was not found next to it)."
+    Say "This script must stay in the tools folder of Karma Builder (bsm_karma was not found next to it)."
     Finish 1
 }
 $rootJson = $root -replace "\\", "/"

@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : receives the contact form (a post from assets/js/site.js) and answers in JSON
 // PHP : 8.1 and later

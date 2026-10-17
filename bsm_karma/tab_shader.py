@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Shader tab: basic materials and a simple editor for the material of a prim
@@ -870,7 +870,7 @@ class ShaderTab:
         except (OSError, MtlxError, UnicodeDecodeError) as exc:
             self.log_message("[WARN] Material not changed: {}".format(exc))
             return
-        with hou.undos.group("BSM Karma - Edit Material"):
+        with hou.undos.group("Karma Builder - Edit Material"):
             parm.set(path)
         _debug("material editor: {} -> {}".format(target["prim"], path))
 

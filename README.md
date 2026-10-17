@@ -1,6 +1,6 @@
-# BSM Karma Builder
+# Karma Builder
 
-BSM Karma Builder is a procedural Python tool for SideFX Houdini (Solaris/LOPs) that builds and updates Karma render setups from one window: camera, lighting, sky, fog, clouds, materials, render variables and render settings. It provides a PySide interface to generate the node networks without manual wiring.
+Karma Builder is a procedural Python tool for SideFX Houdini (Solaris/LOPs) that builds and updates Karma render setups from one window: camera, lighting, sky, fog, clouds, materials, render variables and render settings. It provides a PySide interface to generate the node networks without manual wiring.
 
 ![The Scene tab](docs/screenshots/scene.png)
 
@@ -37,16 +37,16 @@ It needs nothing but Houdini: no pip, no extra Python, and you never paste code.
 
 | Way | Good for | What you get |
 |---|---|---|
-| [A. Install.bat](#a-installbat-windows-recommended) | Windows, most people and the development setup | The menu **BSM > Karma Builder** and a **BSM Karma** shelf, loaded at every start |
+| [A. Install.bat](#a-installbat-windows-recommended) | Windows, most people and the development setup | The menu **BSM > Karma Builder** and a **Karma Builder** shelf, loaded at every start |
 | [B. Package file](#b-package-file-linux-macos-or-by-hand) | Linux, macOS, or Windows by hand | The same as A, with one small file written by you |
-| [C. The HDA](#c-the-hda) | A single file to hand over | A **BSM Karma Builder** node (Tab menu in `/stage`) that opens the window |
+| [C. The HDA](#c-the-hda) | A single file to hand over | A **Karma Builder** node (Tab menu in `/stage`) that opens the window |
 
 ### A. Install.bat (Windows, recommended)
 
 1. Get the repository: clone it, or download it as a zip and unpack it somewhere you will keep it, for example `D:\Documents\Coding\Houdini Scripts\Karma-builder`.
 2. Double-click **Install.bat** at the root of that folder. Windows may show "Windows protected your PC": click **More info**, then **Run anyway**. The file only starts `tools\install_windows.ps1`, which you can read first.
 3. It finds your Houdini 21 and 22 preferences folders (`Documents\houdini21.0`, `Documents\houdini22.0`...) and writes one file in each: `packages\bsm_karma.json`. That file points Houdini at the folder of the repository. Nothing is copied.
-4. Restart Houdini. The main menu has a new **BSM** menu: **BSM > Karma Builder** opens the window. The shelf **BSM Karma** is available too (the **+** at the right of the shelf tabs, then **BSM Karma**).
+4. Restart Houdini. The main menu has a new **BSM** menu: **BSM > Karma Builder** opens the window. The shelf **Karma Builder** is available too (the **+** at the right of the shelf tabs, then **Karma Builder**).
 
 To update: get the new version of the folder (pull or unpack over it). Pressing the menu item reloads the code, so Houdini does not need a restart. If you move or rename the folder, run **Install.bat** again from its new place. **Uninstall.bat** removes the package file again and leaves the folder alone.
 
@@ -83,7 +83,7 @@ An HDA is one file that carries the whole tool.
    Replace the Houdini folder with yours. It prints `built ... bsm_karma_builder.hda (tool version ..., ... KB)` and writes `bsm_karma_builder.hda` next to the script. Linux and macOS: run `hython build_hda.py` from a terminal where `houdini_setup` has been sourced. The HDA holds a copy of the code, so build it again after every update. It is built with the Houdini that runs `hython`: to use it in both 21 and 22, build it with 21.
 2. Make Houdini load it: copy the file to `$HOUDINI_USER_PREF_DIR/otls/` (create the folder if needed), then restart Houdini. Or use **Assets > Install Asset Library...** and pick the file. Do not install two copies of the asset. `$HOUDINI_USER_PREF_DIR` is the preferences folder, for example `D:/Documents/houdini22.0`.
 3. In a `/stage` network, press **Tab** and type `karma builder` (it is in the **BSM** submenu). Press **Open Karma Builder** on the node.
-4. Optional: press **Create Shelf Button** on the node. It creates the shelf **BSM Karma** with a button that opens the tool through the asset.
+4. Optional: press **Create Shelf Button** on the node. It creates the shelf **Karma Builder** with a button that opens the tool through the asset.
 
 The asset never creates a shelf or a menu by itself, that is what the button and A are for. If the node is missing from the Tab menu, restart Houdini and check, in the Python Shell, `hou.nodeType(hou.lopNodeTypeCategory(), "bsm::karma_builder::1.0")`: it returns `None` when the asset is not loaded. If it is loaded and the Tab menu still does not list it, create the node from the Python Shell with `hou.node("/stage").createNode("bsm::karma_builder::1.0")`. An HDA built before 2026.10.16 has an older Tab menu definition: build it again.
 
@@ -96,7 +96,7 @@ The asset never creates a shelf or a menu by itself, that is what the button and
 
 Every build of the tool has an id: 8 characters computed from the source of all its modules. It changes with any change of the code, and it is the same for the same code, wherever it runs from (a folder, `scripts/python` or the HDA). You find it:
 
-* in the **title of the window**: `BSM Karma Builder 1.0.0 (build a1b2c3d4, folder)`. The last word says where the code was loaded from: `folder` (the repository), `installed` (the copy in `scripts/python`) or `HDA`;
+* in the **title of the window**: `Karma Builder 1.0.0 (build a1b2c3d4, folder)`. The last word says where the code was loaded from: `folder` (the repository), `installed` (the copy in `scripts/python`) or `HDA`;
 * in the first line of the **Log** and in the debug log;
 * in the Python Shell: `import bsm_karma; print(bsm_karma.build_info())`;
 * on the **HDA node**, the **Build** line under its parameters: the build that was compiled into the asset.
@@ -111,7 +111,7 @@ It prints `build a1b2c3d4 | version ... | 33 modules | ...`. Same id as the wind
 
 ### First start
 
-1. Click the button (or **Open Karma Builder** on the node). The window **BSM Karma Builder** opens.
+1. Click the button (or **Open Karma Builder** on the node). The window **Karma Builder** opens.
 2. Press **Build Environment Only**. The nodes appear in `/stage`.
 3. Everything the tool does is written in `bsm_karma_debug.log`; the Log tab shows the path. Send that file when something goes wrong.
 
@@ -121,7 +121,7 @@ It prints `build a1b2c3d4 | version ... | 33 modules | ...`. Same id as the wind
 |---|---|
 | `ModuleNotFoundError: No module named 'bsm_karma'` | The folder is not in `scripts/python` of the preferences of the Houdini you are running (21 and 22 have separate folders), or it is one level too deep. Check with `print(hou.text.expandString("$HOUDINI_USER_PREF_DIR"))`. |
 | The window does not open and the Python Shell shows an error | Copy the error. A missing `presets.json` is a common cause: copy the whole folder, not only the `.py` files. |
-| The shelf is not in the shelf bar | **+** at the right of the shelf tabs, then **BSM Karma**. Or restart Houdini. |
+| The shelf is not in the shelf bar | **+** at the right of the shelf tabs, then **Karma Builder**. Or restart Houdini. |
 | The HDA runs another build than the repository | Check which file Houdini loaded: `d = hou.nodeType(hou.lopNodeTypeCategory(), "bsm::karma_builder::1.0").definition()`, then `print(d.libraryFilePath())` and `print([n for n in d.sections() if "buildinfo" in n])`. An empty list means that asset was compiled before the build id existed: compile again and install that file (the path printed is the one in use: delete or replace it). The HDA window title ends with `HDA`; if it ends with `folder`, you opened the tool from the repository (the shelf button or `bsm_karma.main()`), not from the asset. |
 | The old version still runs | Two copies exist (for example `scripts/python` and a package file), or an old HDA is installed. Keep one. Rebuild the HDA after an update. |
 | `bsm_karma.install()` says the preferences folder is unknown | Houdini could not expand `$HOUDINI_USER_PREF_DIR`. Use way B (the package file). |

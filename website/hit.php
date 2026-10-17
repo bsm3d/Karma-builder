@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : page view counter, called by assets/js/site.js with a beacon
 // PHP : 8.1 and later

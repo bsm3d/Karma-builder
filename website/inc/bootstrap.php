@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : common start of every page: settings, security headers, session on demand, small helpers
 // PHP : 8.1 and later
@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-const SITE_NAME = 'BSM Karma Builder';
+const SITE_NAME = 'Karma Builder';
 const SESSION_NAME = 'bsmk_sid';
 
 // ------------------------------------------------------------

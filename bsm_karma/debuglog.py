@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Debug log file and the guard around the button handlers
@@ -120,7 +120,7 @@ def _debug_session_header():
     except AttributeError:
         binding, qt_version = "unknown", "unknown"
     _debug("=" * 72, "SESSION")
-    _debug("BSM Karma Builder {} | Houdini {}".format(SCRIPT_VERSION, houdini), "SESSION")
+    _debug("Karma Builder {} | Houdini {}".format(SCRIPT_VERSION, houdini), "SESSION")
     _debug("Python {} | {} (Qt {}) | {}".format(
         sys.version.split()[0], binding, qt_version, platform.platform()), "SESSION")
     _debug("script: {}".format(globals().get("__file__") or "<embedded>"), "SESSION")

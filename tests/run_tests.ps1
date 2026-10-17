@@ -1,4 +1,4 @@
-# Runs the BSM Karma Builder tests against an installed Houdini.
+# Runs the Karma Builder tests against an installed Houdini.
 #
 #   .\tests\run_tests.ps1               headless tests (hython), about 30 s
 #   .\tests\run_tests.ps1 -Gui          also the dialog lifecycle test in Houdini, windows hidden

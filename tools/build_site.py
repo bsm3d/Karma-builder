@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Builds the static pages of the website (website/) from website/src and docs/index.html: header and footer are put in every page, no script does it at the visit
@@ -141,7 +141,7 @@ def main():
     pages = {
         "home": {
             "title": "{} | Karma render setup for Houdini".format(config["name"]),
-            "description": "BSM Karma Builder builds and updates a complete Karma render setup in Houdini Solaris: camera, sky, lights, materials, render settings. For Houdini 21 and 22.",
+            "description": "Karma Builder builds and updates a complete Karma render setup in Houdini Solaris: camera, sky, lights, materials, render settings. For Houdini 21 and 22.",
             "body": read(os.path.join(SRC, "pages", "home.html")),
             "ld": {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": config["name"], "applicationCategory": "DeveloperApplication",
                    "operatingSystem": "Windows, Linux, macOS (inside SideFX Houdini 21 and 22)", "softwareVersion": version,
@@ -150,18 +150,18 @@ def main():
             "out": "index.html", "path": "/"},
         "guide": {
             "title": "User guide | {}".format(config["name"]),
-            "description": "How to install and use BSM Karma Builder in Houdini: quick start, what gets built, every tab of the window, presets, troubleshooting.",
+            "description": "How to install and use Karma Builder in Houdini: quick start, what gets built, every tab of the window, presets, troubleshooting.",
             "body": ('<div class="wrap guide">\n  <nav class="toc" aria-label="Table of contents">' + toc + '</nav>\n  <article class="doc">\n    <h1>User guide</h1>\n'
                      '    <p class="lead">Version ' + version + ', for Houdini 21 and 22. Something not here? Try the <a href="{{url:faq}}">FAQ</a> or '
                      '<a href="{{url:contact}}">write to me</a>.</p>\n' + guide_content + '  </article>\n</div>\n'),
             "ld": None, "out": os.path.join("guide", "index.html"), "path": "/guide/"},
         "faq": {
             "title": "FAQ | {}".format(config["name"]),
-            "description": "Answers about BSM Karma Builder: Houdini versions, license for students, freelancers and studios, installation problems, privacy.",
+            "description": "Answers about Karma Builder: Houdini versions, license for students, freelancers and studios, installation problems, privacy.",
             "body": faq_body, "ld": faq_ld, "out": os.path.join("faq", "index.html"), "path": "/faq/"},
         "contact": {
             "title": "Contact | {}".format(config["name"]),
-            "description": "Write to the author of BSM Karma Builder: a question, a bug report, or a commercial license for your studio.",
+            "description": "Write to the author of Karma Builder: a question, a bug report, or a commercial license for your studio.",
             "body": read(os.path.join(SRC, "pages", "contact.html")), "ld": None, "out": os.path.join("contact", "index.html"), "path": "/contact/"},
         "404": {
             "title": "Page not found | {}".format(config["name"]), "description": "This page does not exist.",

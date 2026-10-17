@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Log and About tabs, debug file controls
@@ -31,7 +31,7 @@ class LogTab:
             lbl_logo.setAlignment(QtCore.Qt.AlignCenter)
             layout_about.addWidget(lbl_logo)
 
-        lbl_title = QtWidgets.QLabel(f"BSM Karma Builder {SCRIPT_VERSION}")
+        lbl_title = QtWidgets.QLabel(f"Karma Builder {SCRIPT_VERSION}")
         title_font = lbl_title.font()
         title_font.setPointSize(16)
         title_font.setBold(True)

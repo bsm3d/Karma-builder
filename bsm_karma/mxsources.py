@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Download MaterialX materials from ambientCG and Poly Haven (no extra install)
@@ -17,7 +17,7 @@ import re
 import zipfile
 from urllib.parse import parse_qs, urlparse
 
-USER_AGENT = "BSM-Karma-Builder/1.0"
+USER_AGENT = "Karma-Builder/1.0"
 ALLOWED_HOST_SUFFIXES = ("ambientcg.com", "polyhaven.com", "polyhaven.org")
 TIMEOUT = (10, 60)
 MAX_FILE_BYTES = 800 * 1024 ** 2

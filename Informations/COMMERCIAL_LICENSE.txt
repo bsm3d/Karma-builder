@@ -1,9 +1,9 @@
-BSM Karma Builder - Commercial License
+Karma Builder - Commercial License
 
 Copyright (c) 2026 BSM
 GitHub : https://github.com/bsm3d/Karma-builder
 
-BSM Karma Builder is distributed under the PolyForm Noncommercial License 1.0.0 (file
+Karma Builder is distributed under the PolyForm Noncommercial License 1.0.0 (file
 LICENSE at the root of the repository). This file says when that license is not enough
 and a commercial license is needed. If the two texts differ, LICENSE prevails.
 
@@ -41,7 +41,7 @@ CREDIT
 
   Every copy that is allowed, a modified copy included, keeps the author's name and
   the license texts. A product or a service that is allowed by a commercial license
-  shows "BSM Karma Builder by Benoît Saint-Moulin, www.bsm3d.com" unless the written
+  shows "Karma Builder by Benoît Saint-Moulin, www.bsm3d.com" unless the written
   license says otherwise.
 
 ROYALTIES

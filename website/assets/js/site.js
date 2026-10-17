@@ -1,4 +1,4 @@
-// BSM Karma Builder website - menu button, contact form and the page view counter
+// Karma Builder website - menu button, contact form and the page view counter
 // Benoît Saint-Moulin | www.bsm3d.com | version 1.0.0
 
 (function () {

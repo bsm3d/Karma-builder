@@ -1,4 +1,4 @@
-# The BSM Karma Builder HDA: built from the sources, installable, passes its input through, and its
+# The Karma Builder HDA: built from the sources, installable, passes its input through, and its
 # embedded loader runs the tool. Also fails when the committed bsm_karma_builder.hda is out of date.
 #
 # Revision : 10-10-2026 | Auteur : BSM

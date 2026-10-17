@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <shelfDocument>
-  <toolshelf name="bsm_karma" label="BSM Karma">
+  <toolshelf name="bsm_karma" label="Karma Builder">
     <memberTool name="bsm_karma_builder"/>
   </toolshelf>
 
   <tool name="bsm_karma_builder" label="Karma Builder" icon="PLASMA_App">
-    <helpText><![CDATA[Opens BSM Karma Builder: Karma lighting, sky, atmosphere, materials and render settings in /stage.]]></helpText>
+    <helpText><![CDATA[Opens Karma Builder: Karma lighting, sky, atmosphere, materials and render settings in /stage.]]></helpText>
     <script scriptType="python"><![CDATA[import importlib
 import bsm_karma
 importlib.reload(bsm_karma)

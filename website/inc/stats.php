@@ -1,5 +1,5 @@
 <?php
-// BSM Karma Builder website
+// Karma Builder website
 // Benoît Saint-Moulin | www.bsm3d.com
 // Function : private page statistics: what is counted, what is not, and the figures the admin page shows
 // PHP : 8.1 and later

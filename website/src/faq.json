@@ -5,7 +5,7 @@
    "items": [
     {
      "id": "what",
-     "q": "What does BSM Karma Builder do?",
+     "q": "What does Karma Builder do?",
      "a": "It builds and updates a complete Karma render setup in Houdini Solaris (LOPs): a camera, a sky or dome light, fog and clouds, a material library, render variables, Karma render settings and a USD Render ROP. You run it from a window inside Houdini and can run it as many times as you like."
     },
     {
@@ -71,7 +71,7 @@
     {
      "id": "no-menu",
      "q": "I installed it but I do not see the menu.",
-     "a": "Restart Houdini after Install.bat. The menu is <strong>BSM &rarr; Karma Builder</strong>, and the shelf <strong>BSM Karma</strong> is available from the <strong>+</strong> next to the shelf tabs. If nothing appears, check that the package file exists in the packages folder of the Houdini version you start. The <a href=\"{{url:guide}}#install\">guide</a> lists the folders."
+     "a": "Restart Houdini after Install.bat. The menu is <strong>BSM &rarr; Karma Builder</strong>, and the shelf <strong>Karma Builder</strong> is available from the <strong>+</strong> next to the shelf tabs. If nothing appears, check that the package file exists in the packages folder of the Houdini version you start. The <a href=\"{{url:guide}}#install\">guide</a> lists the folders."
     },
     {
      "id": "black",

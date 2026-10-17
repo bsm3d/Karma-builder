@@ -1,4 +1,4 @@
-# BSM Karma Builder
+# Karma Builder
 # Benoît Saint-Moulin
 # www.bsm3d.com
 # Function : Material Linker rules and references
@@ -29,7 +29,7 @@ def _get_or_create_material_linker(stage):
     if node is None:
         if stage.node("material_linker") is not None:
             raise hou.OperationFailed(
-                "{} was not created by BSM Karma Builder: rename it, the tool never changes nodes it did not build.".format(
+                "{} was not created by Karma Builder: rename it, the tool never changes nodes it did not build.".format(
                     stage.node("material_linker").path()))
         node = stage.createNode("materiallinker", "material_linker")
     _mark_tool_node(node)
@@ -71,7 +71,7 @@ def _get_or_create_material_edit(stage):
         existing = stage.node(MATERIAL_EDIT_NODE)
         if existing is not None:
             raise hou.OperationFailed(
-                "{} was not created by BSM Karma Builder: rename it, the tool never changes nodes it did not build.".format(
+                "{} was not created by Karma Builder: rename it, the tool never changes nodes it did not build.".format(
                     existing.path()))
         node = stage.createNode(MATERIAL_EDIT_TYPE, MATERIAL_EDIT_NODE)
     _mark_tool_node(node)
