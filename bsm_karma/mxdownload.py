@@ -36,28 +36,56 @@ THUMBNAILS_AT_ONCE = 3
 # ------------------------------------------------------------
 # A job runs in a thread: job(log, cancel) returns a result. The thread never raises into Qt: every failure comes
 # back as text through done(result, error).
-class _Worker(QtCore.QThread):
+# attention -> a Python daemon thread and not a QThread: Qt aborts the process when a QThread is destroyed while it still runs
+# (a request stuck when the window closes or Houdini quits), a daemon thread just ends with the process.
+class _Worker(QtCore.QObject):
     message = QtCore.Signal(str)
     done = QtCore.Signal(object, str)
+    finished = QtCore.Signal()
 
     # ------------------------------------------------------------
     def __init__(self, job, parent=None):
         super().__init__(parent)
         self._job = job
+        self._thread = None
         self.cancel = threading.Event()
 
     # ------------------------------------------------------------
-    def run(self):
+    def start(self):
+        self._thread = threading.Thread(target=self._run, name="bsm_karma_download", daemon=True)
+        self._thread.start()
+
+    # ------------------------------------------------------------
+    def isRunning(self):
+        return self._thread is not None and self._thread.is_alive()
+
+    # ------------------------------------------------------------
+    def wait(self, milliseconds):
+        if self._thread is not None:
+            self._thread.join(milliseconds / 1000.0)
+        return not self.isRunning()
+
+    # ------------------------------------------------------------
+    def _emit(self, signal, *args):
         try:
-            result = self._job(self.message.emit, self.cancel)
-            self.done.emit(result, "")
+            signal.emit(*args)
+        except RuntimeError:
+            pass   # the object is already deleted: nobody is waiting for this any more
+
+    # ------------------------------------------------------------
+    def _run(self):
+        try:
+            result = self._job(lambda text: self._emit(self.message, text), self.cancel)
+            self._emit(self.done, result, "")
         except DownloadCancelled:
-            self.done.emit(None, "Stopped.")
+            self._emit(self.done, None, "Stopped.")
         except (DownloadError, ValueError, OSError, zipfile.BadZipFile) as exc:
-            self.done.emit(None, str(exc))
+            self._emit(self.done, None, str(exc))
         except Exception as exc:   # a thread must not raise: whatever else went wrong is reported
             _debug("download thread failed: {}: {}".format(type(exc).__name__, exc))
-            self.done.emit(None, "{}: {}".format(type(exc).__name__, exc))
+            self._emit(self.done, None, "{}: {}".format(type(exc).__name__, exc))
+        finally:
+            self._emit(self.finished)
 
 
 # ------------------------------------------------------------
@@ -504,13 +532,25 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(SOURCE_SITES[self.combo_source.currentText()]))
 
     # ------------------------------------------------------------
+    # attention -> Esc and reject() end the dialog through done(), which sends no close event: the thread must be handed over
+    # there too, or it is destroyed with the dialog while a request runs (Qt aborts the process)
+    def done(self, result):
+        self._release()
+        super().done(result)
+
+    # ------------------------------------------------------------
     def closeEvent(self, event):
+        self._release()
+        super().closeEvent(event)
+
+    # ------------------------------------------------------------
+    def _release(self):
         self._thumbnail_timer.stop()
         self._save_settings()
         worker, self._worker = self._worker, None
         if worker is not None:
             worker.cancel.set()
-            if not worker.wait(1500):
+            if not worker.wait(200):
                 # still inside a request: the thread ends on its own, nothing may destroy it before, and its results
                 # have nobody to go to any more
                 for signal in (worker.message, worker.done):
@@ -521,4 +561,3 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
                 worker.setParent(None)
                 _ORPHANS.append(worker)
                 worker.finished.connect(lambda w=worker: _ORPHANS.remove(w) if w in _ORPHANS else None)
-        super().closeEvent(event)

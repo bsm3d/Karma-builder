@@ -259,9 +259,17 @@ class ExportTab:
             except ValueError as exc:
                 self.log_message("[WARN] Render to Disk not started: {}".format(exc))
                 return
-            if out_dir: os.makedirs(out_dir, exist_ok=True)
+            try:
+                if out_dir: os.makedirs(out_dir, exist_ok=True)
+            except OSError as exc:
+                self.log_message("[WARN] Render to Disk not started: the folder {} cannot be created ({}).".format(out_dir, exc))
+                return
+            execute = rp.parm("execute")
+            if execute is None:
+                self.log_message("[WARN] Render to Disk: no Render button on {}, press it in the node.".format(rp.path()))
+                return
             self.log_message("Launching Render to Disk...")
-            rp.parm("execute").pressButton()
+            execute.pressButton()
 
     # ------------------------------------------------------------
     @_guarded_slot
@@ -270,10 +278,14 @@ class ExportTab:
             return
         rp = hou.node("/stage/render_to_disk")
         if rp:
+            execute, image = rp.parm("execute"), rp.parm("outputimage")
+            if execute is None or image is None:
+                self.log_message("[WARN] Render to MPlay: {} has no Render button or no output image parameter, press it in the node.".format(rp.path()))
+                return
             self.log_message("Launching Render to MPlay...")
-            old_path = rp.parm("outputimage").unexpandedString()
-            rp.parm("outputimage").set("ip")
+            old_path = image.unexpandedString()
+            image.set("ip")
             try:
-                rp.parm("execute").pressButton()
+                execute.pressButton()
             finally:
-                rp.parm("outputimage").set(old_path)
+                image.set(old_path)
