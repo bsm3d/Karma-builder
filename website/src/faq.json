@@ -41,7 +41,7 @@
     {
      "id": "license",
      "q": "Is it free?",
-     "a": "It is free for personal, educational and other noncommercial use under the PolyForm Noncommercial License 1.0.0, and the source is available. Using it in a studio, or on paid client work, needs a commercial license. Testing it in a studio is free, with no time limit: on test scenes, without production work."
+     "a": "It is free for personal, educational and other noncommercial use under the PolyForm Noncommercial License 1.0.0, and the source is available. Using it in a studio, or on paid client work, needs a commercial license. Testing it in a studio is free, with no time limit."
     },
     {
      "id": "students",
@@ -51,7 +51,7 @@
     {
      "id": "pro",
      "q": "I am a freelancer or I work in a studio.",
-     "a": "Work that is paid, or done inside a company, is commercial use. A studio can test the tool on test scenes, with no license and no time limit. <a href=\"{{url:contact}}\">Write to me</a> with a few words about how you would use it and we find a license that fits."
+     "a": "Work that is paid, or done inside a company, is commercial use. A studio can test the tool with no license and no time limit. <a href=\"{{url:contact}}\">Write to me</a> with a few words about how you would use it and we find a license that fits."
     },
     {
      "id": "resell",

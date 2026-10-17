@@ -25,8 +25,7 @@ FREE USE IS PERMITTED for:
   - Personal projects
   - Education: students, teachers, schools and academic institutions
   - Research and noncommercial open-source projects
-  - Testing, in a studio or a company too, with no time limit: trying the software on
-    test scenes, without production or client work
+  - Testing, in a studio or a company too, with no time limit
 
 NOT PERMITTED WITHOUT A WRITTEN LICENSE, in any case:
 

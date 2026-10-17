@@ -13,7 +13,7 @@ other noncommercial use, modifications included.
 A commercial license is required for use within a studio, company or commercial
 production, in-house use included, for integration into a commercial pipeline or product,
 and for paid services. See COMMERCIAL_LICENSE.txt. Testing the tool in a studio or a
-company, on test scenes and without production work, is free with no time limit.
+company is free, with no time limit.
 
 Versions published before 30 September 2026 were released under the GNU GPL v3. Copies
 obtained at that time remain under GPL v3.
