@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin.php
+Disallow: /hit.php
+Disallow: /go.php
+Disallow: /data/
+Allow: /

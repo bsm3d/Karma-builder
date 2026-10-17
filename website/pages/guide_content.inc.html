@@ -1,0 +1,463 @@
+<h2 id="overview">Overview</h2>
+<p>Setting up a Karma render means wiring the same nodes again and again: a camera, a sky or dome light, a material library, render vars, Karma Render Settings and a USD Render ROP. BSM Karma Builder does this from one window. You choose a scene mode, adjust sliders and press <strong>Build Environment Only</strong>; the tool creates the nodes in <code>/stage</code>, connects them in a fixed order and sets their parameters.</p>
+<p>The tool is meant to be run many times. It finds the nodes it created earlier and updates them instead of recreating them, so a render setup can be refined from the same window without losing hand edits, and your own nodes are never touched (see <a href="#incremental">Rebuilding safely</a>).</p>
+<p>Besides the render setup, it helps with materials: browse a MaterialX catalog as thumbnails, a list or categories, assign a material to prims by drag and drop (on a list or on the Solaris viewport) or with a button, open a material as a node network, and download free MaterialX materials from ambientCG and Poly Haven without leaving Houdini.</p>
+
+<figure>
+  <img src="{{assets}}/img/shots/scene.png" alt="The Scene tab of the BSM Karma Builder window" loading="lazy" width="600">
+  <figcaption>The window, on the Scene tab. It opens compact and the <strong>Build Environment Only</strong> button stays visible at the bottom of every tab.</figcaption>
+</figure>
+
+<h3>Requirements</h3>
+<ul>
+  <li>SideFX Houdini 21 or 22, with Solaris (LOPs) and Karma.</li>
+  <li>Houdini 22 parameter names are the reference. Older names are tried as fallbacks, and the <a href="#tab-log">Log</a> lists any parameter that your version does not have.</li>
+  <li>Nothing else to install: the interface, the 2D clouds and the material downloads only use what ships with Houdini (Qt, <code>numpy</code>, <code>requests</code>).</li>
+</ul>
+<h2 id="install">Installation</h2>
+<p>No Python to paste: you unpack a folder, double-click a file, restart Houdini. A step by step version, with troubleshooting and how to uninstall, is in <code>README.md</code> at the root of the repository.</p>
+<h3 id="install-bat">Option A: Install.bat (Windows)</h3>
+<ol>
+  <li>Get the repository (clone it or unpack the zip) and keep the folder where it is.</li>
+  <li>Double-click <strong>Install.bat</strong>. If Windows shows &ldquo;Windows protected your PC&rdquo;, choose <em>More info</em>, then <em>Run anyway</em>.</li>
+  <li>Restart Houdini. Use the menu <strong>BSM &rarr; Karma Builder</strong>. The shelf <strong>BSM Karma</strong> is available from the <strong>+</strong> next to the shelf tabs.</li>
+</ol>
+<p>Install.bat writes one small file, <code>packages/bsm_karma.json</code>, in the preferences folder of each Houdini 21 or 22 it finds. The file points Houdini at the folder, nothing is copied, so updating is just updating the folder. If you move the folder, run Install.bat again. <strong>Uninstall.bat</strong> removes the file.</p>
+
+<h3 id="install-package">Option B: package file (Linux, macOS)</h3>
+<p>Create <code>packages/bsm_karma.json</code> in the Houdini preferences folder with the folder of the repository as <code>path</code>, and a <code>PYTHONPATH</code> entry with method <code>prepend</code> and the same folder as value. The exact content is in the README.</p>
+<table>
+  <tr><th>Windows</th><td><code>C:\Users\%USERNAME%\Documents\houdini&lt;version&gt;\packages\</code></td></tr>
+  <tr><th>Linux</th><td><code>~/houdini&lt;version&gt;/packages/</code></td></tr>
+  <tr><th>macOS</th><td><code>~/Library/Preferences/houdini/&lt;version&gt;/packages/</code></td></tr>
+</table>
+<p>Replace <code>&lt;version&gt;</code> with your Houdini version, for example <code>21.0</code> or <code>22.0</code>.</p>
+
+<h3 id="install-hda">Option C: the HDA</h3>
+<ol>
+  <li>Build it with <code>hython build_hda.py</code> (see the README), then copy <code>bsm_karma_builder.hda</code> into the <code>otls</code> folder of your Houdini preferences and restart Houdini, or use <em>Assets &rarr; Install Asset Library&hellip;</em>.</li>
+  <li>In <code>/stage</code>, press Tab and type <code>karma builder</code> (submenu <strong>BSM</strong>).</li>
+  <li>Press <strong>Open Karma Builder</strong> on the node. The <strong>Create Shelf Button</strong> button makes a shelf that opens the tool without the node.</li>
+</ol>
+<p>The tool and its presets are stored inside the asset. The node passes its input through unchanged and is not part of the network the tool builds; it only opens the window. The asset does not create a shelf or a menu by itself.</p>
+<h2 id="quickstart">Quick start</h2>
+<ol>
+  <li>Open the window. On the <strong>Scene</strong> tab, keep <em>Scene Mode: Environment</em> and <em>Environment Type: Physical Sky</em>.</li>
+  <li>Pick a <strong>Quality Preset</strong> (for example <em>Mid (1080p / 256s)</em>) and an <strong>Engine</strong> (<code>xpu</code> or <code>cpu</code>).</li>
+  <li>Pick a <strong>Sky Preset</strong> such as <em>Golden Hour</em>.</li>
+  <li>Press <strong>Build Environment Only</strong>. The nodes appear in <code>/stage</code> and the Karma Render Settings node is selected.</li>
+  <li>Press <strong>Karma Viewport</strong> on the <strong>Export</strong> tab to preview, or <strong>Render to Disk</strong> to render.</li>
+  <li>Optional: on the <strong>Materials</strong> tab, choose a <em>Geometry</em> source and assign materials to its prims.</li>
+</ol>
+<p>Change a slider and press Build again at any time: the existing nodes are updated. Turn on <a href="#live-update">Live Update</a> to see value changes without pressing the button.</p>
+<h2 id="network">What gets built</h2>
+<p>Every build produces the same backbone. Dashed boxes only exist when the matching option is used.</p>
+<div class="chain" role="img" aria-label="Node chain">
+  <span>render_cam</span><i>&rarr;</i><span>environment nodes</span><i>&rarr;</i><span class="opt">geo_merge</span><i>&rarr;</i>
+  <span>mtlx_materials</span><i>&rarr;</i><span class="opt">material_linker</span><i>&rarr;</i><span class="opt">material_edit</span><i>&rarr;</i><span class="opt">standard_aovs</span><i>&rarr;</i>
+  <span>karma_settings</span><i>&rarr;</i><span>render_to_disk</span>
+</div>
+<table>
+  <tr><th>Node</th><th>Type</th><th>Role</th></tr>
+  <tr><td><code>render_cam</code></td><td>Camera</td><td>The render camera, created when <em>Create New Camera</em> is selected.</td></tr>
+  <tr><td><code>geo_merge</code></td><td>Merge</td><td>Merges your geometry LOP (the <em>Geometry Source</em>) with the environment, so materials can be bound to its prims.</td></tr>
+  <tr><td><code>mtlx_materials</code></td><td>Material Library</td><td>Holds a default MaterialX material, <code>pbr_standard</code>, under <code>/World/Materials</code>.</td></tr>
+  <tr><td><code>material_linker</code></td><td>Material Linker</td><td>Created the first time you assign a material from the Materials tab. Holds the references and the assignment rules.</td></tr>
+  <tr><td><code>material_edit</code></td><td>Edit Material</td><td>Created when you open a material as a node network (right click in the Materials tab). Sits right after <code>material_linker</code>; edits made inside it are part of the render.</td></tr>
+  <tr><td><code>standard_aovs</code></td><td>Karma Standard Render Vars</td><td>The render passes chosen on the Passes tab. Removed when AOVs are disabled.</td></tr>
+  <tr><td><code>karma_settings</code></td><td>Karma Render Settings</td><td>Engine, samples, resolution, denoiser, pixel filter, ray limits, output path. Camera is set to the USD prim path of the render camera.</td></tr>
+  <tr><td><code>render_to_disk</code></td><td>USD Render ROP</td><td>Renders the chain, with the frame range and image path of the Export tab.</td></tr>
+</table>
+
+<h3 id="modes">Scene modes</h3>
+<p>The <em>Scene Mode</em> decides which lighting nodes sit between the camera and the material library.</p>
+<table>
+  <tr><th>Mode</th><th>Nodes</th><th>Notes</th></tr>
+  <tr><td><strong>Environment</strong></td>
+    <td><code>physical_sky</code> (and <code>sky_atmosphere_linker</code> in Volumetric mode) <em>or</em> <code>env_hdri</code>; optional <code>atmosphere_fog</code>; optional <code>cloud_geo</code>, <code>cloud_xform</code>, <code>quickcloudmaterial</code>, <code>assign_cloud_shader</code> (3D clouds) or <code>cloud_layer_2d</code> (2D clouds); then <code>env_merge</code></td>
+    <td>Choose <em>Physical Sky</em> or <em>HDRI Image</em>. Fog and clouds are only available in this mode.</td></tr>
+  <tr><td><strong>Studio</strong></td>
+    <td><code>studio_hdri</code> (dome light) and <code>studio_key</code> (area light)</td>
+    <td>Uses an HDRI plus one key light.</td></tr>
+  <tr><td><strong>3 Points</strong></td>
+    <td><code>fill_hdri</code>, <code>key_light</code>, <code>fill_light</code>, <code>rim_light</code></td>
+    <td>The dome runs at 20% of <em>Dome Intensity</em>. Relative to <em>Main Area Intensity</em>, the key is 100%, the fill 40% and the rim 150%.</td></tr>
+  <tr><td><strong>Interior</strong></td>
+    <td><code>window_portal</code> (area light), plus <code>env_hdri</code> when <em>Window View</em> is <em>HDRI Image</em></td>
+    <td>No sky. An interior is lit by its window, so an area light stands in for it, with the exposure and the color set in Lamp Colors. With <em>Window View</em> on <em>None</em> the window light is the only light. With <em>HDRI Image</em> a dome light shows the picture wherever the camera sees outside, for example through the openings of your walls, and also lights the room through them; with no walls, it shows everywhere.</td></tr>
+</table>
+<p>When you change mode, the nodes of the previous mode that are no longer needed are removed.</p>
+
+<h3 id="incremental">Rebuilding safely</h3>
+<p>The tool marks every node it creates with the user data <code>bsm_karma_managed</code>. On the next build it:</p>
+<ul>
+  <li><strong>updates</strong> the nodes that already exist instead of creating new ones;</li>
+  <li><strong>keeps hand placement</strong>: the generated camera and the area lights are positioned only when they are created. Move one by hand and a rebuild leaves it where it is. (<em>Match viewport</em> on the camera is the exception: it copies the viewport at each build.)</li>
+  <li><strong>keeps the default material</strong>: <code>pbr_surface</code> receives its default values once, when it is created;</li>
+  <li><strong>removes</strong> only its own nodes that the current mode no longer uses, and does it last: the new network is built and wired first, so what is displayed never depends on a node that is about to disappear;</li>
+  <li><strong>pauses cooking</strong> while it works (Houdini's update mode goes to Manual, then back to what it was, even after an error), so a running Karma viewport restarts once at the end instead of after every node. A session already in Manual mode is left as it is. Clear All Tool Nodes does the same;</li>
+  <li><strong>never touches your nodes</strong>: the tool recognizes its own nodes only by the mark it put on them. A node of yours is never deleted, rewired, moved or marked, even if it has the same name or the same type as one of the tool's nodes. If one has the name the tool needs, the build stops with an error that names it (<code>[ERROR] ... was not created by BSM Karma Builder</code>); rename it and build again.</li>
+</ul>
+<div class="callout warn"><strong>Clear All Tool Nodes</strong>Deletes the nodes the tool built in <code>/stage</code>, after a confirmation that lists them. Nodes you made are never in that list. A tool node that is wired to something outside the tool's own nodes is skipped and reported in the Log. The deletion is a single undo step.</div>
+<p>Each build, and each material assignment, is also one undo step (<em>BSM Karma - Build</em>, <em>BSM Karma - Assign Material</em>).</p>
+<h2 id="ui">Interface reference</h2>
+<p>The window has one tab per topic and a <strong>Build Environment Only</strong> button that stays visible at the bottom. It opens compact (about 540 &times; 600 pixels) and can be narrowed to about 400 pixels without a horizontal scroll bar; each tab scrolls vertically when it does not fit. Drop-down lists are only as wide as the field they sit in, and their full text shows when opened. The screenshots below use sample data.</p>
+<h3 id="fields">Numeric fields</h3>
+<p>Every number is a hybrid field: a bar with an amber gauge showing where the value sits in its range, and the value written in the middle.</p>
+<ul>
+  <li><strong>Drag</strong> across the bar to set the value; it follows the mouse position. The sun altitude and direction snap to common values (0, 15, 30, 45&hellip;) while you drag.</li>
+  <li><strong>Click without moving</strong> to type a number. <kbd>Enter</kbd> or a click elsewhere confirms, <kbd>Esc</kbd> cancels. A typed value is exact and is limited to the range of the field.</li>
+  <li><strong>Arrow keys</strong> (left and right) change the value by the smallest step, and <kbd>Shift</kbd> makes the step ten times larger.</li>
+  <li>The mouse wheel does not change values, so it keeps scrolling the tab.</li>
+</ul>
+
+<h3 id="tab-scene">Scene</h3>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Scene Mode</td><td>Environment, Studio, 3 Points or Interior (see <a href="#modes">Scene modes</a>).</td></tr>
+  <tr><td>Environment Type</td><td>Physical Sky or HDRI Image. Only used by the Environment mode. In Interior the field is named <em>Window View</em> and offers None or HDRI Image: an interior has no sky.</td></tr>
+  <tr><td>Sky Preset</td><td>Same list as <em>Atmosphere Preset</em> on the Lighting tab; the two stay in sync. Choosing a preset sets the sky sliders.</td></tr>
+  <tr><td>Quality Preset</td><td>Sets resolution and samples (see <a href="#presets">Presets</a>). You can still edit both afterwards.</td></tr>
+  <tr><td>Resolution</td><td>Width and height, 1 to 8192.</td></tr>
+  <tr><td>Samples</td><td>Path-traced samples, 1 to 4096.</td></tr>
+  <tr><td>Engine</td><td><code>xpu</code> or <code>cpu</code>. Also selects the Karma delegate of the USD Render ROP.</td></tr>
+  <tr><td>Camera</td><td>Choose <em>Create New Camera</em>, a camera LOP of <code>/stage</code>, or a camera prim found in the Geometry Source (listed as <code>USD: &hellip;</code>). The list refreshes when opened; <strong>Refresh</strong> forces it. With an existing camera, the generated <code>render_cam</code> is removed.</td></tr>
+  <tr><td>Look Through</td><td>Locks a Scene Viewer on <code>/stage</code> to the render camera. Builds first if the camera does not exist yet. If no viewer is on <code>/stage</code>, it opens the Karma viewport instead.</td></tr>
+  <tr><td>New Camera</td><td>Focal length (5 to 400 mm) of the generated camera. <em>Match viewport</em> copies the position and rotation of the active viewport at each build; left off, the camera keeps the position it was given the first time. For ultra-wide formats (width/height above 2) the aperture is set to 41.42.</td></tr>
+  <tr><td>Clear All Tool Nodes</td><td>See <a href="#incremental">Rebuilding safely</a>.</td></tr>
+  <tr><td>Live Update</td><td>See below.</td></tr>
+</table>
+<h4 id="live-update">Live Update (<em>Rebuild on change</em>)</h4>
+<p>Off by default. <em>Off</em>: the network only changes when you press <strong>Build Environment Only</strong>, which suits slower machines. <em>On</em>: a change of a value (a slider, a list, a checkbox, an edited path) rebuilds the network about a third of a second after the last change, so dragging a slider gives one update, not one per step. A live update does not take the selection, does not re-arrange nodes unless it created or removed some, and only reports problems in the Log (once each); everything is still written to the <a href="#debug-log">debug log file</a>. Each update is one undo step named <em>BSM Karma - Live Update</em>.</p>
+<div class="callout warn"><strong>Some changes wait for the Build button</strong>A change that adds or removes nodes, or switches the engine, is not applied live: <em>Scene Mode</em>, <em>Environment</em>, <em>Sky Rendering</em>, fog, clouds, <em>Cloud Type</em>, AOVs, <em>Engine</em>, camera, geometry source and cloud material path. A running Karma viewport restarts on such a change and Houdini can freeze for minutes. The Log says what changed, and Live Update goes on after the next <strong>Build Environment Only</strong>. Live Update also waits for a first Build. Camera and material lists are refreshed by a normal Build.</div>
+
+<h3 id="tab-lighting">Lighting</h3>
+<div class="shots">
+  <figure><img src="{{assets}}/img/shots/lighting.png" alt="The Lighting tab with the Karma Physical Sky controls" loading="lazy"><figcaption>Physical sky on the <em>Golden Hour</em> preset. The compass and the side view show the sun. The small square under <em>Ambient Tint</em> shows the colour of the three sliders.</figcaption></figure>
+</div>
+<h4>General Lights / HDRI</h4>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Dome Intensity</td><td>Intensity of the dome light, 0 to 20.</td></tr>
+  <tr><td>Main Area Intensity</td><td>Intensity of the area lights (key, fill, rim, window), 0 to 100.</td></tr>
+  <tr><td>HDRI Path</td><td>Path of the environment image; <code>$HIP</code> and other variables are accepted. A preview is shown below when the image can be read.</td></tr>
+  <tr><td>HDRI Exposure</td><td>&minus;8 to +8 stops, applied as a multiplier on the intensity.</td></tr>
+  <tr><td>HDRI Rotation Y</td><td>Rotates the dome around the vertical axis.</td></tr>
+  <tr><td>HDRI Saturation, Temperature, Tint</td><td>Combined into the light color of the dome: temperature in kelvin (2500 to 12000), then tint (green to magenta), then saturation.</td></tr>
+</table>
+<p>The HDRI controls are only shown when the mode uses an HDRI (Studio, 3 Points, or Environment with <em>HDRI Image</em>, Interior with a <em>Window View</em> HDRI). The preview shows the whole picture in a frame that follows the width of the tab (2:1 for a lat-long image, at most 240 px high), whatever the size of the file. It uses Qt for the usual formats, the tool's own readers for Radiance <code>.hdr</code> and OpenEXR (no compression, RLE, ZIP), and falls back to Houdini's <code>iconvert</code> for the rest (PIZ and other compressions, RAT). If none works the preview says why, for example <em>Preview unavailable: OpenEXR compression PIZ ...; iconvert not found</em>; the render is not affected.</p>
+
+<h4>Lamp Colors</h4>
+<p>Shown in Studio, 3 Points and Interior. Each lamp has a <em>Temp. (K)</em> slider (low is warm, high is cool, 6500 is neutral white) and a <em>Tint</em> slider (green to magenta). Studio has one lamp (the key), 3 Points has the key, the fill and the rim, Interior has the window light (the key sliders, named <em>Window</em>). A color change is applied by Live Update like any value.</p>
+<h4>Karma Physical Sky</h4>
+<p>Shown when the mode uses a physical sky.</p>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Atmosphere Preset</td><td>Sets the sky sliders in one step (see <a href="#presets">Presets</a>). <em>-- Custom --</em> leaves them alone. A preset is applied when you pick it; later edits to the sliders are kept.</td></tr>
+  <tr><td>Sky Rendering</td><td><em>Basic Projection (Fast)</em> uses the classic sky. <em>Volumetric Atmosphere (Realistic)</em> uses the volumetric atmosphere and adds a <code>sky_atmosphere_linker</code> (Light Linker) that links the sun to the atmosphere. The atmosphere is lit by the sun alone and only renders in Karma: with the sun below the horizon (a negative <em>Solar Altitude</em>, as in the night preset) it is dark, and the Log says so.</td></tr>
+  <tr><td>Solar Altitude</td><td>&minus;20&deg; to 90&deg;. A side view next to the sliders shows the sun's height.</td></tr>
+  <tr><td>Solar Direction</td><td>0&deg; to 360&deg;, with a compass.</td></tr>
+  <tr><td>Align to View (<em>Follow the viewport heading</em>)</td><td>Off by default. When on, the Y rotation of the active Scene Viewer is added to the Solar Direction at each build, so the sun turns with the view. The compass does not show this offset.</td></tr>
+  <tr><td>Sun Intensity, Angular Size</td><td>Sun intensity (0 to 50) and apparent size (0.01&deg; to 10&deg;; the real sun is about 0.53&deg;).</td></tr>
+  <tr><td>Sun Temp. (K)</td><td>Sun color, 1500 to 20000 K, with a list of common sources (candle, tungsten, daylight&hellip;).</td></tr>
+  <tr><td>Ambient Tint</td><td>R, G, B multipliers (0 to 2), with a colour square under the label. Used as the fog color. Values above 1 are shown clipped in the square.</td></tr>
+  <tr><td>Turbidity, Horizon Blur</td><td>Used by the Basic Projection sky.</td></tr>
+  <tr><td>Sky Intensity</td><td>Intensity of the sky itself. When fog or clouds are enabled, it is multiplied by 4 because volumes absorb sky light.</td></tr>
+  <tr><td>Rayleigh (blue), Mie (haze)</td><td>Scale the scattering of the volumetric atmosphere, 0 to 5 (1 is the node's default).</td></tr>
+</table>
+
+<h3 id="tab-atmosphere">Atmosphere</h3>
+<p>Fog and clouds are only built in <em>Environment</em> mode; in the other modes the two groups are disabled and ignored. A diagram at the bottom shows the fog height and the cloud altitude to scale.</p>
+<div class="shots">
+  <figure><img src="{{assets}}/img/shots/atmosphere_3d_clouds.png" alt="The Atmosphere tab with 3D volume clouds" loading="lazy"><figcaption>Fog and 3D volume clouds.</figcaption></figure>
+  <figure><img src="{{assets}}/img/shots/atmosphere_2d_clouds.png" alt="The Atmosphere tab with the 2D cloud layer" loading="lazy"><figcaption>Fog and the 2D cloud layer.</figcaption></figure>
+</div>
+<h4>Fog</h4>
+<p>A <strong>Karma Fog Box</strong> LOP named <code>atmosphere_fog</code>, centered at the fog height.</p>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Fog Preset</td><td>Light Mist, Thick Ground Fog or Creepy Swamp.</td></tr>
+  <tr><td>Fog Density, Height, Radius</td><td>Density, height (up to 500) and horizontal extent of the box.</td></tr>
+  <tr><td>Fog Phase</td><td>Scattering direction, &minus;1 (back) to 1 (forward).</td></tr>
+  <tr><td>Fog Noise Freq, Amp</td><td>Noise frequency and strength inside the fog.</td></tr>
+</table>
+<h4>Clouds</h4>
+<p><strong>Cloud Type</strong> chooses how the clouds are made.</p>
+<table>
+  <tr><th>Type</th><th>Description</th></tr>
+  <tr><td>3D Volume (slow, realistic)</td><td>Real cloud volumes, lit by the sun, with parallax (below).</td></tr>
+  <tr><td>2D Layer (fast, backdrop)</td><td>A cloud picture on a second dome light (<code>cloud_layer_2d</code>), added to the sky. No geometry and no volume, so it renders like any dome light: for a distant background. The clouds light the scene a little, like sky bounce, and do not cast shadows.</td></tr>
+</table>
+<h4>2D clouds</h4>
+<p>The picture is generated by the tool: seamless around the horizon, nothing below it, fading near the horizon. It is written as a linear 16-bit <code>bsm_clouds_*.exr</code> in the <code>bsm_karma/clouds</code> folder of your Houdini preferences. The same settings reuse the same file; the last six are kept. Copy the file with the project if the scene is rendered on another machine. A live update uses a half size picture, the next Build writes the full one (2048 &times; 1024). It needs <code>numpy</code>, which ships with Houdini. <em>Brightness</em> is relative to the sky: 1 is as bright as the sky intensity (or the HDRI intensity), the default 1.5 makes the clouds a little brighter than the sky.</p>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Coverage</td><td>Share of the sky covered, 0 (clear) to 1.</td></tr>
+  <tr><td>Softness</td><td>Soft edges and haze (high) or crisp cumulus edges (low).</td></tr>
+  <tr><td>Cloud Size</td><td>Number of large cloud masses around the horizon.</td></tr>
+  <tr><td>Brightness</td><td>Intensity of the cloud dome light.</td></tr>
+  <tr><td>Seed</td><td>Another number, another pattern.</td></tr>
+  <tr><td>Drift (deg/min)</td><td>Animation: the clouds turn around the sky by this many degrees per minute (the rotation of the dome light follows the time). 0 keeps them still. Press Play in Houdini to see it.</td></tr>
+</table>
+<h4>3D clouds</h4>
+<p>A <strong>SOP Create</strong> LOP named <code>cloud_geo</code>, holding a small SOP network (<em>Sky Box</em> &rarr; <em>Cloud Billowy Noise</em> &rarr; <em>Cloud Adjust Density Profile</em>) at <code>/World/Environment/Clouds</code>, moved by <code>cloud_xform</code> and bound to a cloud material by <code>assign_cloud_shader</code>.</p>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Cloud Preset</td><td>High Cirrus, Low Cumulus, Stormy, Stratus, Cumulus, Altocumulus or Cirrostratus.</td></tr>
+  <tr><td>Cloud Base Density</td><td>Density of the cloud material. 0.20 is SideFX's default scale.</td></tr>
+  <tr><td>Cloud Altitude, Scale</td><td>Height of the cloud layer (10 to 13000) and its size.</td></tr>
+  <tr><td>Cloud Voxel Size (Prec)</td><td>Voxel size of the cloud volume: a larger value is faster and coarser.</td></tr>
+  <tr><td>Cloud Edge Clip</td><td>Where the noise is cut, which sets the cloud coverage.</td></tr>
+  <tr><td>Wind Speed (m/s), Wind Direction</td><td>Animation: the clouds slide along the ground plane with the time, at this speed, towards this direction (0 is -Z, away from the default camera; 90 is +X, to the right). 0 keeps them still. Press Play to see it.</td></tr>
+  <tr><td>Cloud Material Path</td><td>Empty: the tool uses SideFX's <em>Quick Cloud Material</em> (<code>quickcloudmaterial</code>). Otherwise give the USD path of your own material, or use <strong>&hellip;</strong> to pick a material node or library.</td></tr>
+</table>
+<p>With both fog and clouds on, the Volume Limit is raised to at least 8.</p>
+
+<h3 id="tab-materials">Materials</h3>
+<p>Assign materials from a catalog to the prims of your geometry, by drag and drop or with a button. The tool writes the assignments in a <strong>Material Linker</strong> node. The top half is the catalog, the bottom half the prims of the <em>Geometry</em> source.</p>
+<div class="shots">
+  <figure><img src="{{assets}}/img/shots/materials.png" alt="The Materials tab, catalog as thumbnails" loading="lazy"><figcaption>Thumbnails view (the entries are samples). Under the catalog: the status line with the <strong>Download...</strong> button, the prims of the geometry with the material bound to each, and the assignment buttons.</figcaption></figure>
+  <figure><img src="{{assets}}/img/shots/materials_list.png" alt="The Materials tab, catalog as a list" loading="lazy"><figcaption>List view: the same materials as one alphabetical list.</figcaption></figure>
+  <figure><img src="{{assets}}/img/shots/materials_categories.png" alt="The Materials tab, catalog by categories" loading="lazy"><figcaption>Categories view: the same materials grouped by folder, with the count of each group.</figcaption></figure>
+</div>
+
+<h4>Catalog</h4>
+<table>
+  <tr><th>Source</th><th>Description</th></tr>
+  <tr><td>AMD MaterialX Library</td><td>Online library (<a href="https://matlib.gpuopen.com">matlib.gpuopen.com</a>). Packages are downloaded into the <em>Download to</em> folder the first time a material is used. The tool checks that the server answers before connecting, so an offline machine does not freeze Houdini.</td></tr>
+  <tr><td>Houdini Default Catalog</td><td>The catalog shipped with Houdini (<code>materialCatalog.db</code>). The window opens on this source.</td></tr>
+  <tr><td>USD / MaterialX File&hellip;</td><td>Any <code>.mtlx</code>, <code>.usd</code>, <code>.usda</code>, <code>.usdc</code> or <code>.usdz</code> file. A <code>.mtlx</code> is wrapped in a small temporary USD layer so the gallery can show it.</td></tr>
+</table>
+<p>Press <strong>Connect</strong> to switch source. The catalog is shared by the whole Houdini session; when the window closes, the default catalog is restored.</p>
+
+<h4>Views of the catalog</h4>
+<p>The <strong>View</strong> list above the catalog switches how the same materials are shown.</p>
+<table>
+  <tr><th>View</th><th>Description</th></tr>
+  <tr><td>Thumbnails</td><td>Houdini's own gallery.</td></tr>
+  <tr><td>List</td><td>All materials as one alphabetical list. Hover a name to see the folder it comes from.</td></tr>
+  <tr><td>Categories</td><td>The materials grouped by folder, with the number of materials in each group.</td></tr>
+</table>
+<p>The List and Categories views read the rows the gallery has already loaded (they never ask a catalog for more, which could start a download), and they follow the gallery when it changes or when you connect another source. They can be dragged from like the gallery.</p>
+
+<h4>Right click on a material</h4>
+<figure>
+  <img src="{{assets}}/img/shots/materials_menu.png" alt="The context menu of a material" loading="lazy">
+  <figcaption>The menu of a material in the catalog.</figcaption>
+</figure>
+<table>
+  <tr><th>Action</th><th>What it does</th></tr>
+  <tr><td>Assign to Selection</td><td>Same as the <strong>Assign Material to Selection</strong> button.</td></tr>
+  <tr><td>Edit Material (Material Linker)</td><td>References the material in <code>material_linker</code> (without assigning it), selects the node and makes it current, so Houdini's parameter pane and Material Linker show it.</td></tr>
+  <tr><td>Open MaterialX Network (Edit Material node)</td><td>Same reference, then creates <code>material_edit</code> (an Edit Material LOP) right after the linker, points it at the material, presses its Load button and dives into it, so you see and edit the material as nodes. The node holds one material at a time: opening another one asks first, because the edits made in the first network are replaced. Anything the tool cannot do on this Houdini is listed in the Log and the node is left selected for you to finish.</td></tr>
+</table>
+<p>The right click replaces the context menu of Houdini's gallery inside the tab. With several materials selected, the first one is opened. Each action is one undo step.</p>
+
+<h4>Assign to geometry</h4>
+<ol>
+  <li>Choose a <strong>Geometry</strong> source: a LOP node of <code>/stage</code> that is not one of the tool's nodes. It is merged with the environment (<code>geo_merge</code>) on the next build. Selecting it lists its prims in the tree.</li>
+  <li><strong>Drag a material</strong> from the catalog onto a prim of the tree. If the prim is part of the selection, all selected prims receive it.</li>
+  <li>Or <strong>drag it onto an object of the Solaris viewport</strong> (option <em>Accept drops on the Solaris viewport</em>). The prim under the cursor gets the material, or the whole viewport selection if the prim is part of it. The drop is only listened to while a drag from the catalog is running, and is refused on the tool's own window.</li>
+  <li>Or select a material in the catalog and press <strong>Assign Material to Selection</strong>. The targets are the prims selected in the list; with none, the selection of the Solaris viewport. <strong>From Viewport</strong> selects in the list the prims selected in the viewport.</li>
+  <li>Or select prims and use <strong>Assign File&hellip;</strong> (a MaterialX or USD file); if the file holds several materials, you pick one.</li>
+  <li><strong>Remove</strong> clears the assignment of the selected prims. <strong>Linker</strong> selects the node so you can edit the rules in Houdini's own panel.</li>
+</ol>
+<p>Prim paths that come from the viewport are only used when they are plain USD paths. A prim has one material: assigning a new one replaces the previous rule. The first assignment builds the environment if needed and creates <code>material_linker</code>. The tree shows the material bound to each prim and is limited to the first 5000 prims; the tool's own prims (<code>/Render</code>, <code>/lights</code>, <code>/cameras</code>, <code>/World/Environment</code>, <code>/materials</code>) are hidden.</p>
+
+<h4 id="download">Download materials</h4>
+<p>The <strong>Download...</strong> button opens a window that downloads MaterialX materials from <strong>ambientCG</strong> or <strong>Poly Haven</strong>. Nothing has to be installed: the tool makes the requests itself, with the <code>requests</code> module that ships with Houdini. The download runs in the background, Houdini stays usable, and <strong>Stop</strong> ends it.</p>
+<figure>
+  <img src="{{assets}}/img/shots/materials_download.png" alt="The download window" loading="lazy" width="560">
+  <figcaption>The download window after a run: the names of the site, the log, and the downloaded materials with their thumbnails, ready to drag.</figcaption>
+</figure>
+<table>
+  <tr><th>Source</th><th>What you give</th></tr>
+  <tr><td>ambientCG</td><td>The material name (for example <code>WoodFloor038</code>), the resolution (1K to 8K) and the image format (PNG or JPG). The zip is saved, then unpacked into a folder of its name.</td></tr>
+  <tr><td>Poly Haven</td><td>The asset id (for example <code>polystyrene</code>) and the resolution (1k to 8k). The <code>.mtlx</code> and its textures go to <code>&lt;id&gt;_materialx</code>. EXR textures are taken as PNG when the site has them, and the <code>.mtlx</code> is changed to match.</td></tr>
+</table>
+<p><strong>Load List</strong> asks the site for the names of its materials; the list can be filtered, and a click puts the name in the field. <strong>Open Website</strong> opens the source in your browser. When the run ends, the <code>.mtlx</code> files of the folder are listed with a thumbnail (the color map next to the file), the new one selected. <strong>Drag a material from that list onto a prim of the list in the Materials tab, or onto an object of the Solaris viewport</strong>: it is bound to that prim (to the whole selection when the prim you drop on is selected), exactly like a drag from the catalog. <strong>Assign to Selection</strong>, or a double click, binds it to the prims selected in the Materials tab list or in the viewport. Tick <strong>Assign to the selected prims when a download ends</strong> to bind a material as soon as it is unpacked: select the prims, type a name, press Download. <strong>Use in Catalog</strong> shows that file's materials in the catalog above, like the <em>USD / MaterialX File...</em> source. Only files of the download folder are taken from a drop. The default folder is <code>bsm_karma/mtlx</code> in your Houdini preferences; the folder and the source are remembered.</p>
+<p>What a server sends is not trusted: only https addresses on ambientCG and Poly Haven are used, one file may not exceed 800 MB, a path that leaves the folder, a backtick in a file name or a very large archive is refused, and names are limited to letters, digits, <code>_</code>, <code>.</code> and <code>-</code> (no leading dash). The materials come from the internet: check their licence, and treat the files like any file you did not make.</p>
+
+<h3 id="tab-shader">Shader</h3>
+<p>A simple editor for the material of a prim, and the tool's own basic materials, so that you do not have to go through MaterialX nodes for everyday changes.</p>
+<table>
+  <tr><th>Part</th><th>What it does</th></tr>
+  <tr><td>Material</td><td>The materials of the Material Linker (assigned from the Materials tab or from this one). Pick one, or press <em>From Prim Selection</em> for the material of the first selected prim. <em>Open Network</em> shows the Material Linker for the full MaterialX network.</td></tr>
+  <tr><td>Basic Materials</td><td>Sixteen materials the tool writes itself as small MaterialX files: Plastic, Rubber, Steel, Gold, Chrome, Copper, Glass, Frosted, Skin, Wax, Marble, Ceramic, Car Paint, Fabric, Leather, Emissive. <strong>Click</strong> one to assign it to the prims selected in the Materials tab list or in the viewport, or <strong>drag</strong> it onto a prim of the list or an object of the Solaris viewport.</td></tr>
+  <tr><td>PBR</td><td>The general purpose material: a MaterialX standard surface with a slot for each map of a texture set, like the Principled shader but for Karma. <strong>Click</strong> the PBR button to assign it (it has no maps at first, it is a plain grey that you edit like any basic material). In the <em>PBR Texture Set</em> group, <em>Load Texture Set...</em> takes a folder and finds the maps by the words in their names (color, albedo, diffuse, roughness, metalness, normal, ao, displacement, height, emission, opacity; ambientCG and Poly Haven names work). Eight slots (Base Color, Roughness, Metalness, Normal, Ambient Occlusion, Displacement, Emission, Opacity), each with a <em>...</em> file picker, can also be filled one by one or cleared. Options: <em>Normal Format</em> (OpenGL or DirectX, the green channel is flipped for DirectX), <em>glossiness</em> maps (inverted), <em>AO Strength</em>, <em>Offset U and V</em> and <em>Rotation</em>. Tint, brightness, roughness scale, normal strength, displacement and tiling are the controls of the Textures group. Only color maps are read as sRGB, the others as data. <em>Reset</em> keeps the maps and brings everything else back to the defaults; <em>Save as My Material</em> writes the material with its maps to My Materials. A map must be a full path to a png, jpg, tif, exr, tga, tx or webp file.</td></tr>
+  <tr><td>Random Material</td><td>A new color and finish drawn from ranges you set: <em>Kind</em> (Any, Plastic, Matte, Metal, Paint), a hue range (from 300 to 60 goes through red, 0 to 360 is every color), saturation and brightness ranges, and a <em>Seed</em> (the same seed and ranges give the same colors again; each use moves it on). <strong>Click the ball</strong> or <em>Assign to Selection</em>: each selected prim gets its own random material. <strong>Drag the ball</strong> onto a prim or the viewport for one. <em>Randomize Material Being Edited</em> gives the material of the Material group a new random color (a texture is tinted instead).</td></tr>
+  <tr><td>My Materials</td><td>The materials you saved with <em>Save as My Material...</em>, in <code>bsm_karma/my_materials</code> of your Houdini preferences. They are used like the basic ones.</td></tr>
+  <tr><td>Base</td><td>Color (click the swatch), roughness, metalness.</td></tr>
+  <tr><td>Subsurface</td><td>Amount, color, radius per channel and scale, for skin, wax, marble and leaves. The check box turns the effect off and on.</td></tr>
+  <tr><td>Specular / Coat</td><td>Specular, IOR, coat and its roughness.</td></tr>
+  <tr><td>Transmission</td><td>Amount, tint, absorption depth and Thin Walled, for glass and liquids.</td></tr>
+  <tr><td>Sheen, Emission, Opacity</td><td>Fabric sheen, emissive color and strength, opacity.</td></tr>
+  <tr><td>Textures of this material</td><td>Only for a material with textures (the ones you download): tint, brightness, roughness multiplier, normal strength, displacement and tiling. They scale the textures without replacing them. An input that a texture drives is greyed in the groups above; change it here, or give it a value to replace the texture.</td></tr>
+</table>
+<p>How it works: the editor reads the <code>.mtlx</code> file of the material, changes the values in the text and writes a copy next to it (<code>name.bsm_xxxxxxxx.mtlx</code>), then points the Material Linker at the copy. The original is never modified and its textures keep working, since the copy lies next to them. Changes apply after a short pause, so a slider can be dragged. <em>Reset to Original</em> points the Material Linker at the original again; the last eight copies of each file are kept. <em>Save as My Material...</em> keeps what you see under a name (next to the textures when the material has some).</p>
+<p>It edits a standard surface. A material of another structure is shown as one that cannot be edited here, and <em>Open Network</em> is the way to change it. The editor does not change nodes of your own.</p>
+
+<h3 id="tab-render">Render</h3>
+<figure><img src="{{assets}}/img/shots/render.png" alt="The Render tab" loading="lazy" width="600"></figure>
+<table>
+  <tr><th>Control</th><th>Default</th><th>Description</th></tr>
+  <tr><td>Image Denoiser</td><td>Optix (GPU)</td><td>None, Optix (GPU) or OIDN (CPU).</td></tr>
+  <tr><td>Pixel Filter (AA)</td><td>gauss</td><td>gauss, box, blackman or blackmanharris.</td></tr>
+  <tr><td>Diffuse / Reflection / Transmission Limit</td><td>3 / 3 / 4</td><td>Maximum ray bounces of each kind, 0 to 16.</td></tr>
+  <tr><td>Volume Limit</td><td>8</td><td>Maximum volume bounces, 0 to 32. Raised to 8 when fog and clouds are both on.</td></tr>
+  <tr><td>Color Limit (Clamp)</td><td>10</td><td>Clamps very bright samples to reduce fireflies.</td></tr>
+  <tr><td>Noise Level (Variance)</td><td>0.01</td><td>Variance threshold of adaptive sampling; lower is cleaner and slower.</td></tr>
+</table>
+
+<h3 id="tab-passes">Passes</h3>
+<figure><img src="{{assets}}/img/shots/passes.png" alt="The Passes tab" loading="lazy" width="600"></figure>
+<p>Controls the <code>standard_aovs</code> node (Karma Standard Render Vars). Untick <em>Enable AOVs</em> and the node is removed.</p>
+<table>
+  <tr><th>Pass</th><th>Karma variable</th></tr>
+  <tr><td>Ambient Occlusion</td><td><code>ambientocclusion</code></td></tr>
+  <tr><td>Depth (Z)</td><td><code>hitPz</code></td></tr>
+  <tr><td>Normal</td><td><code>hitN</code></td></tr>
+  <tr><td>Position</td><td><code>hitP</code></td></tr>
+  <tr><td>Albedo / Base Color</td><td><code>albedo</code></td></tr>
+  <tr><td>Emission</td><td><code>combinedemission</code></td></tr>
+  <tr><td>Diffuse</td><td><code>combineddiffuse</code></td></tr>
+  <tr><td>Specular</td><td><code>combinedglossyreflection</code></td></tr>
+  <tr><td>Motion Vectors</td><td><code>motionvectors</code></td></tr>
+  <tr><td>Shadow</td><td><code>shadow</code></td></tr>
+  <tr><td>ID / Crypto</td><td><code>primid</code> / <code>element</code></td></tr>
+</table>
+<p><strong>AOV Preset</strong> ticks a set of passes for you:</p>
+<table>
+  <tr><th>Preset</th><th>Passes</th></tr>
+  <tr><td>Utility</td><td>AO, Depth, Normal, Position, Motion Vectors, ID</td></tr>
+  <tr><td>Lighting</td><td>AO, Albedo, Emission, Diffuse, Specular, Shadow</td></tr>
+  <tr><td>Full</td><td>All passes</td></tr>
+  <tr><td>Custom</td><td>Leaves your choice as it is</td></tr>
+</table>
+<p><strong>AOV Output.</strong> <em>One multilayer EXR</em> writes all passes in one file; unticked, they are split into one file per pass. <em>16-bit (half) passes</em> sets the precision of the passes other than the beauty. The beauty follows the <em>Precision</em> of the Export tab.</p>
+
+<h3 id="tab-export">Export</h3>
+<figure><img src="{{assets}}/img/shots/export.png" alt="The Export tab" loading="lazy" width="600"></figure>
+<table>
+  <tr><th>Control</th><th>Description</th></tr>
+  <tr><td>Format, Precision</td><td>EXR or PNG, and for EXR the precision (16-bit or 32-bit float), on one row. The precision is hidden for PNG.</td></tr>
+  <tr><td>Frames</td><td><em>Single Frame</em> or <em>Frame Range</em>; the start and end frames sit on the same row and are enabled for a range.</td></tr>
+  <tr><td>Output</td><td>Default <code>$HIP/render/beauty/frame_$F4.exr</code>. The extension is corrected to match the format. A name with a frame token but no extension, such as <code>beauty.$F4</code>, keeps the token and gets the extension added.</td></tr>
+</table>
+<h4>Buttons</h4>
+<p>The four actions are in a 2 &times; 2 grid.</p>
+<ul>
+  <li><strong>Render to MPlay</strong>: builds, then renders the frame to MPlay without writing a file.</li>
+  <li><strong>Render to Disk</strong>: builds, creates the output folder if needed, then starts the USD Render ROP. If the build fails, nothing is rendered.</li>
+  <li><strong>Karma Settings</strong>: builds and opens a floating parameter panel on the render node.</li>
+  <li><strong>Karma Viewport</strong>: builds and opens a floating Scene Viewer on <code>/stage</code> with the Karma delegate and the render camera, with most interface bars hidden. Volumetric atmosphere and the 3D clouds only show in a Karma viewport, not in a standard Houdini viewport.</li>
+</ul>
+<h4>Viewport tools</h4>
+<ul>
+  <li><strong>Engine</strong> and <strong>Apply</strong> switch the viewport (and the build) between XPU and CPU.</li>
+  <li><strong>Snapshot</strong> captures the viewport into slot A, then slot B alternately. The slots are shown as thumbnails, with <strong>Safe Frame</strong> (action-safe 10% and text-safe 5% margins) and <strong>Compare A/B</strong> (both images with a slider) beside them. <strong>Save</strong> writes a PNG or JPEG; <strong>Clear</strong> empties both slots. Below, the preview shows the whole frame at the ratio of the image (nothing is cropped), with its slot and size under it.</li>
+</ul>
+
+<h3 id="tab-log">Log and About</h3>
+<figure><img src="{{assets}}/img/shots/log.png" alt="The Log tab" loading="lazy" width="600"><figcaption>The Log tab, with the debug log option and the path of the file.</figcaption></figure>
+<p>The <strong>Log</strong> tab records everything the tool does, with a time stamp and a level:</p>
+<table>
+  <tr><th>Level</th><th>Meaning</th></tr>
+  <tr><td><code>[OK]</code></td><td>An action finished.</td></tr>
+  <tr><td><code>[INFO]</code></td><td>Something was removed, skipped or decided for you.</td></tr>
+  <tr><td><code>[WARN]</code></td><td>Something could not be done. The build usually continues. Typical cause: a parameter or node type that does not exist in your Houdini version.</td></tr>
+  <tr><td><code>[ERROR]</code></td><td>The build or an action stopped, for example because a node of yours has the same name as a tool node. The traceback is in the <a href="#debug-log">debug log file</a>.</td></tr>
+</table>
+<p>Each build starts with a line giving the Houdini version. <strong>About</strong> shows the logo, the version of the tool (a number like 1.0.0), the credits and the license. <strong>Which build is running</strong> is told by an id of 8 characters computed from the source of every module, and where the code was loaded from (a folder, a copy in <code>scripts/python</code>, or the HDA): it is in the title of the window, followed by one word that says where the code was loaded from (<code>folder</code>, <code>installed</code> or <code>HDA</code>), in the first line of the Log and in the debug log. On the HDA node, the <strong>Build</strong> line under its parameters shows the build that was compiled into the asset. It changes with every edit of the code, and it is the same for the same code wherever it runs from. <code>python tools/build_id.py</code> prints the id of the repository (Python only, no Houdini): if it matches the window, Houdini runs that code.</p>
+<figure><img src="{{assets}}/img/shots/about.png" alt="The About tab" loading="lazy" width="600"></figure>
+<h4 id="debug-log">Debug log file</h4>
+<p>Below the Log, <strong>Write a debug log file</strong> (on by default) copies everything to a text file, <code>bsm_karma_debug.log</code>. It is more complete than the Log tab and is the file to send when something fails. It records:</p>
+<ul>
+  <li>a header for each session: tool version, Houdini version, Python, Qt binding, operating system, script path and the open .hip file;</li>
+  <li>every message of the Log tab;</li>
+  <li>the full settings of each build;</li>
+  <li>each parameter that was not found or was locked on a node (the usual sign of a Houdini version difference);</li>
+  <li>the node graph of <code>/stage</code> after each build, with the type of each node, its inputs, and whether it belongs to the tool;</li>
+  <li>the traceback of any error raised by a button. The button's error also appears in the Log tab as <code>[ERROR]</code>, and the window keeps working.</li>
+</ul>
+<p><strong>Where the file is written:</strong> in the <code>bsm_karma</code> package folder. The HDA has no file on disk, so it writes to <code>bsm_karma</code> inside your Houdini user preferences folder; if that folder cannot be written, a private folder of the session is used. The Log tab shows the exact path, and <strong>Open Folder</strong> shows the folder. When the file passes 1 MB it is renamed to <code>bsm_karma_debug.log.1</code> (one backup is kept) and a new one starts.</p>
+<p>To start with the log off, set the environment variable <code>BSM_KARMA_DEBUG=0</code> before launching Houdini. The file only contains paths, node names and settings, but check it before sharing it if your scene paths are confidential.</p>
+<h2 id="presets">Presets</h2>
+<p>Presets are stored in <code>bsm_karma/presets.json</code> (embedded in the HDA). Editing the file adds or changes entries without touching the code; if the file is missing or broken, the tool falls back to one built-in entry of each kind (the Log reports a broken file).</p>
+<h3>Quality</h3>
+<table>
+  <tr><th>Name</th><th>Resolution</th><th>Samples</th></tr>
+  <tr><td>Draft</td><td>1280 &times; 720</td><td>64</td></tr>
+  <tr><td>Low</td><td>1920 &times; 1080</td><td>128</td></tr>
+  <tr><td>Mid</td><td>1920 &times; 1080</td><td>256</td></tr>
+  <tr><td>High</td><td>3840 &times; 2160</td><td>512</td></tr>
+  <tr><td>Ultra</td><td>3840 &times; 2160</td><td>1024</td></tr>
+</table>
+<h3>Sky</h3>
+<p>Clear Sky (Midday), Sunrise / Dawn, Golden Hour, Sunset / Dusk, Overcast / Hazy, Storm / Heavy Overcast, Night / Moonlight. Each sets solar altitude, sun intensity and temperature, turbidity, sky intensity, horizon blur, ambient tint, Rayleigh and Mie. <em>Night / Moonlight</em> puts the sun below the horizon, which is dark with the volumetric atmosphere.</p>
+<h3>Fog and clouds</h3>
+<p>Fog: Light Mist, Thick Ground Fog, Creepy Swamp. 3D clouds: High Cirrus, Low Cumulus, Stormy, Stratus (low), Cumulus (mid), Altocumulus, Cirrostratus. The 2D layer has no presets: its five sliders are the whole setup.</p>
+<p>A preset entry is a JSON object. For example, a quality preset:</p>
+<pre><code>"render_qualities": {
+  "Mid (1080p / 256s)": { "rx": 1920, "ry": 1080, "spl": 256 }
+}</code></pre>
+<h2 id="compat">Houdini versions</h2>
+<ul>
+  <li><strong>Supported:</strong> Houdini 21 and 22. Earlier versions are not supported; the Log warns when the major version is below 21. The test suite has been run on Houdini 22.0.466; Houdini 21 is still to be checked.</li>
+  <li><strong>Parameter names.</strong> Karma nodes do not always keep the same parameter names between releases. The tool uses the Houdini 22 names and tries older names when they are missing. A setting that no known name matches is skipped, and the Log says which one.</li>
+  <li><strong>Qt.</strong> The interface goes through Houdini's <code>hutil.Qt</code>, so it runs on PySide2 or PySide6.</li>
+  <li><strong>A node type that is missing</strong> (for example a cloud or fog node in a given version) makes that branch skip with a warning; the rest of the build goes on.</li>
+  <li><strong>Material catalog.</strong> The gallery widget is created with a private Houdini function (<code>hou.qt._createAssetGallery</code>), because no public one exists. If it fails, or returns something that is not a widget, the Materials tab shows a notice with the reason, the source controls are disabled and <em>Assign File&hellip;</em> still works. Set the environment variable <code>BSM_KARMA_GALLERY=0</code> to skip the private call altogether, for a Houdini version where it misbehaves. The debug log then lists what <code>hou.qt</code> offers, to find a replacement.</li>
+  <li><strong>Solaris viewport.</strong> Reading the viewport selection and finding the prim under the cursor use Scene Viewer functions (<code>currentSceneGraphSelection</code>, <code>locateSceneGraphPrim</code>). If your version lacks them, the buttons say so in the Log and the list-based assignment still works.</li>
+</ul>
+<h2 id="security">Safety checks</h2>
+<p>Houdini runs a backtick expression (for example <code>`system("...")`</code>) as soon as a string is expanded, so any text that did not come from your own typing is treated as untrusted: a drag and drop, the metadata of an online catalog, a file name, a path stored in a scene, an answer from a server.</p>
+<h3>What the tool refuses or limits</h3>
+<ul>
+  <li>A material path, a label or a source that contains a backtick is refused.</li>
+  <li><strong>A file picked in a chooser</strong> (HDRI, output path, download folder, material file, snapshot) is refused if its <em>name</em> contains a backtick. A downloaded archive can hold such names. The HDRI preview also refuses a path with a backtick that was pasted in.</li>
+  <li>The AMD library can only write inside the download folder you connected in the Materials tab, and a package path that escapes it is refused.</li>
+  <li>The download window only talks https to ambientCG and Poly Haven, caps a file at 800 MB, and refuses archives and file lists whose paths leave the folder or contain a backtick.</li>
+  <li>A catalog source must be one of Houdini's known sources, or an existing database or USD file.</li>
+  <li>Text from outside is shown <strong>as plain text</strong>: in the Log, in the status labels and in the download log. A catalog label cannot draw an image, a link or a fake line in the Log.</li>
+  <li>Temporary files (HDRI previews, <code>.mtlx</code> wrappers, snapshots) go to a private folder created for the session and deleted when Houdini exits. The debug log falls back to that same private folder, never to a predictable name in the shared temp folder.</li>
+  <li>A name that goes into a Houdini command line (camera path, viewport name) is only used when it contains plain characters. A prim path from the viewport is only used when it is a plain USD path.</li>
+  <li>External programs are called with an argument list, never through a shell. The HDRI preview skips files above 400 MB.</li>
+  <li><code>presets.json</code> can be edited by hand: an entry with a missing or non numeric value is left out and reported in the Log.</li>
+  <li>The tool contains no <code>eval</code>, <code>pickle</code>, <code>os.system</code> or shell call, and it sends nothing anywhere. Its only network access is the AMD library you connect and the download window you open (https, certificates checked, with timeouts).</li>
+</ul>
+<h3>What stays your decision</h3>
+<ul>
+  <li><strong>The HDA runs the Python it carries.</strong> Install an asset only from a source you trust, like any HDA. The loader serves the embedded modules and checks nothing else.</li>
+  <li><strong>Drag sources.</strong> A drop whose source is not the AMD library is accepted when it points to an existing database or USD file: another application could start such a drag. It can only make Houdini read a catalog file you already have.</li>
+  <li><strong>Image, MaterialX and USD files</strong> are read by Qt and by USD. A damaged file can still hit a bug in those libraries; open files you trust, and check the licence of what you download.</li>
+  <li><strong>The debug log holds paths</strong> (scene, files) and settings. Read it before sending it to someone.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+  <tr><th>Symptom</th><th>Cause and fix</th></tr>
+  <tr><td><code>[ERROR] Build stopped: /stage/&hellip; exists and is a &hellip;</code></td><td>One of your nodes has the name of a tool node but another type. Rename or delete it, then build again.</td></tr>
+  <tr><td><code>[WARN] &hellip; no matching parameter for &hellip;</code></td><td>Your Houdini version does not have the parameter the tool tries to set. The rest of the setup is fine; set that value by hand on the node, and report the version and the node.</td></tr>
+  <tr><td><code>[WARN] Fog skipped</code> / <code>Clouds skipped</code> / <code>2D clouds skipped</code></td><td>A node type of that branch is missing in your version, or the cloud picture could not be written. Fog or clouds are left out; the rest is built. The message gives the reason.</td></tr>
+  <tr><td>The sky is black with <em>Volumetric Atmosphere</em></td><td>Is the sun below the horizon (a negative <em>Solar Altitude</em>, as in <em>Night / Moonlight</em>)? The atmosphere has no daylight to scatter then; the Log says so. Raise the altitude or use a daytime preset. The atmosphere only renders in Karma: open the <strong>Karma Viewport</strong> of the Export tab, not a standard viewport. <strong>Does the camera see far enough?</strong> The atmosphere is a shell about a hundred kilometres thick: with the default far clipping range of a camera (10,000) it is cut off and the sky stays black or dim. The tool raises the far clipping range of the camera it makes to 2,000,000; for a camera of yours it only warns in the Log (it never changes a node it did not make): set that camera's far clipping range by hand. Then try the other engine (CPU or XPU).</td></tr>
+  <tr><td>Houdini freezes for a long time after a change</td><td>A running Karma viewport restarts when nodes are added or removed. The tool pauses cooking during a build and keeps such changes out of Live Update, but a very heavy scene can still take long to restart. Switch <em>Live Update</em> off, change what you need, then press <strong>Build Environment Only</strong>; try the <code>cpu</code> engine if it persists.</td></tr>
+  <tr><td>Live Update does nothing</td><td>Look at the Log: it waits for a first <strong>Build Environment Only</strong>, and it pauses after a change that adds or removes nodes. Press Build; it goes on after that.</td></tr>
+  <tr><td>No sun, or the sun does not move</td><td>See the <code>[WARN] Physical Sky</code> lines. Check that <em>Sky Rendering</em> matches what you want, and that <em>Sun Intensity</em> is above 0.</td></tr>
+  <tr><td>The 2D clouds do not show</td><td>They are a second dome light added to the sky: check that <em>Cloud Type</em> is 2D Layer, that <em>Coverage</em> and <em>Brightness</em> are above 0, and that the Log has no <code>2D clouds skipped</code> line. The Log line <code>2D clouds: dome light ...</code> gives the intensity used. Raise <em>Brightness</em> for a stronger backdrop. Karma XPU and Karma CPU may not treat a second dome light alike: if it does not show in one, try the other.</td></tr>
+  <tr><td>Material not assigned</td><td>The Log gives the reason: the file contains an expression, the AMD folder is not the connected one, no prim was selected, or the Material Linker of your version has a different parameter layout.</td></tr>
+  <tr><td>A drop on the viewport does nothing</td><td>Check the Log: <em>No prim under the cursor</em> means the pick found nothing. If there is no line at all, Houdini's viewport did not take the drop: use <strong>Assign Material to Selection</strong> after selecting the object. The debug log lists the widgets seen under the cursor, which tells what to adjust for your Houdini version.</td></tr>
+  <tr><td>The List and Categories views are empty</td><td>They read the gallery's loaded rows: open the folder in Thumbnails first, or press <strong>Connect</strong>. If the gallery has no item view the tool can reach, only Thumbnails is available (the debug log says so).</td></tr>
+  <tr><td>The material gallery is empty or missing</td><td>Press <strong>Connect</strong> after choosing a source. For the AMD library, check your internet connection: an unreachable server is reported without freezing Houdini. If the widget itself is unavailable, the tab says why: use <em>Assign File&hellip;</em>.</td></tr>
+  <tr><td>A download fails</td><td>The download log says why: <em>HTTP 404</em> is a name the site does not know (use <strong>Load List</strong>), <em>not offered as &hellip;</em> is a resolution the material lacks, and a network error means the site did not answer. <strong>Stop</strong> and try again.</td></tr>
+  <tr><td>The light I moved went back</td><td>Lights are positioned only when they are created, so an existing light keeps the position you gave it. If it still resets, update to the current version.</td></tr>
+  <tr><td>Sky intensity looks too strong with fog or clouds</td><td>Intentional: it is multiplied by 4 to compensate for the light the volumes absorb. Lower <em>Sky Intensity</em> if needed.</td></tr>
+  <tr><td>Every frame overwrites the previous one</td><td>The output path has no frame token. Use <code>$F4</code> in the name, for example <code>frame_$F4.exr</code>.</td></tr>
+  <tr><td>An error I cannot explain</td><td>Open the <a href="#debug-log">debug log file</a> (Log tab, <strong>Open Folder</strong>) and send it, with the Houdini version.</td></tr>
+  <tr><td>The HDA still shows old behavior</td><td>It holds a copy of the code. Rebuild it with <code>hython build_hda.py</code> and reinstall it, and make sure an older copy is not installed as well.</td></tr>
+  <tr><td>I am not sure which version runs</td><td>Compare the build id in the title of the window with <code>python tools/build_id.py</code> run on the repository. Different ids mean another copy is loaded (an old <code>scripts/python</code> copy, an old HDA, a package file pointing at another folder). See <a href="#tab-log">Log and About</a>.</td></tr>
+</table>
+<h2 id="license">License and credits</h2>
+<p>Licensed under the <a href="https://github.com/bsm3d/Karma-builder/blob/main/LICENSE">PolyForm Noncommercial License 1.0.0</a>: free for personal, educational and any other noncommercial use. Studios and commercial use need a commercial license; see <code>Informations/COMMERCIAL_LICENSE.txt</code>. Versions published before 30 September 2026 were released under GPL-3.0.</p>
+<p>Credits: the material downloads follow the requests of the open source <a href="https://pypi.org/project/materialxmaterials/">materialxmaterials</a> tool (Bernard Kwok, Apache 2.0), without using its code or its MaterialX dependency. The materials themselves come from <a href="https://matlib.gpuopen.com">AMD GPUOpen</a>, <a href="https://ambientcg.com">ambientCG</a> and <a href="https://polyhaven.com/textures">Poly Haven</a>, under their own terms.</p>
+
+<footer>BSM Karma Builder 1.0.0 &middot; Author: BSM</footer>
