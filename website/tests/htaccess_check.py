@@ -1,11 +1,10 @@
-# Karma Builder website
-# Benoît Saint-Moulin | www.bsm3d.com
-# Function : checks the .htaccess on a real Apache (headers, deny rules, 404 page, robots that train models, big bodies)
-# PHP : not needed (Python 3 only)
-# Version : 1.0.0
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the website .htaccess on a real Apache: headers, deny rules, the 404 page and large request bodies.
+
+# Needs a throwaway Apache serving a copy of the folder (AllowOverride All, mod_headers, mod_setenvif). Never the live site.
 # usage: python website/tests/htaccess_check.py http://127.0.0.1:8890
-# Aim it at a throwaway Apache that serves a copy of the folder (AllowOverride All, mod_php or php-fpm, mod_headers, mod_setenvif). Never at the live site.
 
 import http.client
 import re
@@ -14,12 +13,10 @@ import urllib.parse
 
 results = []
 
-
 # ------------------------------------------------------------
 def check(label, ok, detail=""):
     results.append(bool(ok))
     print(("PASS " if ok else "FAIL ") + label + ((" | " + str(detail)[:200]) if detail != "" else ""))
-
 
 # ------------------------------------------------------------
 def repeated(base, path):
@@ -31,7 +28,6 @@ def repeated(base, path):
     names = [k.lower() for k, v in response.getheaders()]
     connection.close()
     return sorted(set(n for n in names if names.count(n) > 1 and n != "set-cookie"))
-
 
 # ------------------------------------------------------------
 def call(base, method, path, body=None, headers=None):
@@ -45,7 +41,6 @@ def call(base, method, path, body=None, headers=None):
     reply = dict((k.lower(), v) for k, v in response.getheaders())
     connection.close()
     return response.status, reply, text
-
 
 # ------------------------------------------------------------
 def main():
@@ -105,7 +100,6 @@ def main():
     check("static files are cached", "max-age" in call(base, "GET", "/assets/css/site.css")[1].get("cache-control", ""))
     print("\nRESULT:", "all %d checks passed" % len(results) if all(results) else "%d FAILED of %d" % (results.count(False), len(results)))
     sys.exit(0 if all(results) else 1)
-
 
 if __name__ == "__main__":
     main()

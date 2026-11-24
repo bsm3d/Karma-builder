@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Random materials: a color, and a finish, drawn from ranges the user sets
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Random materials: a colour and a finish drawn from ranges that the user sets.
+
 # Houdini : 21 and 22 (plain Python, also runs without Houdini)
-# Version : 1.0.0
 
 import colorsys
 import hashlib
@@ -17,12 +17,10 @@ KINDS = ("Any", "Plastic", "Matte", "Metal", "Paint")
 DEFAULT_RANGES = {"hue_from": 0.0, "hue_to": 360.0, "sat_min": 0.35, "sat_max": 0.9, "val_min": 0.35, "val_max": 0.95}
 MAX_PER_DROP = 200
 
-
 # ------------------------------------------------------------
 def srgb_to_linear(value):
     value = min(max(float(value), 0.0), 1.0)
     return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
-
 
 # ------------------------------------------------------------
 def _clean_ranges(ranges):
@@ -36,7 +34,6 @@ def _clean_ranges(ranges):
     merged["hue_to"] = merged["hue_to"] % 360.0 if merged["hue_to"] != 360.0 else 360.0
     return merged
 
-
 # ------------------------------------------------------------
 # A hue between `hue_from` and `hue_to` going up (from 300 to 60 is magenta, red and orange), in degrees. The two equal
 # is a single hue; 0 and 360 is the whole circle.
@@ -46,7 +43,6 @@ def _hue(rng, hue_from, hue_to):
         span = 360.0
     return (hue_from + rng.random() * span) % 360.0
 
-
 # ------------------------------------------------------------
 def random_color(rng, ranges, saturation_cap=1.0, value_floor=0.0):
     hue = _hue(rng, ranges["hue_from"], ranges["hue_to"])
@@ -54,7 +50,6 @@ def random_color(rng, ranges, saturation_cap=1.0, value_floor=0.0):
     value = max(rng.uniform(ranges["val_min"], ranges["val_max"]), value_floor)
     red, green, blue = colorsys.hsv_to_rgb(hue / 360.0, saturation, value)
     return (srgb_to_linear(red), srgb_to_linear(green), srgb_to_linear(blue))
-
 
 # ------------------------------------------------------------
 def random_values(seed, kind="Any", ranges=None):
@@ -71,12 +66,10 @@ def random_values(seed, kind="Any", ranges=None):
                         "coat_roughness": 0.03}
     return chosen, {"base_color": random_color(rng, ranges), "specular_roughness": round(rng.uniform(0.12, 0.45), 3)}
 
-
 # ------------------------------------------------------------
 def random_name(seed, kind, ranges):
     key = "{}|{}|{}".format(int(seed), kind, json.dumps(_clean_ranges(ranges), sort_keys=True))
     return "Random_{}".format(hashlib.sha1(key.encode("utf-8")).hexdigest()[:8])
-
 
 # ------------------------------------------------------------
 def random_material_file(seed, kind="Any", ranges=None, folder=None):

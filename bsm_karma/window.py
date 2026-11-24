@@ -1,19 +1,21 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : The dialog: assembles the tabs, collects the settings, runs the build
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : The Karma Builder dialog window: assembles the tabs, collects the settings and runs the build.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import json
 import os
 import sys
 from hutil.Qt import QtWidgets, QtCore, QtGui
+from .environment import _night_fade
+from .moon import moon_state
 from .build import setup_karma_environment
 from .catalog import _CATALOG_WRAPPERS
-from .buildinfo import build_summary, build_tag
-from .config import FORM_LABEL_GAP, SCRIPT_VERSION
+from .buildinfo import build_summary
+from .config import FORM_LABEL_GAP, LABEL_COLUMN_MAX, SCRIPT_VERSION
 from .debuglog import _debug, _debug_session_header, _guarded_slot
 from .live import LiveUpdateMixin, _structure_of
 from .snapshots import SnapshotMixin
@@ -27,10 +29,9 @@ from .tab_passes import PassesTab
 from .tab_render import RenderTab
 from .tab_scene import SceneTab
 from .tab_shader import ShaderTab
-from .util import _normalized_path
+from .util import _default_hdri_path, _normalized_path
 from .widgets import inside, space_layouts
 from .viewport import ViewportMixin
-
 
 # presets.json can be edited by hand: an entry with a missing or non numeric value is left out, with a note
 def _valid_presets(entries, required, kind, notes):
@@ -44,7 +45,6 @@ def _valid_presets(entries, required, kind, notes):
             notes.append("{} preset '{}' ignored: it needs numbers for {}".format(kind, name, ", ".join(required)))
     return valid
 
-
 # --------------------------------------------------------
 # bug trouvé et fixé: super(Classe, self) casse après importlib.reload (TypeError sur l'ancien dialogue),
 # d'où super() sans argument partout :)
@@ -56,9 +56,10 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
         if parent is None:
             parent = hou.qt.mainWindow()
         super().__init__(parent)
-        self.setWindowTitle("Karma Builder {} ({})".format(SCRIPT_VERSION, build_tag()))
-        self.resize(540, 600)
-        self.setMinimumSize(440, 420)
+        self.setWindowTitle("Karma Builder")
+        self.resize(600, 620)
+        # bug trouvé et fixé: the Export page needs 527 px for its row of four buttons, 440 or 460 gave a horizontal scroll bar at the smallest size
+        self.setMinimumSize(570, 420)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         self.setStyleSheet(BSM_STYLE)
         # child of the main window: without this a closed dialog lives until Houdini exits
@@ -95,12 +96,16 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
         self._config_tabs = []
         self._build_scene_tab(tabs)
         self._build_lighting_tab(tabs)
+        self._build_night_sky_tab(tabs)
         self._build_atmosphere_tab(tabs)
         self._build_materials_tab(tabs)
         self._build_shader_tab(tabs)
-        self._build_render_tab(tabs)
-        self._build_passes_tab(tabs)
-        self._build_export_tab(tabs)
+        # Render, Passes and Export are one tab: three steps of the same job (how it is rendered, what it carries, where it goes)
+        self.tabs_output = QtWidgets.QTabWidget()
+        self._build_render_tab(self.tabs_output)
+        self._build_passes_tab(self.tabs_output)
+        self._build_export_tab(self.tabs_output)
+        tabs.addTab(self.tabs_output, "Output")
         self._build_log_tab(tabs)
         self._build_about_tab(tabs)
         
@@ -138,7 +143,6 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
         self._update_snapshot_slots_ui()
 
         self._update_debug_path_label()
-        self.log_message("[INFO] {}".format(build_summary(SCRIPT_VERSION)))
 
         # live update is wired last: the values set while the window is built must not trigger a build
         self._live_timer = QtCore.QTimer(self)
@@ -285,7 +289,16 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
         field.setVisible(visible)
 
     # --------------------------------------------------------
+    # The settings of the window, and what they imply for the structure: the moon is only built while it is above the horizon
+    # and the stars once the sun is down, so crossing those limits adds or removes nodes (the Live Update leaves that to Build).
     def _collect_config(self):
+        config = self._collect_config_base()
+        config["moon_active"] = bool(moon_state(config)["active"])
+        config["stars_active"] = bool(config.get("stars_enable")) and _night_fade(config) > 0.0
+        return config
+
+    # --------------------------------------------------------
+    def _collect_config_base(self):
         # opt-in: the heading of the active viewer is added to the sun direction
         view_y_rot = 0.0
         if self.chk_sky_follow_view.isChecked():
@@ -297,6 +310,9 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
                 pass
             
         is_env_mode = (self.combo_scene_mode.currentText() == "Environment")
+        # bug trouvé et fixé: the Night Sky tab is greyed (and the exact sky hidden) with an HDRI, but their checkboxes stayed in the
+        # build: a moon and stars appeared over the HDRI with no control left to take them away
+        is_physical = is_env_mode and self.combo_env_type.currentText() == "Physical Sky"
         return {
             "scene_mode": self.combo_scene_mode.currentText(),
             "env_type": self.combo_env_type.currentText(),
@@ -311,7 +327,7 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
             
             "area_int": self.sld_area_int.value(),
             "hdri_int": self.sld_hdri_int.value(),
-            "hdri_path": self.line_hdri_path.text().strip() or "$HIP/hdri/overcast_sky.exr",
+            "hdri_path": self.line_hdri_path.text().strip() or _default_hdri_path(),
             "hdri_ev": self.sld_hdri_ev.value(),
             "hdri_rot": self.sld_hdri_rot.value(),
             "hdri_sat": self.sld_hdri_sat.value(),
@@ -362,6 +378,26 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
             "sky_hz_blur": self.sld_hz_blur.value(),
             "sky_atm_rayleigh": self.sld_atm_rayleigh.value(),
             "sky_atm_mie": self.sld_atm_mie.value(),
+            "sky_plate": is_physical and self.chk_sky_plate.isChecked(),
+            "moon_enable": is_physical and self.chk_moon.isChecked(),
+            "moon_phase": self.sld_moon_phase.value(),
+            "moon_halo": self.sld_moon_halo.value(),
+            "moon_intensity": self.sld_moon_int.value(),
+            "moon_size": self.sld_moon_size.value(),
+            "stars_enable": is_physical and self.chk_stars.isChecked(),
+            "stars_milky": self.chk_milky.isChecked(),
+            "stars_intensity": self.sld_stars_int.value(),
+            "stars_size": self.sld_stars_size.value(),
+            "stars_twinkle": self.sld_stars_twinkle.value(),
+            "stars_glow": self.sld_stars_glow.value(),
+            "stars_latitude": self.sld_star_lat.value(),
+            "stars_longitude": self.sld_star_lon.value(),
+            "sky_exact": is_physical and self.chk_exact.isChecked(),
+            "sky_year": self.spin_sky_year.value(),
+            "sky_month": self.spin_sky_month.value(),
+            "sky_day": self.spin_sky_day.value(),
+            "sky_hour": self.sld_sky_hour.value(),
+            "stars_time": self.sld_star_time.value(),
             
             "denoiser": self.combo_denoiser.currentText(),
             "pixel_filter": self.combo_pixel_filter.currentText(),
@@ -433,8 +469,24 @@ class KarmaBuilderUI(SceneTab, LightingTab, AtmosphereTab, MaterialsTab, ShaderT
 
     # ------------------------------------------------------------
     def _space_forms(self):
-        for form in self.findChildren(QtWidgets.QFormLayout):
+        forms = self.findChildren(QtWidgets.QFormLayout)
+        skip = getattr(self, "mat_gallery", None)
+        labels = []
+        for form in forms:
             form.setHorizontalSpacing(FORM_LABEL_GAP)
+            if inside(form.parentWidget(), skip):
+                continue
+            for row in range(form.rowCount()):
+                item = form.itemAt(row, QtWidgets.QFormLayout.LabelRole)
+                label = item.widget() if item is not None else None
+                if isinstance(label, QtWidgets.QLabel) and label.text():
+                    labels.append(label)
+        # the sliders start at the same x in every tab: the interface does not jump when the tab changes. The widest label
+        # wins, up to a limit (a very long one gets elided rather than squeezing every slider)
+        if labels:
+            wanted = min(max(label.fontMetrics().horizontalAdvance(label.text()) for label in labels) + 2, LABEL_COLUMN_MAX)
+            for label in labels:
+                label.setMinimumWidth(wanted)
 
     # ------------------------------------------------------------
     # A combo box asks for the width of its longest item, which sets the width of a whole tab. Give it a short

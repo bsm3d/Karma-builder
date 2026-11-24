@@ -1,6 +1,9 @@
-# Basic materials and the .mtlx editing of the material editor: the files written, the values changed, the textures kept,
-# the variants, the checks. In Houdini the files are also opened with USD.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the basic materials and the .mtlx editing of the material editor: files written, values changed, textures kept.
+
+# In Houdini the files are also opened with USD.
 # Revision : 16-10-2026 | Auteur : BSM
 import os
 import shutil
@@ -12,7 +15,7 @@ import bsm_karma.basicmaterials as basic
 import bsm_karma.mtlxedit as edit
 
 t = Checker("material editor")
-work = tempfile.mkdtemp(prefix="bsm_editor_")
+work = tempfile.mkdtemp(prefix="bsm_editor_").replace("\\", "/")
 
 TEXTURED = """<?xml version="1.0"?>
 <materialx version="1.38">
@@ -69,7 +72,6 @@ t.check("Glass transmits", glass["transmission"].get("value") == "1" and glass["
 t.check("a default is not written", "specular_IOR" not in glass)
 t.check("names are made safe", basic.safe_name("Car Paint") == "Car_Paint" and basic.safe_name("3d") == "M_3d" and basic.safe_name("../x") == "x" and basic.safe_name("") == "Material")
 
-# --- describe
 d = edit.describe(TEXTURED)
 t.check("describe: surface, material and the textured inputs", d["surface"] == "SR_Wood" and d["material"] == "Wood" and d["inputs"]["base_color"]["kind"] == "connected"
         and d["inputs"]["specular_roughness"]["kind"] == "connected" and d["inputs"]["metalness"] == {"kind": "value", "value": 0.2}
@@ -85,7 +87,6 @@ for text, why in (("<nope", "invalid XML"), ("<other/>", "not MaterialX"), ('<!D
         raised = True
     t.check("describe refuses " + why, raised)
 
-# --- apply_settings
 out = edit.apply_settings(TEXTURED, {"values": {"subsurface": 0.5, "metalness": 0.9, "specular_IOR": 1.33, "thin_walled": True, "subsurface_color": (0.9, 0.3, 0.2)}})
 i = inputs_of(out)
 t.check("values are written with their type", i["subsurface"].get("value") == "0.5" and i["metalness"].get("value") == "0.9" and i["specular_IOR"].get("value") == "1.33"
@@ -221,9 +222,9 @@ for label, settings in (("values that are not a dict", {"values": [1, 2], "mods"
                         ("a color that is a string", {"values": {"base_color": "abc"}, "mods": {}}), ("mods that are not numbers", {"values": {}, "mods": {"tint": 5, "brightness": "x"}}),
                         ("settings that are a list", [1]), ("an unknown input", {"values": {"bogus": 1.0}, "mods": {"bogus": 2}})):
     try:
-        original, saved = edit.original_and_settings(hostile_variant(settings))
-        out = edit.apply_settings(open(original, encoding="utf-8").read(), saved)
-        t.check("embedded settings: " + label + " are cleaned, nothing raised", "nan" not in out.lower().replace("nan_", ""), saved)
+        original, cleaned = edit.original_and_settings(hostile_variant(settings))
+        out = edit.apply_settings(open(original, encoding="utf-8").read(), cleaned)
+        t.check("embedded settings: " + label + " are cleaned, nothing raised", "nan" not in out.lower().replace("nan_", ""), cleaned)
     except Exception as exc:
         t.check("embedded settings: " + label + " are cleaned, nothing raised", False, "{}: {}".format(type(exc).__name__, exc))
 good = {"values": {"metalness": 0.25, "base_color": [0.1, 0.2, 0.3], "thin_walled": True}, "mods": {"tint": [0.5, 1.0, 1.0], "tiling": 2.0}}
@@ -266,6 +267,11 @@ if mx is not None:
             wrong.append((key, default, real[key][1]))
     t.check("the standard surface inputs of the table exist in MaterialX with the same type and default", not wrong, wrong)
 
+    # the libraries shipped with Houdini are not valid for its own MaterialX (too many bindings), only the new errors are ours
+    base_doc = mx.createDocument()
+    base_doc.importLibrary(libraries)
+    baseline = set(base_doc.validate()[1].splitlines())
+
     def valid(text):
         document = mx.createDocument()
         document.importLibrary(libraries)
@@ -273,7 +279,8 @@ if mx is not None:
         with open(path, "w", encoding="utf-8") as handle:
             handle.write(text)
         mx.readFromXmlFile(document, path)
-        return document.validate()
+        mine = [l for l in document.validate()[1].splitlines() if l.strip() and l not in baseline]
+        return not mine, " | ".join(mine)
     invalid = [name for name, values in basic.BASIC_MATERIALS.items() if not valid(basic.build_mtlx(name, values))[0]]
     t.check("every basic material is a valid MaterialX document", not invalid, invalid)
     everything = {"values": {key: (0.2, 0.3, 0.4) if basic.INPUT_TYPES[key] == "color3" else (True if basic.INPUT_TYPES[key] == "boolean" else 0.5) for key in basic.INPUT_TYPES},

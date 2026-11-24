@@ -1,5 +1,8 @@
-# Shelf button and package install: the shelf file, the copy of the package, the checks on the preferences folder.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the shelf button and the package install: the shelf file, the copy of the package and the preferences folder checks.
+
 # Revision : 16-10-2026 | Auteur : BSM
 import os
 import shutil

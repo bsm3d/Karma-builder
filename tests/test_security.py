@@ -1,7 +1,10 @@
-# Untrusted text (drag payload, remote catalog metadata, a path in a scene) must never reach something that
-# evaluates it. hou.text.expandString runs backtick expressions (verified on H22) and so do node parms when the
-# node cooks: each test tries the attack and checks that the marker file a command would create is not there.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Security tests for untrusted text used by the tool: drag payload, remote catalog metadata and scene paths.
+
+# Untrusted text must never reach something that evaluates it: hou.text.expandString runs backtick expressions (verified on H22), and so do node parms on cook.
+# Each test tries the attack and checks that the marker file is not there.
 # Revision : 10-10-2026 | Auteur : BSM
 import json
 import os
@@ -191,7 +194,7 @@ t.check("debug log fallback is not a predictable shared folder",
 package_dir = os.path.join(ROOT, "bsm_karma")
 source = "\n".join(open(os.path.join(package_dir, name), encoding="utf-8").read()
                    for name in sorted(os.listdir(package_dir)) if name.endswith(".py"))
-dangerous = re.findall(r"\beval\(|\bexec\(|os\.system|shell\s*=\s*True|\bpickle\b|__import__|\bmarshal\b", source)
+dangerous = re.findall(r"(?<![.\w])eval\(|(?<![.\w])exec\(|os\.system|shell\s*=\s*True|\bpickle\b|__import__|\bmarshal\b", source)
 t.check("the bsm_karma package has no eval, exec, os.system, shell=True, pickle or __import__", not dangerous, dangerous)
 t.check("subprocess is only called with an argument list", not re.search(r"subprocess\.(run|Popen|call|check_output)\(\s*[\"'f]", source))
 

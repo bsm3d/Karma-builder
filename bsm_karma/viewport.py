@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Karma viewport, renderer and camera lock
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Karma viewport, renderer and camera lock helpers for the Solaris viewport.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import re
 import hou

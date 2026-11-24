@@ -1,6 +1,9 @@
-# The PBR material: the spec and its file, the graph written for each map, the texture set found by names, and the checks
-# on what comes from outside. MaterialX validates every document when this Python has the module.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the PBR material: its spec and file, the graph written for each map, and the texture set found by names.
+
+# MaterialX validates every document when this Python has the module.
 # Revision : 16-10-2026 | Auteur : BSM
 import os
 import shutil
@@ -86,10 +89,10 @@ t.check("a folder that does not exist gives nothing", pbr.guess_maps(work + "/no
 
 # --- what comes from outside
 hostile = pbr.normalize_spec({"name": "x y/../z", "values": {"nope": 1, "base": "abc", "base_color": [1, 2], "specular_roughness": 99},
-                              "maps": {"base_color": "`system('x')`.png", "roughness": "relative/r.png", "normal": "/tmp/n.txt", "ao": "/tmp/a.png", "bogus": "/tmp/b.png",
-                                       "height": 5, "metalness": "/tmp/m`.png"},
+                              "maps": {"base_color": "`system('x')`.png", "roughness": "relative/r.png", "normal": "C:/tmp/n.txt", "ao": "C:/tmp/a.png", "bogus": "C:/tmp/b.png",
+                                       "height": 5, "metalness": "C:/tmp/m`.png"},
                               "options": {"tiling": 1e9, "rotation": "x", "offset": (1,), "tint": "no", "normal_format": "Mac", "ao_strength": -3}})
-t.check("a hostile spec keeps only plain absolute image paths", hostile["maps"] == {"ao": "/tmp/a.png"}, hostile["maps"])
+t.check("a hostile spec keeps only plain absolute image paths", hostile["maps"] == {"ao": "C:/tmp/a.png"}, hostile["maps"])
 t.check("unknown inputs go, numbers are bounded", "nope" not in hostile["values"] and hostile["values"]["specular_roughness"] <= 1000.0 and hostile["values"]["base_color"] == (0.8, 0.8, 0.8), hostile["values"])
 t.check("options are bounded or default", hostile["options"]["tiling"] <= 1000.0 and hostile["options"]["rotation"] == 0.0 and hostile["options"]["offset"] == (0.0, 0.0)
         and hostile["options"]["tint"] == (1.0, 1.0, 1.0) and hostile["options"]["normal_format"] == "OpenGL" and hostile["options"]["ao_strength"] == 0.0, hostile["options"])
@@ -110,7 +113,6 @@ t.check("nan and inf are not numbers: the default comes back", bad["values"]["me
         and bad["options"]["tiling"] == 1.0 and bad["options"]["offset"] == (0.0, 0.0) and all(v == v for v in bad["values"]["base_color"]), bad)
 t.check("so no nan in the file", "nan" not in pbr.build_pbr_mtlx(bad).replace("bsm_karma_pbr", "").lower().split("-->")[1])
 
-# --- MaterialX
 try:
     import MaterialX as mx
 except ImportError:
@@ -120,6 +122,10 @@ if mx is not None:
     libraries = mx.createDocument()
     mx.loadLibraries(mx.getDefaultDataFolders() if hasattr(mx, "getDefaultDataFolders") else mx.getDefaultDataLibraryFolders(), mx.getDefaultDataSearchPath(), libraries)
 
+    base_doc = mx.createDocument()
+    base_doc.importLibrary(libraries)
+    baseline = set(base_doc.validate()[1].splitlines())
+
     def valid(text):
         document = mx.createDocument()
         document.importLibrary(libraries)
@@ -127,7 +133,10 @@ if mx is not None:
         with open(path, "w", encoding="utf-8") as handle:
             handle.write(text)
         mx.readFromXmlFile(document, path)
-        return document.validate()
+        ok, why = document.validate()
+        # the libraries shipped with Houdini are not valid for its own MaterialX (too many bindings), only the new errors are ours
+        mine = [l for l in why.splitlines() if l.strip() and l not in baseline]
+        return not mine, " | ".join(mine)
     cases = {
         "default": default,
         "all maps": spec,

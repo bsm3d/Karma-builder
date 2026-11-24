@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Colors and style sheets
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Colour palette and style sheets for the Karma Builder interface, kept free of Houdini calls.
+
 # Houdini : 21 and 22 (PySide6 only, no hou calls)
-# Version : 1.0.0
 
 from hutil.Qt import QtGui
 
@@ -12,7 +12,7 @@ _C = {
     "surface":     "#2b2b2b",
     "border":      "#3f3f3f",
     "text":        "#cccccc",
-    "text_muted":  "#888888",
+    "text_muted":  "#a9a9a9",
     "text_log":    "#a9b7c6",
     "accent_blue": "#2b4c7e",
     "accent_teal": "#325a70",
@@ -21,19 +21,19 @@ _C = {
     "danger":      "#7a3232",
     "primary":     "#3e5a78",
     "amber":       "#e8a317",
+    "link":        "#7fb2ff",
 }
-
 
 BSM_STYLE = f"""
 /* Utilisation du thème natif de Houdini, on ne style que l'agencement et quelques éléments isolés. */
 QTabBar::tab {{
-    padding: 5px 12px;
+    padding: 5px 8px;
 }}
 QGroupBox {{
     font-weight: bold;
     border-radius: 4px;
-    margin-top: 8px;
-    padding-top: 4px;
+    margin-top: 10px;
+    padding-top: 18px;
 }}
 QGroupBox::title {{
     subcontrol-origin: margin;
@@ -51,7 +51,6 @@ QTextEdit {{
 }}
 """
 
-
 # ------------------------------------------------------------
 # A full rule with a border: with only a background-color, the Houdini 22 theme draws no button, just the text.
 # Padding kept small so the colored buttons stay the size of the standard ones.
@@ -67,11 +66,10 @@ def _btn_style(bg):
         "QPushButton:disabled {{ background-color: #3a3a3a; color: #7a7a7a; border-color: #4a4a4a; }}"
     ).format(bg=bg, fg=fg, edge=base.lighter(160).name(), hover=base.lighter(125).name(), pressed=base.darker(125).name())
 
-
 # ----------------------------------------
 def _slider_stylesheet():
     return (
         "QSlider::groove:horizontal {height: 8px; border-radius: 4px; background: #1f2123;}"
-        "QSlider::sub-page:horizontal {background: #c9821a; border-radius: 4px;}"
-        "QSlider::handle:horizontal {width: 14px; margin: -4px 0; border-radius: 7px; background: #e8a317;}"
+        "QSlider::sub-page:horizontal {background: #42668f; border-radius: 4px;}"
+        "QSlider::handle:horizontal {width: 14px; margin: -4px 0; border-radius: 7px; background: #7fa6d0;}"
     )

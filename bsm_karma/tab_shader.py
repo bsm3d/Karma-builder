@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Shader tab: basic materials and a simple editor for the material of a prim
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Shader tab of the Karma Builder dialog, with the basic materials and a simple editor for the material of a prim.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import os
@@ -24,6 +24,7 @@ import random
 
 EDIT_DELAY_MS = 250
 MY_MATERIALS_SHOWN = 24
+BALL_SIZE = 72
 
 GROUPS = (
     ("Base", None, (("base_color", "color", "Color", 0, 1), ("specular_roughness", "float", "Roughness", 0, 1), ("metalness", "float", "Metalness", 0, 1))),
@@ -40,7 +41,6 @@ GROUPS = (
 TEXTURE_CONTROLS = (("tint", "color", "Tint", 0, 1), ("brightness", "float", "Brightness", 0, 3), ("rough_scale", "float", "Roughness x", 0, 3),
                     ("normal", "float", "Normal Strength", 0, 3), ("disp", "float", "Displacement", 0, 3), ("tiling", "float", "Tiling", 0.1, 10))
 
-
 # ------------------------------------------------------------
 class LibraryButton(QtWidgets.QToolButton):
     dragStarted = QtCore.Signal()
@@ -54,10 +54,12 @@ class LibraryButton(QtWidgets.QToolButton):
         self.setText(label)
         if color is not None:
             self.setIcon(QtGui.QIcon(ball_pixmap(color)))
-        self.setIconSize(QtCore.QSize(44, 44))
+        self.setIconSize(QtCore.QSize(BALL_SIZE, BALL_SIZE))
         self.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         self.setAutoRaise(True)
-        self.setFixedWidth(max(76, self.fontMetrics().horizontalAdvance(label) + 16))
+        # le texte etait coupe par la bille: taille fixe calculee avec la hauteur de la police et de la marge
+        metrics = self.fontMetrics()
+        self.setFixedSize(max(BALL_SIZE + 24, metrics.horizontalAdvance(label) + 24), BALL_SIZE + metrics.height() + 20)
         self.setToolTip("Click: assign to the selected prims. Drag: onto a prim of the list or an object of the viewport.")
 
     # ------------------------------------------------------------
@@ -102,9 +104,8 @@ class LibraryButton(QtWidgets.QToolButton):
             except (OSError, KeyError) as exc:
                 _debug("basic material not written: {}".format(exc))
 
-
 # ------------------------------------------------------------
-def ball_pixmap(rgb, size=44):
+def ball_pixmap(rgb, size=BALL_SIZE):
     color = QtGui.QColor(*[int(round(linear_to_display(c) * 255)) for c in rgb])
     pixmap = QtGui.QPixmap(size, size)
     pixmap.fill(QtCore.Qt.transparent)
@@ -123,9 +124,8 @@ def ball_pixmap(rgb, size=44):
     painter.end()
     return pixmap
 
-
 # ------------------------------------------------------------
-def rainbow_pixmap(size=44):
+def rainbow_pixmap(size=BALL_SIZE):
     pixmap = QtGui.QPixmap(size, size)
     pixmap.fill(QtCore.Qt.transparent)
     painter = QtGui.QPainter(pixmap)
@@ -145,7 +145,6 @@ def rainbow_pixmap(size=44):
     painter.end()
     return pixmap
 
-
 # ------------------------------------------------------------
 def _preset_color(values):
     color = values.get("base_color", INPUT_DEFAULTS["base_color"])
@@ -155,10 +154,8 @@ def _preset_color(values):
         return values.get("emission_color", (1.0, 1.0, 1.0))
     return color
 
-
 # ------------------------------------------------------------
 PBR_DRIVEN = {"base_color": "base_color", "specular_roughness": "roughness", "metalness": "metalness", "emission_color": "emission", "opacity": "opacity"}
-
 
 # ------------------------------------------------------------
 class ShaderTab:
@@ -187,7 +184,7 @@ class ShaderTab:
         btn_from_prim.clicked.connect(self.on_shader_from_prim)
         btn_network = QtWidgets.QPushButton("Open Network")
         btn_network.setToolTip("Show the Material Linker for the full MaterialX network.")
-        btn_network.clicked.connect(self.on_open_material_linker)
+        btn_network.clicked.connect(self.on_shader_open_network)
         row_buttons.addWidget(btn_from_prim)
         row_buttons.addWidget(btn_network)
         form_pick.addRow("", row_buttons)
@@ -207,7 +204,7 @@ class ShaderTab:
         self._shader_grid = FlowLayout()
         button = LibraryButton("PBR", (0.8, 0.8, 0.8), self._pbr_base_file)
         button.setToolTip("The general purpose material, a Principled-like MaterialX material with texture slots. Click to assign it, "
-                          "then load a texture set in the PBR Texture Set group.")
+                          "then load a texture set in the Texture Maps group.")
         self._connect_library_button(button)
         self._shader_grid.addWidget(button)
         for name, values in BASIC_MATERIALS.items():
@@ -315,7 +312,7 @@ class ShaderTab:
 
     # ------------------------------------------------------------
     def _build_pbr_group(self):
-        group = QtWidgets.QGroupBox("PBR Texture Set")
+        group = QtWidgets.QGroupBox("Texture Maps (Normal, Displacement...)")
         layout = QtWidgets.QVBoxLayout(group)
         row = QtWidgets.QHBoxLayout()
         btn_load = QtWidgets.QPushButton("Load Texture Set...")
@@ -392,7 +389,7 @@ class ShaderTab:
     # ------------------------------------------------------------
     @_guarded_slot
     def _pbr_option_edited(self, *_):
-        if self._shader_loading or self._shader_target is None or not self._shader_target.get("pbr"):
+        if self._shader_loading or not self._pbr_ready():
             return
         options = self._pbr_state["options"]
         options["normal_format"] = NORMAL_FORMATS[1 if self.combo_pbr_normal.currentIndex() == 1 else 0]
@@ -405,9 +402,13 @@ class ShaderTab:
     # ------------------------------------------------------------
     @_guarded_slot
     def _pbr_map_edited(self, slot):
-        if self._shader_loading or self._shader_target is None or not self._shader_target.get("pbr"):
+        if self._shader_loading:
             return
+        # read before the conversion of a basic material: it fills the fields again from the (still empty) set of maps
         text = self._pbr_edits[slot].text().strip()
+        if not self._pbr_ready():
+            return
+        self._pbr_edits[slot].setText(text)
         if text == self._pbr_state["maps"].get(slot, ""):
             return   # editingFinished also fires when the field only lost the focus
         if text:
@@ -443,7 +444,7 @@ class ShaderTab:
     # ------------------------------------------------------------
     @_guarded_slot
     def on_pbr_load_set(self, *_):
-        if self._shader_target is None or not self._shader_target.get("pbr"):
+        if not self._pbr_ready():
             return
         folder = hou.ui.selectFile(start_directory="$HIP", title="Texture Set Folder", file_type=hou.fileType.Directory,
                                    chooser_mode=hou.fileChooserMode.Read)
@@ -466,7 +467,7 @@ class ShaderTab:
     # ------------------------------------------------------------
     @_guarded_slot
     def on_pbr_clear_maps(self, *_):
-        if self._shader_target is None or not self._shader_target.get("pbr"):
+        if not self._pbr_ready():
             return
         self._pbr_state["maps"] = {}
         self._set_pbr_widgets(self._pbr_state)
@@ -748,7 +749,37 @@ class ShaderTab:
 
     # ------------------------------------------------------------
     def _sync_pbr_group(self):
-        self.grp_pbr.setVisible(self._shader_target is not None and bool(self._shader_target.get("pbr")))
+        target = self._shader_target
+        self.grp_pbr.setVisible(target is not None and (bool(target.get("pbr")) or self._convertible()))
+
+    # ------------------------------------------------------------
+    # A material with plain values (a basic one) can take a Normal and a Displacement map: it becomes a PBR material with the
+    # same values, the first time a map is set. A material that has textures of its own is left to its Textures group.
+    def _convertible(self):
+        target = self._shader_target
+        return target is not None and not target.get("pbr") and not target["info"]["textured"]
+
+    # ------------------------------------------------------------
+    def _pbr_ready(self):
+        target = self._shader_target
+        if target is None:
+            return False
+        if target.get("pbr"):
+            return True
+        if not self._convertible():
+            return False
+        info = target["info"]
+        spec = default_spec(safe_name(info["material"] or target["prim"].rsplit("/", 1)[-1]))
+        for key, entry in info["inputs"].items():
+            if entry["kind"] != "connected":
+                value = self._shader_settings["values"].get(key, entry["value"])
+                spec["values"][key] = tuple(value) if isinstance(value, (list, tuple)) else value
+        spec = normalize_spec(spec)
+        target["pbr"] = True
+        self._adopt_pbr_spec(spec, info)
+        self._sync_pbr_group()
+        self._load_shader_controls()
+        return True
 
     # ------------------------------------------------------------
     # The settings of the editor and the texture set from the spec in a PBR file. The controls show the constants of the
@@ -782,7 +813,7 @@ class ShaderTab:
                 value = settings["values"].get(key, entry["value"])
                 if target.get("pbr"):
                     driven = PBR_DRIVEN.get(key) in self._pbr_state["maps"]
-                    tip = "A map drives this input: clear it in the PBR Texture Set group to use a value."
+                    tip = "A map drives this input: clear it in the Texture Maps group to use a value."
                 else:
                     driven = entry["kind"] == "connected" and key not in settings["values"]
                     tip = "A texture drives this input: use the Textures group below, or change the value to replace the texture."
@@ -873,6 +904,25 @@ class ShaderTab:
         with hou.undos.group("Karma Builder - Edit Material"):
             parm.set(path)
         _debug("material editor: {} -> {}".format(target["prim"], path))
+
+    # ------------------------------------------------------------
+    # bug trouvé et fixé: Open Network only showed the Material Linker. It now loads the material of the Shader tab in the
+    # Edit Material node and dives into its network.
+    @_guarded_slot
+    def on_shader_open_network(self):
+        target = self._shader_target
+        if target is None:
+            self.on_open_material_linker()
+            return
+        self._flush_shader_edit()
+        stage = hou.node("/stage")
+        linker = _material_linker_node(stage) if stage is not None else None
+        entry = next((r for r in _linker_references(linker) if r[1] == target["prim"]), None) if linker is not None else None
+        if entry is None:
+            self.on_open_material_linker()
+            return
+        _, prim, file_path, ref_prim = entry
+        self._open_material_asset({"label": prim.rsplit("/", 1)[-1], "file_path": file_path, "prim_path": ref_prim, "id": ""}, True)
 
     # ------------------------------------------------------------
     @_guarded_slot

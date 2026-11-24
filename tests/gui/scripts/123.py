@@ -1,10 +1,10 @@
-# GUI lifecycle test for bsm_karma, run by Houdini at startup (scripts/123.py), see tests/run_tests.ps1.
-#
-# Camera choice, panels opened and closed, Clear All, Esc, relaunch and module reload, nothing left after a close.
-# Results go to the file in BSM_RESULT. Houdini can segfault on hou.exit once a Karma viewport was used
-# (reproduced
-# without this tool), so the result file counts, not the exit code.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : GUI lifecycle test for bsm_karma, run by Houdini at startup through tests/run_tests.ps1.
+
+# Checks camera choice, panels, Clear All, Esc, relaunch and module reload, and that nothing is left after a close.
+# Results go to the file in BSM_RESULT: Houdini can segfault on hou.exit after a Karma viewport, so that file counts, not the exit code.
 # Revision : 10-10-2026 | Auteur : BSM
 import gc
 import os
@@ -113,11 +113,21 @@ def step_setup():
 def layout_problems(ui):
     tabs = ui.findChild(QtWidgets.QTabWidget)
     problems = []
+    # every page, the ones of the Output tab included: a page that is not shown has no size to check
+    pages = []
     for index in range(tabs.count()):
-        tabs.setCurrentIndex(index)
-        QtWidgets.QApplication.processEvents()
-        name = tabs.tabText(index)
-        scroll = tabs.widget(index)
+        inner = tabs.widget(index)
+        if isinstance(inner, QtWidgets.QTabWidget) and inner is not getattr(ui, "_shader_tabs", None):
+            pages.extend((tabs.tabText(index) + "/" + inner.tabText(sub), [(tabs, index), (inner, sub)]) for sub in range(inner.count()))
+        else:
+            pages.append((tabs.tabText(index), [(tabs, index)]))
+    for name, steps in pages:
+        for holder, position in steps:
+            holder.setCurrentIndex(position)
+        # folding groups nest three layouts: one pass of events is not enough for the sizes to settle
+        for _ in range(12):
+            QtWidgets.QApplication.processEvents(QtCore.QEventLoop.AllEvents, 20)
+        scroll = steps[-1][0].widget(steps[-1][1])
         if isinstance(scroll, QtWidgets.QScrollArea) and scroll.horizontalScrollBar().isVisible():
             problems.append("{}: horizontal scroll bar, the tab needs {} px".format(name, scroll.widget().minimumSizeHint().width()))
         shown = []
@@ -132,6 +142,9 @@ def layout_problems(ui):
             if isinstance(w, QtWidgets.QLabel) and not w.wordWrap() and w.text() and not ('<' in w.text() and '>' in w.text()):
                 if w.fontMetrics().horizontalAdvance(w.text()) > w.contentsRect().width() + 1:
                     problems.append("{}: label '{}' is cut".format(name, w.text()[:40]))
+            # an icon-only tool button keeps its text for the tooltip: nothing of it is drawn (Houdini's gallery toolbar)
+            elif isinstance(w, QtWidgets.QToolButton) and w.toolButtonStyle() == QtCore.Qt.ToolButtonIconOnly:
+                continue
             elif isinstance(w, (QtWidgets.QPushButton, QtWidgets.QCheckBox, QtWidgets.QRadioButton, QtWidgets.QToolButton)) and w.text():
                 spare = 22 if isinstance(w, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)) else 12
                 if w.fontMetrics().horizontalAdvance(w.text().replace("&", "")) > w.width() - spare:
@@ -163,7 +176,8 @@ def step_layout():
 def step_preview():
     ui = S["ui"]
     tabs = ui.findChild(QtWidgets.QTabWidget)
-    tabs.setCurrentIndex([tabs.tabText(i) for i in range(tabs.count())].index("Export"))
+    tabs.setCurrentIndex([tabs.tabText(i) for i in range(tabs.count())].index("Output"))
+    ui.tabs_output.setCurrentIndex([ui.tabs_output.tabText(i) for i in range(ui.tabs_output.count())].index("Export"))
     pump()
     image = QtGui.QImage(1920, 1080, QtGui.QImage.Format_RGB32)
     painter = QtGui.QPainter(image)
@@ -394,7 +408,7 @@ def step_dlgclose():
 # ------------------------------------------------------------
 # The HDA: pressing its button opens the same dialog, a second press replaces it, closing leaves nothing.
 def step_hda():
-    path = os.path.join(ROOT, "hda", "bsm_karma_builder.hda")
+    path = os.path.join(ROOT, "bsm_karma_builder.hda")
     hou.hda.installFile(path)
     node = hou.node("/stage").createNode("bsm::karma_builder::1.0")
     node.parm("open_builder").pressButton()
@@ -420,6 +434,197 @@ def step_hda():
 
 
 # ------------------------------------------------------------------------
+# bug trouvé et fixé: switching to the night preset left the moon and the stars out until the Build button was pressed
+def step_live():
+    ui = S["ui"]
+    stage = hou.node("/stage")
+    ui.combo_scene_mode.setCurrentText("Environment")
+    ui.chk_live_update.setChecked(False)
+    ui.combo_sky_preset.setCurrentText("Clear Sky (Midday)")
+    ui.on_build()
+    check("live: a day build has no moon and no stars", stage.node("sky_moon") is None and stage.node("sky_stars_ref") is None)
+    ui.chk_live_update.blockSignals(True)
+    ui.chk_live_update.setChecked(True)
+    ui.chk_live_update.blockSignals(False)
+    ui.combo_sky_preset.setCurrentText("Night / Moonlight")
+    ui._live_build()
+    check("live: the night preset brings the moon and the stars by itself, no pause", stage.node("sky_moon") is not None
+          and (stage.node("sky_stars_ref") is not None or not S["k"].nightsky.night_sources()[1]))
+    ui.combo_sky_preset.setCurrentText("Clear Sky (Midday)")
+    ui._live_build()
+    check("live: and takes them away with the day", stage.node("sky_moon") is None and stage.node("sky_stars_ref") is None)
+    ui.chk_live_update.blockSignals(True)
+    ui.chk_live_update.setChecked(False)
+    ui.chk_live_update.blockSignals(False)
+
+
+# ------------------------------------------------------------------------
+# The Night Sky tab, the composite and the exact sky: a greyed control must mean "not used", and Live Update must watch every one
+# of them (the controls moved out of the Lighting tab into folds and a tab of their own).
+def step_nightsky():
+    ui = S["ui"]
+    ui.chk_live_update.blockSignals(True)
+    ui.chk_live_update.setChecked(False)
+    ui.chk_live_update.blockSignals(False)
+    ui.combo_scene_mode.setCurrentText("Environment")
+    ui.combo_env_type.setCurrentText("Physical Sky")
+    ui.combo_sky_preset.setCurrentText("Clear Sky (Midday)")
+    pump()
+    index = ui.tabs_main.indexOf(ui.tab_night_scroll)
+    check("night sky: the tab works with the physical sky", ui.tabs_main.isTabEnabled(index))
+
+    # the phase of the moon is greyed while the exact sky decides, and while the moon is off
+    ui.chk_exact.setChecked(False)
+    ui.chk_moon.setChecked(False)
+    ui.chk_exact.setChecked(True)
+    ui.chk_exact.setChecked(False)
+    check("night sky: the moon phase stays greyed after the exact sky when the moon is off", not ui.sld_moon_phase.isEnabled())
+    ui.chk_moon.setChecked(True)
+    check("night sky: the moon phase works with the moon on", ui.sld_moon_phase.isEnabled())
+    ui.chk_exact.setChecked(True)
+    ui.chk_moon.setChecked(False)
+    ui.chk_moon.setChecked(True)
+    check("night sky: switching the moon on does not wake the phase while the exact sky decides", not ui.sld_moon_phase.isEnabled())
+    ui.chk_exact.setChecked(False)
+    check("night sky: the phase is back without the exact sky", ui.sld_moon_phase.isEnabled())
+
+    # Live Update watches every control of the folds and of the tab
+    ui.chk_live_update.blockSignals(True)
+    ui.chk_live_update.setChecked(True)
+    ui.chk_live_update.blockSignals(False)
+    quiet = []
+    for name, value in (("chk_exact", True), ("chk_moon", False), ("sld_moon_phase", 0.3), ("sld_moon_halo", 2.0), ("sld_moon_int", 2.0), ("sld_moon_size", 4.0),
+                        ("chk_stars", False), ("chk_milky", False), ("sld_stars_int", 2.0), ("sld_stars_size", 2.0), ("sld_stars_twinkle", 0.5),
+                        ("sld_stars_glow", 2.0), ("sld_star_time", 5.0), ("chk_sky_plate", True), ("sld_star_lat", 10.0), ("sld_star_lon", 20.0),
+                        ("spin_sky_year", 2030), ("spin_sky_month", 3), ("spin_sky_day", 17), ("sld_sky_hour", 3.0), ("sld_sun_int", 7.0),
+                        ("sld_sun_size", 2.0), ("spin_sun_temp", 3000), ("sld_sky_azim", 100.0), ("sp_amb_r", 0.5), ("sld_turbidity", 5.0),
+                        ("sld_atm_rayleigh", 2.0), ("sld_atm_mie", 2.0), ("sld_hz_blur", 9.0), ("chk_sky_follow_view", True)):
+        ui._live_timer.stop()
+        widget = getattr(ui, name)
+        if hasattr(widget, "setChecked"):
+            widget.setChecked(value)
+        else:
+            widget.setValue(value)
+        if not ui._live_timer.isActive():
+            quiet.append(name)
+    ui._live_timer.stop()
+    check("night sky: every control of the folds and of the tab starts a Live Update", not quiet, quiet)
+    ui.chk_live_update.blockSignals(True)
+    ui.chk_live_update.setChecked(False)
+    ui.chk_live_update.blockSignals(False)
+    ui.chk_exact.setChecked(False)
+    ui.chk_moon.setChecked(True)
+    ui.chk_stars.setChecked(True)
+    ui.chk_milky.setChecked(True)
+    ui.chk_sky_plate.setChecked(False)
+
+    # the composite adds and removes nodes (and the AOVs): Live Update leaves it to the Build button
+    ui.on_build()
+    ui.chk_sky_plate.setChecked(True)
+    check("night sky: the composite is a change of structure, Live Update waits for Build", "sky_plate" in ui._live_structure_changes(), ui._live_structure_changes())
+    ui.chk_sky_plate.setChecked(False)
+
+    # the composite renders an EXR: the format says so and cannot be changed meanwhile, then it comes back
+    ui.combo_output_format.setCurrentText("PNG")
+    ui.chk_sky_plate.setChecked(True)
+    check("night sky: with the composite the format is EXR and locked", ui.combo_output_format.currentText() == "EXR" and not ui.combo_output_format.isEnabled(),
+          (ui.combo_output_format.currentText(), ui.combo_output_format.isEnabled()))
+    check("night sky: and the build asks for EXR", ui._collect_config()["output_format"] == "EXR")
+    ui.chk_sky_plate.setChecked(False)
+    check("night sky: without it the format is free again, as it was", ui.combo_output_format.currentText() == "PNG" and ui.combo_output_format.isEnabled(),
+          (ui.combo_output_format.currentText(), ui.combo_output_format.isEnabled()))
+    ui.combo_output_format.setCurrentText("EXR")
+
+    # the note under the render buttons only when Render to Disk really composes
+    ui.chk_sky_plate.setChecked(True)
+    check("night sky: the note about the sky composite shows with the physical sky", (not ui.lbl_disk_sky.isHidden()))
+    ui.chk_exact.setChecked(True)
+    ui.chk_moon.setChecked(True)
+    ui.combo_env_type.setCurrentText("HDRI Image")
+    pump()
+    config = ui._collect_config()
+    check("night sky: the tab is greyed with an HDRI", not ui.tabs_main.isTabEnabled(index))
+    check("night sky: and nothing of it reaches the build (moon, stars, composite, exact sky)",
+          not (config["moon_enable"] or config["stars_enable"] or config["sky_plate"] or config["sky_exact"]),
+          {key: config[key] for key in ("moon_enable", "stars_enable", "sky_plate", "sky_exact")})
+    check("night sky: and the note about the composite is gone", ui.lbl_disk_sky.isHidden())
+    ui.combo_env_type.setCurrentText("Physical Sky")
+    ui.combo_scene_mode.setCurrentText("Studio")
+    pump()
+    check("night sky: no note in Studio either", ui.lbl_disk_sky.isHidden())
+    ui.combo_scene_mode.setCurrentText("Environment")
+    pump()
+    check("night sky: the note is back with the physical sky", (not ui.lbl_disk_sky.isHidden()))
+    ui.chk_sky_plate.setChecked(False)
+    ui.chk_exact.setChecked(False)
+
+
+# ------------------------------------------------------------------------
+# The smallest window the dialog allows: no tab needs a horizontal scroll bar there
+def step_small():
+    ui = S["ui"]
+    old = ui.size()
+    ui.resize(ui.minimumWidth(), ui.minimumHeight())
+    pump()
+    problems = layout_problems(ui)
+    check("small window: no text cut, no overlap, no horizontal scroll bar in any tab", not problems, problems[:6])
+    ui.resize(old)
+    ui.findChild(QtWidgets.QTabWidget).setCurrentIndex(0)
+    pump()
+
+
+# ------------------------------------------------------------------------
+# a basic material takes a Normal and a Displacement map: it becomes a PBR material with its own values
+def step_shader():
+    ui, k = S["ui"], S["k"]
+    stage = hou.node("/stage")
+    ui.combo_scene_mode.setCurrentText("Environment")
+    ui.combo_geo_source.setCurrentIndex(max(0, ui.combo_geo_source.findText(S["mrg"].path())))
+    ui.on_build()
+    from bsm_karma.basicmaterials import basic_material_file
+    from bsm_karma.localmaterials import local_payload
+    from bsm_karma.pbrmaterial import read_pbr_spec
+    from bsm_karma.linker import _linker_references, _material_linker_node
+    ui._assign_payload(local_payload([basic_material_file("Gold")]), ["/my_sphere"])
+    ui.refresh_shader_tab()
+    check("shader: a basic material is the one being edited", ui._shader_target is not None and not ui._shader_target.get("pbr"), ui._shader_target)
+    check("shader: and it has the Texture Maps group (Normal, Displacement)", not ui.grp_pbr.isHidden())
+    picture = os.path.join(tempfile.gettempdir(), "bsm_gui_normal.png").replace("\\", "/")
+    QtGui.QImage(8, 8, QtGui.QImage.Format_RGB32).save(picture)
+    ui._pbr_edits["normal"].setText(picture)
+    ui._pbr_map_edited("normal")
+    linker = _material_linker_node(stage)
+    reference = [r for r in _linker_references(linker) if r[1].endswith("Gold") or "Gold" in r[1]]
+    text = open(reference[0][2], encoding="utf-8").read() if reference else ""
+    check("shader: the first map turns it into a PBR material with a normal map", ui._shader_target is not None and ui._shader_target.get("pbr") and "bsm_gui_normal" in text, reference)
+    spec = read_pbr_spec(text) if text else None
+    check("shader: it keeps the values of the basic material (Gold is metal)", spec is not None and float(spec["values"].get("metalness", 0.0)) > 0.9, spec and spec["values"])
+    height = os.path.join(tempfile.gettempdir(), "bsm_gui_height.png").replace("\\", "/")
+    QtGui.QImage(8, 8, QtGui.QImage.Format_RGB32).save(height)
+    ui._pbr_edits["height"].setText(height)
+    ui._pbr_map_edited("height")
+    reference = [r for r in _linker_references(linker) if "Gold" in r[1]]
+    text = open(reference[0][2], encoding="utf-8").read() if reference else ""
+    check("shader: a displacement map goes with it", "bsm_gui_height" in text and "displacement" in text.lower(), reference)
+
+
+# ------------------------------------------------------------------------
+# Open Network goes inside the MaterialX network of the material being edited
+def step_network():
+    ui = S["ui"]
+    editors = [p for p in hou.ui.paneTabs() if p.type() == hou.paneTabType.NetworkEditor]
+    say("network editors:", [(e.name(), e.pwd().path()) for e in editors])
+    ui.on_shader_open_network()
+    editors = [p for p in hou.ui.paneTabs() if p.type() == hou.paneTabType.NetworkEditor]
+    pwds = [e.pwd().path() for e in editors]
+    say("network editors after:", pwds)
+    edit = hou.node("/stage/material_edit")
+    check("network: the Edit Material node holds the material", edit is not None and len(edit.children()) == 1, edit and [c.name() for c in edit.children()])
+    inside = edit.children()[0].path() if edit is not None and edit.children() else ""
+    check("network: a network editor is inside the material (its MaterialX nodes)", any(p == inside for p in pwds), (pwds, inside))
+
+
+# ------------------------------------------------------------------------
 def step_quit():
     say("FAILURES:", failures if failures else "none")
     say("DONE")
@@ -430,10 +635,10 @@ ALL = {
     "wait": (4000, lambda: say("waited")),
     "gallery": (1500, step_gallery), "gallery_close": (1500, step_gallery_close), "dlgclose": (1500, step_dlgclose),
     "setup": (2500, step_setup), "layout": (800, step_layout), "preview": (800, step_preview), "hdri": (800, step_hdri_preview), "cameras": (800, step_cameras), "panels": (800, step_panels),
-    "catalog": (800, step_catalog_and_clear), "escape": (500, step_escape), "after": (1200, step_after_escape),
+    "live": (800, step_live), "nightsky": (800, step_nightsky), "small": (800, step_small), "shader": (800, step_shader), "network": (800, step_network), "catalog": (800, step_catalog_and_clear), "escape": (500, step_escape), "after": (1200, step_after_escape),
     "cycles": (500, step_cycles), "hda": (500, step_hda), "quit": (500, step_quit),
 }
-ORDER = os.environ.get("BSM_STEPS", "setup,layout,preview,hdri,cameras,panels,catalog,escape,after,cycles,hda,quit").split(",")
+ORDER = os.environ.get("BSM_STEPS", "setup,layout,preview,hdri,cameras,panels,live,nightsky,small,shader,network,catalog,escape,after,cycles,hda,quit").split(",")
 STEPS = [ALL[name] for name in ORDER]
 
 

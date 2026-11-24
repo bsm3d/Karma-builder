@@ -16,7 +16,11 @@ Please note that this is a first version. While it is not perfect, it represents
 
 * **Lighting scenarios**: 1-click generators for Environment, Studio, 3-Point and Interior setups.
 * **Karma Physical Sky and HDRI**: sky controls with time-of-day presets (Clear Sky, Golden Hour, Overcast, Night...), a basic or volumetric atmosphere, and HDRI dome setups with exposure, rotation, temperature, tint and a thumbnail preview.
-* **Fog and clouds**: atmospheric fog (`karmafogbox`), procedural 3D volume clouds, or a fast **2D cloud layer** (a generated picture on a second dome light) for distant backgrounds.
+* **Exact sky** (Lighting tab, Exact Sky): the sun, the moon (position, phase, parallax), the five naked-eye planets and the stars are where they really are for a date, a time (UT) and a place (latitude, longitude): low precision ephemeris (sun and planets to a few arc minutes, moon to about two), the catalogue precessed from J2000 with its proper motions, the air dims and reddens the stars near the horizon and makes them twinkle more. Checked against dated events (eclipse, great conjunction, Mars opposition) in `tests/test_ephemeris.py`.
+* **Moon** (Night Sky tab): a lit, textured moon (`datas/Sky/moon.jpg`) with a halo and a phase slider (new, quarter, full). It is placed from the sun and the phase: it follows an inclined path of its own as Solar Altitude, Direction, Latitude and Star Time change, and it is only built while it is above the horizon.
+* **Sky as a composite** (Night Sky tab): with *Composite the sky layers after the render*, nothing of the sky is built in the scene. Render to Disk makes the render with its depth, draws the plate of the sky for the render camera at its resolution (stars as sharp as the picture, the moon with its phase and halo, the Milky Way, the planets, the 2D clouds) and a Copernicus network (`/obj/karma_sky_comp`) puts them under the geometry (depth 0 is the sky). The picture is written beside the render with `_sky` before the extension. The Karma viewport does not show these layers. The network is kept from one render to the next: what you add in it (a glow, a grade) stays, only the file paths and the frame range are updated, and if you delete one of the tool's nodes it is rebuilt whole. The output format is put on EXR and locked while the composite is on (the depth is in it). The composite belongs to the Physical Sky: with an HDRI the 2D clouds are a card in the scene, as without the composite.
+* **Stars at night** (Night Sky tab): the Yale Bright Star Catalogue as real points (colour from B-V, brightness from the magnitude, a halo for the bright ones, a twinkle of their own), sharp at any resolution; and the Milky Way (NASA/Gaia map, the one soft picture). They show when the sun is below -3 degrees and replace the sky at -12; nothing is built before. Latitude and Star Time place them. The pictures come from `datas/Sky` (beside the tool, or written to the Houdini preferences, `bsm_karma/datas/Sky`, from the HDA); the Milky Way picture is 1024 x 512 (2 MB, reduced from NASA's map by `tools/make_milky_way.py`), so everything travels in the HDA.
+* **Fog and clouds**: atmospheric fog (`karmafogbox`), procedural 3D volume clouds, or a fast **2D cloud layer** (a generated picture painted on a big emissive sphere around the scene, clear where there is no cloud) for distant backgrounds.
 * **Shader**: sixteen basic materials of the tool (plastic, metal, glass, skin with subsurface, fabric...) to click or drag onto prims, the **PBR** general purpose material (a Principled-like MaterialX material with slots for a whole texture set: base color, roughness, metalness, normal OpenGL or DirectX, AO, displacement, emission, opacity), a **Random** material (a new color and finish for each selected prim, from hue, saturation and brightness ranges), and a simple editor for the material of a prim (color, roughness, subsurface, glass, coat, sheen, emission, texture tint and tiling) that works on a copy of the MaterialX file.
 * **Materials**: browse a MaterialX catalog as thumbnails, a list or categories; assign a material to prims by drag and drop (on the prim list or on the Solaris viewport) or with **Assign Material to Selection**; right click a material to edit it in the Material Linker or open it as a MaterialX node network.
 * **Material downloads**: a built-in window downloads free MaterialX materials from ambientCG and Poly Haven (the AMD MaterialX Library is a catalog source). Nothing to install.
@@ -96,8 +100,7 @@ The asset never creates a shelf or a menu by itself, that is what the button and
 
 Every build of the tool has an id: 8 characters computed from the source of all its modules. It changes with any change of the code, and it is the same for the same code, wherever it runs from (a folder, `scripts/python` or the HDA). You find it:
 
-* in the **title of the window**: `Karma Builder 1.0.0 (build a1b2c3d4, folder)`. The last word says where the code was loaded from: `folder` (the repository), `installed` (the copy in `scripts/python`) or `HDA`;
-* in the first line of the **Log** and in the debug log;
+* in the first lines of every session of the **debug log**, with where the code was loaded from: `folder` (the repository), `installed` (the copy in `scripts/python`) or `HDA`. The window itself only shows the version, in **About** (`Version : 1.6.0`);
 * in the Python Shell: `import bsm_karma; print(bsm_karma.build_info())`;
 * on the **HDA node**, the **Build** line under its parameters: the build that was compiled into the asset.
 
@@ -138,10 +141,10 @@ Run **Uninstall.bat** (or delete `packages/bsm_karma.json` in the preferences fo
 
 1. Use the menu **BSM > Karma Builder**, the shelf tool, or **Open Karma Builder** on the HDA node to open the window.
 2. In the `Scene` tab, define the scene mode, camera, engine, resolution and quality.
-3. Use the `Lighting` and `Atmosphere` tabs for the sky or HDRI, the fog and the clouds.
+3. Use the `Lighting`, `Night Sky` and `Atmosphere` tabs for the sky or HDRI, the moon and stars, the fog and the clouds.
 4. Use the `Materials` tab to pick a material (or download one) and assign it to the prims of a Geometry Source.
-5. Adjust the `Render` and `Passes` (AOV) tabs as needed.
-6. Click **Build Environment Only** to generate the LOP network, or use the render buttons of the `Export` tab to render to MPlay or to disk.
+5. Adjust the `Render` and `Passes` (AOV) pages of the `Output` tab as needed.
+6. Click **Build Environment Only** to generate the LOP network, or use the render buttons of the `Export` page (`Output` tab) to render to MPlay or to disk.
 
 ![The Materials tab](docs/screenshots/materials.png)
 

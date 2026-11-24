@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : A general purpose PBR material written as a MaterialX file, with texture slots
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : General purpose PBR material written as a MaterialX file, with texture slots for the maps of a surface.
+
 # Houdini : 21 and 22 (plain Python, also runs without Houdini)
-# Version : 1.0.0
 
 import base64
 import copy
@@ -48,12 +48,10 @@ SLOT_WORDS = (
     ("base_color", ("basecolor", "base_color", "albedo", "diffuse", "color", "colour", "diff", "col")),
 )
 
-
 # ------------------------------------------------------------
 def default_spec(name="PBR"):
     return {"name": safe_name(name), "values": {"base_color": (0.8, 0.8, 0.8), "specular_roughness": 0.45},
             "maps": {}, "options": copy.deepcopy(DEFAULT_OPTIONS)}
-
 
 # ------------------------------------------------------------
 def _number(value, low, high, default):
@@ -63,7 +61,6 @@ def _number(value, low, high, default):
         return default
     # nan and inf are not numbers a file can hold: MaterialX refuses the document
     return min(max(number, low), high) if math.isfinite(number) else default
-
 
 # ------------------------------------------------------------
 # `size` numbers in a list or a tuple, each one a finite number inside the bounds; None when it is anything else.
@@ -78,11 +75,9 @@ def _vector_of(value, size, low, high):
         numbers.append(number)
     return tuple(numbers)
 
-
 # ------------------------------------------------------------
 def _color(value, low, high):
     return _vector_of(value, 3, low, high)
-
 
 # ------------------------------------------------------------
 def normalize_spec(spec):
@@ -124,11 +119,9 @@ def normalize_spec(spec):
         options["tint"] = tint
     return clean
 
-
 # ------------------------------------------------------------
 def _vector(values):
     return ", ".join("{:.6g}".format(float(v)) for v in values)
-
 
 # ------------------------------------------------------------
 class _Builder:
@@ -187,7 +180,6 @@ class _Builder:
         if key in values and not _same(kind, values[key], INPUT_DEFAULTS[key]):
             ElementTree.SubElement(self.surface, "input", {"name": key, "type": kind, "value": format_value(kind, values[key])})
 
-
 # ------------------------------------------------------------
 def _same(kind, left, right):
     if kind == "color3":
@@ -195,7 +187,6 @@ def _same(kind, left, right):
     if kind == "boolean":
         return bool(left) == bool(right)
     return abs(float(left) - float(right)) < 1e-6
-
 
 # ------------------------------------------------------------
 def build_pbr_mtlx(spec):
@@ -299,11 +290,9 @@ def build_pbr_mtlx(spec):
     # the comment holds the spec as it came in: the constants that the options changed above are not in it
     return '<?xml version="1.0"?>\n<!-- {} {} -->\n{}\n'.format(PBR_MARKER, _encode(kept), text)
 
-
 # ------------------------------------------------------------
 def _encode(spec):
     return base64.b64encode(json.dumps(spec, sort_keys=True, default=list).encode("utf-8")).decode("ascii")
-
 
 # ------------------------------------------------------------
 def read_pbr_spec(text):
@@ -315,7 +304,6 @@ def read_pbr_spec(text):
     except (ValueError, TypeError, UnicodeDecodeError):
         return None
     return normalize_spec(data) if isinstance(data, dict) else None
-
 
 # ------------------------------------------------------------
 # Writes the file of a spec in `folder`: PBR.mtlx for the first one of a name, then name.bsm_<hash>.mtlx for each edit, so a
@@ -338,7 +326,6 @@ def write_pbr_file(spec, folder, base=False):
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(text)
     return path
-
 
 # ------------------------------------------------------------
 # The maps of a folder, found by the words in their names (base_color, albedo, diff..., roughness, normal, ao, height...). A

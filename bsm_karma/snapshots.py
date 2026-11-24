@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Viewport snapshots: A/B slots, compare and save
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Viewport snapshots in A and B slots, to compare two looks and save them.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import datetime
 import hou

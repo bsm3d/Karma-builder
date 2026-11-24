@@ -1,14 +1,11 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Builds the static pages of the website (website/) from website/src and docs/index.html: header and footer are put in every page, no script does it at the visit
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Builds the static pages of the website from its source files, with the shared header and footer put in each page.
+
 # Houdini : 21 and 22 (plain Python, no Houdini needed)
-# Version : 1.0.0
-#
-# usage: python tools/build_site.py
-# Reads    website/src/site.json (address of the site), layout.html, pages/*.html, faq.json and the documentation of the tool
-# Writes   website/index.html, guide/, faq/, contact/ (each an index.html), 404.html, sitemap.xml, robots.txt, and the screenshots of the guide
-# Run it again after a change of one of these sources or of docs/index.html, then upload the website folder.
+# Reads website/src/ and docs/index.html, writes the pages, sitemap and robots.txt into website/: upload that folder after a run.
+# python tools/build_site.py
 
 import hashlib
 import json
@@ -24,12 +21,10 @@ GUIDE_KEEP = ("overview", "install", "quickstart", "network", "ui", "presets", "
 NAV = (("home", "Home", "/"), ("guide", "User guide", "/guide/"), ("faq", "FAQ", "/faq/"), ("contact", "Contact", "/contact/"))
 URLS = {"home": "/", "guide": "/guide/", "faq": "/faq/", "contact": "/contact/"}
 
-
 # ------------------------------------------------------------
 def read(path):
     with open(path, encoding="utf-8") as handle:
         return handle.read()
-
 
 # ------------------------------------------------------------
 def write(path, text):
@@ -37,14 +32,12 @@ def write(path, text):
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(text)
 
-
 # ------------------------------------------------------------
 def tool_version():
     found = re.search(r'^SCRIPT_VERSION = "([^"]+)"', read(os.path.join(ROOT, "bsm_karma", "config.py")), re.M)
     if not found:
         raise SystemExit("SCRIPT_VERSION not found in bsm_karma/config.py")
     return found.group(1)
-
 
 # ------------------------------------------------------------
 # The address of an asset carries a short hash of the file, so that a changed file is fetched again by the browsers.
@@ -55,7 +48,6 @@ def asset_url(path):
     with open(full, "rb") as handle:
         digest = hashlib.md5(handle.read()).hexdigest()[:8]
     return "/assets/{}?v={}".format(path, digest)
-
 
 # ------------------------------------------------------------
 def fill(text, values):
@@ -68,12 +60,10 @@ def fill(text, values):
         raise SystemExit("placeholders left: {}".format(left[:3]))
     return text
 
-
 # ------------------------------------------------------------
 def ld_block(data):
     raw = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     return '<script type="application/ld+json">{}</script>\n'.format(raw)
-
 
 # ------------------------------------------------------------
 def guide_parts():
@@ -109,7 +99,6 @@ def guide_parts():
             shutil.copyfile(os.path.join(ROOT, "docs", "screenshots", name), os.path.join(shots, name))
     return toc, content
 
-
 # ------------------------------------------------------------
 def faq_parts(config):
     data = json.loads(read(os.path.join(SRC, "faq.json")))
@@ -127,7 +116,6 @@ def faq_parts(config):
             'and the <a href="{{url:contact}}">contact page</a> is the way to reach me.</p>\n' + "\n".join(html) +
             '\n  <p class="callout">Still stuck? <a href="{{url:contact}}">Send me a message</a>.</p>\n</div>\n')
     return body, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": entities}
-
 
 # ------------------------------------------------------------
 def main():
@@ -186,7 +174,6 @@ def main():
     robots += "User-agent: *\nDisallow: /admin.php\nDisallow: /hit.php\nDisallow: /go.php\nDisallow: /contact.php\nDisallow: /token.php\nDisallow: /data/\nAllow: /\n\n"
     write(os.path.join(SITE, "robots.txt"), robots + "Sitemap: {}/sitemap.xml\n".format(site_url))
     print("built {} pages for {} (tool version {}), guide of {} sections".format(len(pages), site_url, version, len(GUIDE_KEEP)))
-
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,8 @@
-# Material Linker flow: geometry merge, MaterialX reference, rule, real USD binding, removal, rebuild.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the Material Linker flow: geometry merge, MaterialX reference, rule, USD binding, removal and rebuild.
+
 # Revision : 10-10-2026 | Auteur : BSM
 import os
 from _common import FIXTURES, Checker, base_config, load_tool, scratch_dir
@@ -115,5 +118,28 @@ import bsm_karma.catalog as catalog_module
 catalog_module.AMD_LIBRARY_URL = "http://127.0.0.1:9/api"  # a closed local port: unreachable at once, no real network involved
 ok, reason = k._amd_library_reachable(timeout=3.0)
 t.check("unreachable AMD library is reported with a reason, not a hang", ok is False and bool(reason), reason)
+
+
+# --- objects made in the viewport are wired after Karma Render Settings: found, adopted, and then the materials reach them ---
+stage.node("material_edit").destroy() if stage.node("material_edit") is not None else None
+late1 = stage.createNode("sphere", "late_ball")
+late1.setInput(0, stage.node("karma_settings"))
+late2 = stage.createNode("cube", "late_box")
+late2.setInput(0, late1)
+heads, tips = k._loose_geometry(stage)
+t.check("loose objects: the first of the chain is the head, the last is the tip", [n.name() for n in heads] == ["late_ball"] and [n.name() for n in tips] == ["late_box"], ([n.name() for n in heads], [n.name() for n in tips]))
+t.check("loose objects: the linker does not see them", not linker.stage().GetPrimAtPath("/late_ball"))
+merge = k._adopt_loose_geometry(stage, heads, tips)
+t.check("loose objects: unplugged from the render settings, their own chain kept, merged in a node of the user's",
+        late1.input(0) is None and late2.input(0) == late1 and merge.name().startswith("my_objects") and merge.input(0) == late2 and not k._is_tool_node_candidate(merge))
+t.check("loose objects: nothing is loose any more", k._loose_geometry(stage) == ([], []))
+cfg_adopted = dict(cfg, geo_source=merge.path())
+k.setup_karma_environment(cfg_adopted, logs.append)
+linker = k._get_or_create_material_linker(stage)
+k._insert_material_linker_in_chain(stage, linker, logs.append)
+t.check("loose objects: after the build the materials chain sees them", bool(linker.stage().GetPrimAtPath("/late_ball")) and bool(stage.node("karma_settings").stage().GetPrimAtPath("/late_box")))
+dst2 = k._linker_add_reference(linker, mtlx, prim, name)
+k._linker_assign(linker, dst2, ["/late_ball"])
+t.check("loose objects: and a material binds to them", k._bound_material_name(linker.stage(), "/late_ball") == "M_red")
 
 t.done()

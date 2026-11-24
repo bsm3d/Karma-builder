@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Prints the build id of the bsm_karma folder of this repository
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Prints the build id of the bsm_karma folder of this repository, to compare with what the tool shows.
+
 # Houdini : 21 and 22 (plain Python, no Houdini needed)
-# Version : 1.0.0
 #
 # usage: python tools/build_id.py [path/to/bsm_karma]
 

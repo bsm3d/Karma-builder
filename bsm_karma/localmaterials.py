@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Downloaded material files dragged onto prims: payload, checks, thumbnails
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Downloaded material files dragged onto prims: drag payload, file checks and thumbnails for local MaterialX and USD files.
+
 # Houdini : 21 and 22 (PySide6 only, no hou calls)
-# Version : 1.0.0
 
 import json
 import os
@@ -20,12 +20,10 @@ PICTURE_HINTS = ("color", "colour", "diff", "albedo", "basecolor", "base_color")
 PICTURE_SKIP = ("normal", "nor_", "rough", "disp", "height", "_ao", "metal", "opacity", "bump", "_gl", "_dx")
 MTLX_MATERIAL_ROOT = "/MaterialX/Materials"
 
-
 # ------------------------------------------------------------
 # What a drag from the list of downloaded materials carries: plain file paths, checked again where they are dropped.
 def local_payload(paths):
     return json.dumps({LOCAL_FILE_KEY: [str(path).replace("\\", "/") for path in paths]})
-
 
 # ------------------------------------------------------------
 def is_local_payload(text):
@@ -34,7 +32,6 @@ def is_local_payload(text):
     except ValueError:
         return False
     return isinstance(data, dict) and LOCAL_FILE_KEY in data
-
 
 # ------------------------------------------------------------
 # Material names of a .mtlx file read as text, for a Houdini whose USD cannot open the file. A file with a DOCTYPE or
@@ -56,7 +53,6 @@ def mtlx_materials(path):
         if name:
             found.append((name, "{}/{}".format(MTLX_MATERIAL_ROOT, name)))
     return found
-
 
 # ------------------------------------------------------------
 # Material descriptors (label, file_path, prim_path, id) of the files of a drop, and the reason for each file that does
@@ -99,7 +95,6 @@ def local_assets(text, roots, lister=None):
         assets.append({"label": material, "file_path": name, "prim_path": prim, "id": prim})
     return assets, failures
 
-
 # ------------------------------------------------------------
 def preview_picture(mtlx_path):
     folder = os.path.dirname(mtlx_path)
@@ -116,7 +111,6 @@ def preview_picture(mtlx_path):
         return wanted[0]
     plain = [p for p in candidates if not any(s in os.path.basename(p).lower() for s in PICTURE_SKIP)]
     return plain[0] if plain else ""
-
 
 # ------------------------------------------------------------
 def thumbnail(picture, edge):

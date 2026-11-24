@@ -1,15 +1,14 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Combo box, prim tree and the tab scroll wrapper
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Combo box, prim tree and tab scroll wrapper, the shared Qt widgets of the Karma Builder dialog.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 from hutil.Qt import QtWidgets, QtCore, QtGui
 from .config import COLUMN_GAP, ROW_GAP
 from .util import _clamp
-
 
 # --------------------------------------------------------
 # Never narrower than its text needs: a fixed width written for one font cuts the label in another one.
@@ -19,11 +18,9 @@ def fit_button(button, width=0, height=0):
     if height:
         button.setMinimumHeight(max(height, hint.height()))
 
-
 # --------------------------------------------------------
 def fit_spin(spin, widest_text, width=0):
     spin.setMinimumWidth(max(width, spin.fontMetrics().horizontalAdvance(widest_text) + 24))
-
 
 # --------------------------------------------------------
 def inside(widget, ancestor):
@@ -32,7 +29,6 @@ def inside(widget, ancestor):
             return True
         widget = widget.parentWidget()
     return False
-
 
 # --------------------------------------------------------
 # Raises the spacing of every row and column layout under root to the least the tool needs. The layouts of the
@@ -51,7 +47,6 @@ def space_layouts(root, skip=None):
             # a wrapper of a layout Qt already deleted (a layout that was replaced while building)
             continue
 
-
 # --------------------------------------------------------
 class PopupRefreshComboBox(QtWidgets.QComboBox):
     popupAboutToShow = QtCore.Signal()
@@ -60,7 +55,6 @@ class PopupRefreshComboBox(QtWidgets.QComboBox):
     def showPopup(self):
         self.popupAboutToShow.emit()
         super().showPopup()
-
 
 # --------------------------------------------------------
 class SnapshotPreview(QtWidgets.QLabel):
@@ -100,7 +94,6 @@ class SnapshotPreview(QtWidgets.QLabel):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._fit_height()
-
 
 # --------------------------------------------------------
 class HdriPreview(SnapshotPreview):
@@ -147,7 +140,6 @@ class HdriPreview(SnapshotPreview):
         super().resizeEvent(event)
         self._draw()
 
-
 # --------------------------------------------------------
 class ColorSwatch(QtWidgets.QWidget):
     EDGE = QtGui.QColor("#3f4246")
@@ -176,7 +168,6 @@ class ColorSwatch(QtWidgets.QWidget):
         painter.setBrush(self.shown_color())
         painter.drawRoundedRect(QtCore.QRectF(0.5, 0.5, self.width() - 1, self.height() - 1), 3, 3)
         painter.end()
-
 
 # --------------------------------------------------------
 class FlowLayout(QtWidgets.QLayout):
@@ -247,17 +238,14 @@ class FlowLayout(QtWidgets.QLayout):
             row_height = max(row_height, hint.height())
         return y + row_height - rect.y() + margins.bottom()
 
-
 # --------------------------------------------------------
 def linear_to_display(value):
     value = _clamp(float(value), 0.0, 1.0)
     return 12.92 * value if value <= 0.0031308 else 1.055 * value ** (1.0 / 2.4) - 0.055
 
-
 def display_to_linear(value):
     value = _clamp(float(value), 0.0, 1.0)
     return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
-
 
 # --------------------------------------------------------
 class ColorButton(ColorSwatch):
@@ -282,7 +270,6 @@ class ColorButton(ColorSwatch):
             self.set_rgb(*rgb)
             self.valueChanged.emit(*rgb)
 
-
 # ------------------------------------------------------------
 def _asset_mime_type():
     try:
@@ -290,15 +277,12 @@ def _asset_mime_type():
     except AttributeError:
         return ""
 
-
 # ------------------------------------------------------------
 LOCAL_MATERIAL_MIME = "application/x-bsm-karma-materials"
-
 
 # ------------------------------------------------------------
 def _drop_accepted(mime_data):
     return any(mime and mime_data.hasFormat(mime) for mime in (_asset_mime_type(), LOCAL_MATERIAL_MIME))
-
 
 # ------------------------------------------------------------
 # The text of that drop (UnicodeDecodeError when it is not text), None when it holds neither.
@@ -308,14 +292,12 @@ def _drop_text(mime_data):
             return bytes(mime_data.data(mime)).decode("utf-8")
     return None
 
-
 # ------------------------------------------------------------
 def _drop_event_pos(event):
     # Qt6 has event.position(), Qt5 only event.pos()
     if hasattr(event, "position"):
         return event.position().toPoint()
     return event.pos()
-
 
 # ------------------------------------------------------------
 class MaterialTargetTree(QtWidgets.QTreeWidget):
@@ -384,7 +366,6 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
         self.scrollToItem(items[0])
         return len(items)
 
-
     # ----------------------------------------------------------------
     def _accepts(self, event):
         return _drop_accepted(event.mimeData())
@@ -418,7 +399,6 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
             self._set_hover(None)
             event.ignore()
 
-
     # --------------------------------------------------
     def dragLeaveEvent(self, event):
         self._set_hover(None)
@@ -442,7 +422,6 @@ class MaterialTargetTree(QtWidgets.QTreeWidget):
         event.acceptProposedAction()
         self.assetDropped.emit(payload, "\n".join(paths))
 
-
 # ------------------------------------------------------------
 def wrap_tab(widget):
     scroll = QtWidgets.QScrollArea()
@@ -450,3 +429,47 @@ def wrap_tab(widget):
     scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
     scroll.setWidget(widget)
     return scroll
+
+# --------------------------------------------------------
+# A group that folds: a long tab stays readable when only the part in use is open. The form is where the rows go.
+class FoldGroup(QtWidgets.QFrame):
+    toggled = QtCore.Signal(bool)
+
+    # ------------------------------------------------------------
+    def __init__(self, title, opened=True, parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
+        self.head = QtWidgets.QToolButton()
+        self.head.setText(title)
+        self.head.setCheckable(True)
+        self.head.setChecked(opened)
+        self.head.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.head.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        self.head.setToolTip("Click to fold or unfold this section.")
+        self.head.setStyleSheet("QToolButton { font-weight: bold; border: none; text-align: left; padding: 5px 6px; }")
+        self.body = QtWidgets.QWidget()
+        self.form = QtWidgets.QFormLayout(self.body)
+        self.form.setContentsMargins(10, 2, 10, 8)
+        outer = QtWidgets.QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        outer.addWidget(self.head)
+        outer.addWidget(self.body)
+        self.head.toggled.connect(self._on_toggled)
+        self._on_toggled(opened)
+
+    # ------------------------------------------------------------
+    def _on_toggled(self, opened):
+        self.body.setVisible(opened)
+        self.head.setArrowType(QtCore.Qt.DownArrow if opened else QtCore.Qt.RightArrow)
+        self.toggled.emit(opened)
+
+    # ------------------------------------------------------------
+    def opened(self):
+        return self.head.isChecked()
+
+    # ------------------------------------------------------------
+    def set_opened(self, opened):
+        self.head.setChecked(bool(opened))

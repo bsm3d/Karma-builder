@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Create the shelf button (and install the package) from inside Houdini
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Creates the Karma Builder shelf button from inside Houdini and installs the package there when it is needed.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import os
@@ -35,11 +35,9 @@ else:
     node_type.hdaModule().open_builder()
 """
 
-
 # ------------------------------------------------------------
 def tool_script(asset=False, type_name=ASSET_TYPE_NAME):
     return SCRIPT_ASSET.format(type_name=type_name) if asset else SCRIPT_PACKAGE
-
 
 # ------------------------------------------------------------
 def build_shelf_xml(script, icon=DEFAULT_ICON):
@@ -53,7 +51,6 @@ def build_shelf_xml(script, icon=DEFAULT_ICON):
         shelf=SHELF_NAME, shelf_label=SHELF_LABEL, tool=TOOL_NAME, label=TOOL_LABEL, icon=escape(icon, {'"': "&quot;"}),
         script=script)
 
-
 # ------------------------------------------------------------
 def preferences_folder():
     folder = hou.text.expandString("$HOUDINI_USER_PREF_DIR")
@@ -63,11 +60,9 @@ def preferences_folder():
         raise OSError("the Houdini preferences folder does not exist: {}".format(folder))
     return folder
 
-
 # ------------------------------------------------------------
 def _same_folder(first, second):
     return os.path.normcase(os.path.realpath(first)) == os.path.normcase(os.path.realpath(second))
-
 
 # ------------------------------------------------------------
 # Copy the package folder to scripts/python of the preferences. A folder already there is kept as bsm_karma.bak
@@ -85,7 +80,6 @@ def install_package(source, pref_dir):
     shutil.copytree(source, target, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "bsm_karma_debug.log*"))
     return "Package copied to {}{}.".format(target, " (the previous one is kept as bsm_karma.bak)" if os.path.isdir(backup) else "")
 
-
 # ------------------------------------------------------------
 # Icon of the tool: the picture next to the package is copied to the preferences so the shelf does not depend on
 # the repository staying where it is.
@@ -101,7 +95,6 @@ def _icon_for(source, pref_dir):
             shutil.copyfile(candidate, target)
             return target.replace("\\", "/")
     return DEFAULT_ICON
-
 
 # ------------------------------------------------------------
 def install_shelf(asset=False, source=None, type_name=ASSET_TYPE_NAME, pref_dir=None):
@@ -122,7 +115,6 @@ def install_shelf(asset=False, source=None, type_name=ASSET_TYPE_NAME, pref_dir=
         return report
     report.append(_show_shelf())
     return report
-
 
 # ------------------------------------------------------------
 def _show_shelf():
@@ -147,7 +139,6 @@ def _show_shelf():
     except (hou.Error, AttributeError, TypeError) as exc:
         _debug("shelf not shown: {}: {}".format(type(exc).__name__, exc))
         return "Add the shelf '{}' with the + at the right of the shelf tabs ({}).".format(SHELF_LABEL, exc)
-
 
 # ------------------------------------------------------------
 def install(show_message=True):

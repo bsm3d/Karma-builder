@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Material Linker rules and references
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Material Linker rules and references in the stage, and the material edit nodes wired into the render chain.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import re
@@ -14,6 +14,41 @@ from .nodeutil import _base_node_type_name, _is_tool_node_candidate, _mark_tool_
 from .util import _has_expression
 
 # --------------------------------------------------
+# bug trouvé et fixé: an object made in the viewport is wired after the displayed node, that is after Karma Render Settings: the
+# Material Linker (upstream) never sees it, nor does the final render (it reads the stage at Karma Render Settings). The nodes
+# of the user wired after it: the first of each chain (the heads, plugged into Karma Render Settings) and the last (the tips).
+def _loose_geometry(stage):
+    settings = stage.node("karma_settings") if stage is not None else None
+    if settings is None:
+        return [], []
+    seen, todo = {}, list(settings.outputs())
+    while todo:
+        node = todo.pop(0)
+        if node.path() in seen or _is_tool_node_candidate(node, node.name()):
+            continue
+        seen[node.path()] = node
+        todo.extend(node.outputs())
+    nodes = list(seen.values())
+    heads = [n for n in nodes if any(source is not None and source.path() == settings.path() for source in n.inputs())]
+    tips = [n for n in nodes if not any(o.path() in seen for o in n.outputs())]
+    return heads, tips
+
+# --------------------------------------------------
+# Unplugs the heads from Karma Render Settings (their own chains stay as they are) and merges the tips into a node of the user's,
+# named my_objects: it is the Geometry source of the build, which puts it before the materials.
+def _adopt_loose_geometry(stage, heads, tips):
+    settings = stage.node("karma_settings")
+    for head in heads:
+        for index, source in enumerate(head.inputs()):
+            if source is not None and settings is not None and source.path() == settings.path():
+                head.setInput(index, None)
+    merge = stage.createNode("merge", "my_objects")
+    for index, tip in enumerate(tips):
+        merge.setInput(index, tip)
+    merge.moveToGoodPosition()
+    return merge
+
+# --------------------------------------------------
 def _material_linker_node(stage):
     if stage is None:
         return None
@@ -21,7 +56,6 @@ def _material_linker_node(stage):
     if node is not None and _base_node_type_name(node) == "materiallinker" and _is_tool_node_candidate(node):
         return node
     return None
-
 
 # ----------------------------------------------------------------------
 def _get_or_create_material_linker(stage):
@@ -34,7 +68,6 @@ def _get_or_create_material_linker(stage):
         node = stage.createNode("materiallinker", "material_linker")
     _mark_tool_node(node)
     return node
-
 
 # ----------------------------------------------------------------
 def _insert_material_linker_in_chain(stage, linker, log_callback):
@@ -53,7 +86,6 @@ def _insert_material_linker_in_chain(stage, linker, log_callback):
         linker.setInput(0, matlib)
     return True
 
-
 # --------------------------------------------------
 def _material_edit_node(stage):
     if stage is None:
@@ -62,7 +94,6 @@ def _material_edit_node(stage):
     if node is not None and _base_node_type_name(node) == MATERIAL_EDIT_TYPE and _is_tool_node_candidate(node):
         return node
     return None
-
 
 # ----------------------------------------------------------------------
 def _get_or_create_material_edit(stage):
@@ -77,7 +108,6 @@ def _get_or_create_material_edit(stage):
     _mark_tool_node(node)
     return node
 
-
 # ----------------------------------------------------------------
 # The Edit Material LOP sits right after the Material Linker, so it sees the referenced materials.
 def _insert_material_edit_in_chain(linker, edit):
@@ -90,7 +120,6 @@ def _insert_material_edit_in_chain(linker, edit):
             if source == linker:
                 node.setInput(index, edit)
     edit.setInput(0, linker)
-
 
 # ----------------------------------------------------------------------
 def _material_edit_load(edit, material_path):
@@ -116,7 +145,6 @@ def _material_edit_load(edit, material_path):
         return ["Load failed: {}".format(exc)]
     return []
 
-
 # ----------------------------------------
 # (index, dst_prim_path, file_path, file_prim_path) per reference.
 # The multiparm layout is read and written by name: another Houdini version may rename it.
@@ -126,7 +154,6 @@ def _linker_set(linker, pattern, index, value):
         raise ValueError("the Material Linker of this Houdini has no '{}' parameter (found on {})".format(
             pattern.format(index), linker.type().nameWithCategory()))
     parm.set(value)
-
 
 # ----------------------------------------
 def _linker_references(linker):
@@ -141,7 +168,6 @@ def _linker_references(linker):
         refs.append((i, dst.evalAsString(), src.evalAsString(), ref_prim.evalAsString()))
     return refs
 
-
 # ----------------------------------------
 def _linker_rules(linker):
     rules = []
@@ -154,7 +180,6 @@ def _linker_rules(linker):
         includes = [p.strip() for p in includes_parm.evalAsString().splitlines() if p.strip()]
         rules.append((i, owner.evalAsString().strip(), includes))
     return rules
-
 
 # ------------------------------------------------------------
 def _unique_material_path(linker, wanted):
@@ -180,7 +205,6 @@ def _unique_material_path(linker, wanted):
         number += 1
     return "{}{}".format(stem, number)
 
-
 # ----------------------------------------
 def _linker_add_reference(linker, file_path, file_prim_path, label):
     if any(_has_expression(text) for text in (file_path, file_prim_path, label)):
@@ -204,7 +228,6 @@ def _linker_add_reference(linker, file_path, file_prim_path, label):
     _linker_set(linker, "primpath_{}", index, dst_path)
     return dst_path
 
-
 # ------------------------------------
 def _linker_unassign(linker, prim_paths):
     prim_set = set(prim_paths)
@@ -221,7 +244,6 @@ def _linker_unassign(linker, prim_paths):
         else:
             folder.removeMultiParmInstance(index - 1)
     return removed
-
 
 # ------------------------------------------------------------
 # Bind the material to the prims. A prim has one material, so it leaves its previous rule.

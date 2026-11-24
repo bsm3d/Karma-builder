@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Thumbnails, list and category views of the material catalog
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Thumbnail, list and category views of the material catalog, with drag payloads for dropping onto the viewport.
+
 # Houdini : 21 and 22 (PySide6 only, no hou calls)
-# Version : 1.0.0
 
 from hutil.Qt import QtWidgets, QtCore
 from .config import MATERIAL_VIEW_DEPTH, MATERIAL_VIEW_LIMIT
@@ -11,7 +11,6 @@ from .debuglog import _debug
 from .widgets import _asset_mime_type, _drop_event_pos
 
 VIEW_MODES = ("Thumbnails", "List", "Categories")
-
 
 # ------------------------------------------------------------
 def find_gallery_view(gallery):
@@ -24,7 +23,6 @@ def find_gallery_view(gallery):
         if view.model() is not None:
             return view
     return None
-
 
 # ------------------------------------------------------------
 def payload_from_indexes(model, indexes):
@@ -39,7 +37,6 @@ def payload_from_indexes(model, indexes):
     except (UnicodeDecodeError, TypeError, ValueError, RuntimeError):
         return ""
 
-
 # ------------------------------------------------------------
 def selected_payload(view):
     if view is None or view.selectionModel() is None:
@@ -48,7 +45,6 @@ def selected_payload(view):
     for index in view.selectionModel().selectedIndexes():
         rows.setdefault((index.parent(), index.row()), index.sibling(index.row(), 0))
     return payload_from_indexes(view.model(), list(rows.values()))
-
 
 # ------------------------------------------------------------
 # Houdini's gallery model is a QAbstractListModel: PySide refuses hasChildren, parent and columnCount on it ("is a
@@ -59,14 +55,12 @@ def _model_call(model, name, *args):
     except TypeError:
         return getattr(QtCore.QAbstractItemModel, name)(model, *args)
 
-
 # ------------------------------------------------------------
 def _is_folder(model, index):
     try:
         return bool(_model_call(model, "hasChildren", index) or _model_call(model, "canFetchMore", index))
     except (TypeError, AttributeError, RuntimeError):
         return model.rowCount(index) > 0
-
 
 # ------------------------------------------------------------
 def describe_model(model):
@@ -84,7 +78,6 @@ def describe_model(model):
         return " | ".join(parts)
     except (TypeError, AttributeError, RuntimeError, ValueError) as exc:
         return "material model: could not be described ({}: {})".format(type(exc).__name__, exc)
-
 
 # ------------------------------------------------------------
 # Leaves of the gallery model with the folder names above them. Only rows already loaded are read: asking a
@@ -108,13 +101,11 @@ def walk_model(model, limit=MATERIAL_VIEW_LIMIT):
     visit(QtCore.QModelIndex(), [])
     return found
 
-
 # --------------------------------------------------
 def _to_index(persistent):
     if persistent is None or not persistent.isValid():
         return None
     return persistent.model().index(persistent.row(), persistent.column(), persistent.parent())
-
 
 # --------------------------------------------------
 # QTreeWidgetItem.data takes a column, QListWidgetItem.data does not
@@ -122,7 +113,6 @@ def _item_persistent(item):
     if isinstance(item, QtWidgets.QTreeWidgetItem):
         return item.data(0, QtCore.Qt.UserRole)
     return item.data(QtCore.Qt.UserRole)
-
 
 # --------------------------------------------------
 class _ModelItemsMixin:
@@ -140,7 +130,6 @@ class _ModelItemsMixin:
 
     def selected_payload(self):
         return payload_from_indexes(self._source_model, self._indexes(self.selectedItems()))
-
 
 class MaterialListWidget(_ModelItemsMixin, QtWidgets.QListWidget):
     def __init__(self, parent=None):
@@ -162,7 +151,6 @@ class MaterialListWidget(_ModelItemsMixin, QtWidgets.QListWidget):
                 item.setToolTip(" / ".join(trail + [text]))
             self.addItem(item)
         self.setUpdatesEnabled(True)
-
 
 class MaterialCategoryTree(_ModelItemsMixin, QtWidgets.QTreeWidget):
     def __init__(self, parent=None):
@@ -198,7 +186,6 @@ class MaterialCategoryTree(_ModelItemsMixin, QtWidgets.QTreeWidget):
             node.setText(0, "{} ({})".format(key[-1], node.childCount()))
         self.expandToDepth(0)
         self.setUpdatesEnabled(True)
-
 
 # ------------------------------------------------------------
 # Switch between Houdini's thumbnails and two plain lists of the same materials. A right click on a material
@@ -340,7 +327,6 @@ class MaterialBrowser(QtWidgets.QWidget):
         if not view.selectionModel().isSelected(index):
             view.selectionModel().select(index, QtCore.QItemSelectionModel.ClearAndSelect)
         return True
-
 
 # ------------------------------------------------------------
 class _ViewEvents(QtCore.QObject):

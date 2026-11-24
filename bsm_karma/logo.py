@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : The logo of the About tab, embedded so it travels with the HDA and the package
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Embedded PNG logo of the About tab, stored in the module so it travels with the HDA and the package.
+
 # Houdini : 21 and 22 (PySide6 only, no hou calls)
-# Version : 1.0.0
 
 import base64
 
@@ -90,7 +90,6 @@ LOGO_PNG_BASE64 = (
     "tC6toGi0E/DXucDqEycCiaiRqeS4KWyZNpjxM24Bgf0BfcFaAKUgX4HQF5ZKEMgzv0dgRjLl1Iydeb9XRhPsdh7KntpXSj9IiX33"
     "m0ZWIOc3gYQeat9MCtL3sba7LMJ1fftDYZfzxfzI//rO+x7leo7+D+GsP+ShSrqTAAAAAElFTkSuQmCC"
 )
-
 
 # ------------------------------------------------------------
 # The logo as a pixmap, or None when the picture cannot be read.

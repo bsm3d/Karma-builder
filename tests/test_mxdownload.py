@@ -1,7 +1,10 @@
-# Download of ambientCG and Poly Haven materials: the requests, the checks on what a server sends, the unzip.
-# A fake session stands in for the network, with the answer shapes of the two services; no real download is made
-# (that has to be tried by hand once, see todo.txt).
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the ambientCG and Poly Haven downloads: the requests, the checks on what a server sends, and the unzip.
+
+# A fake session stands in for the network, with the answer shapes of the two services: no real download is made.
+# A real download has to be tried by hand once (see todo.txt).
 # Revision : 15-10-2026 | Auteur : BSM
 import io
 import os

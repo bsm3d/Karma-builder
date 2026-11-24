@@ -1,9 +1,9 @@
-# Takes the documentation screenshots (tests/run_tests.ps1 -Screenshots) into BSM_SHOT_DIR, default
-# docs/screenshots.
-#
-# Scene: a sphere and a cube, MaterialX on the sphere. Offline sources only, so the pictures do not need the
-# network.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Takes the documentation screenshots into the BSM_SHOT_DIR folder, launched by tests/run_tests.ps1 with its screenshot switch.
+
+# Takes the documentation screenshots into BSM_SHOT_DIR (default docs/screenshots): a sphere and a cube, MaterialX on the sphere, offline sources only.
 # Revision : 10-10-2026 | Auteur : BSM
 import os
 import sys
@@ -29,7 +29,7 @@ def _catalog_view(index):
     return lambda ui: ui.mat_browser.combo_view.setCurrentIndex(index) if ui.mat_browser is not None else None
 
 
-TABS = [("Scene", "scene", None), ("Lighting", "lighting", None),
+TABS = [("Scene", "scene", None), ("Lighting", "lighting", None), ("Night Sky", "night_sky", None),
         ("Atmosphere", "atmosphere_3d_clouds", _cloud_type(0)), ("Atmosphere", "atmosphere_2d_clouds", _cloud_type(1)),
         ("Materials", "materials", _catalog_view(0)), ("Materials", "materials_list", _catalog_view(1)),
         ("Materials", "materials_categories", _catalog_view(2)),
@@ -82,7 +82,11 @@ def shoot(index):
     ui = S["ui"]
     tabs = ui.findChild(QtWidgets.QTabWidget)
     label, filename, prepare = TABS[index]
-    tabs.setCurrentIndex([tabs.tabText(i) for i in range(tabs.count())].index(label))
+    if label in ("Render", "Passes", "Export"):
+        tabs.setCurrentIndex([tabs.tabText(i) for i in range(tabs.count())].index("Output"))
+        ui.tabs_output.setCurrentIndex([ui.tabs_output.tabText(i) for i in range(ui.tabs_output.count())].index(label))
+    else:
+        tabs.setCurrentIndex([tabs.tabText(i) for i in range(tabs.count())].index(label))
     if prepare is not None:
         prepare(ui)
     QtWidgets.QApplication.processEvents()

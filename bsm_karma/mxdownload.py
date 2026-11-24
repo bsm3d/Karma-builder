@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Window to download MaterialX materials from ambientCG and Poly Haven
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Window to download MaterialX materials from ambientCG and Poly Haven, run in a background thread with a cancel option.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import os
@@ -11,7 +11,6 @@ import threading
 import time
 import zipfile
 from hutil.Qt import QtWidgets, QtCore, QtGui
-from .config import FORM_LABEL_GAP
 from .debuglog import _debug, _guarded_slot
 from .mxsources import (AMBIENTCG_RESOLUTIONS, POLYHAVEN_RESOLUTIONS, DownloadCancelled, DownloadError, ambientcg_catalog,
                         ambientcg_names, check_name, download_ambientcg, download_polyhaven, list_files, polyhaven_catalog,
@@ -32,12 +31,9 @@ _ORPHANS = []
 THUMBNAIL_EDGE = 48
 THUMBNAILS_AT_ONCE = 3
 
-
 # ------------------------------------------------------------
-# A job runs in a thread: job(log, cancel) returns a result. The thread never raises into Qt: every failure comes
-# back as text through done(result, error).
-# attention -> a Python daemon thread and not a QThread: Qt aborts the process when a QThread is destroyed while it still runs
-# (a request stuck when the window closes or Houdini quits), a daemon thread just ends with the process.
+# A job runs in a thread: job(log, cancel) returns a result, and every failure comes back as text through done(result, error), never raised into Qt.
+# attention -> a Python daemon thread, not a QThread: Qt aborts the process if a QThread is destroyed while running; a daemon thread just ends with the process.
 class _Worker(QtCore.QObject):
     message = QtCore.Signal(str)
     done = QtCore.Signal(object, str)
@@ -87,7 +83,6 @@ class _Worker(QtCore.QObject):
         finally:
             self._emit(self.finished)
 
-
 # ------------------------------------------------------------
 class DownloadedMaterialList(QtWidgets.QListWidget):
     dragStarted = QtCore.Signal()
@@ -118,7 +113,6 @@ class DownloadedMaterialList(QtWidgets.QListWidget):
         self.dragStarted.emit()
         super().startDrag(QtCore.Qt.CopyAction)
 
-
 # ------------------------------------------------------------
 class MaterialDownloadDialog(QtWidgets.QDialog):
     fileChosen = QtCore.Signal(str)
@@ -130,7 +124,7 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
     def __init__(self, default_folder, settings=None, parent=None, session_factory=None):
         super().__init__(parent)
         self.setWindowTitle("Download MaterialX Materials")
-        self.resize(560, 700)
+        self.resize(600, 760)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self._settings = settings if settings is not None else self._make_settings()
         self._session_factory = session_factory or self._requests_session
@@ -157,47 +151,64 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
     # ------------------------------------------------------------
     def _build_ui(self, default_folder):
         layout = QtWidgets.QVBoxLayout(self)
-        form = QtWidgets.QFormLayout()
 
+        # the settings in three compact rows: what, which one, where; everything left over goes to the two lists
+        row_what = QtWidgets.QHBoxLayout()
         self.combo_source = QtWidgets.QComboBox()
         self.combo_source.addItems(SOURCES)
         self.combo_source.currentIndexChanged.connect(self._update_source_ui)
-        form.addRow("Source:", self.combo_source)
-
-        self.line_name = QtWidgets.QLineEdit()
-        self.lbl_name = QtWidgets.QLabel("Material name:")
-        form.addRow(self.lbl_name, self.line_name)
         self.combo_resolution = QtWidgets.QComboBox()
-        form.addRow("Resolution:", self.combo_resolution)
         self.combo_format = QtWidgets.QComboBox()
         self.combo_format.addItems(["PNG", "JPG"])
-        self.lbl_format = QtWidgets.QLabel("Image format:")
-        form.addRow(self.lbl_format, self.combo_format)
+        self.lbl_format = QtWidgets.QLabel("Format:")
+        row_what.addWidget(QtWidgets.QLabel("Source:"))
+        row_what.addWidget(self.combo_source, 2)
+        row_what.addWidget(QtWidgets.QLabel("Resolution:"))
+        row_what.addWidget(self.combo_resolution, 1)
+        row_what.addWidget(self.lbl_format)
+        row_what.addWidget(self.combo_format, 1)
+        layout.addLayout(row_what)
 
-        row_folder = QtWidgets.QHBoxLayout()
-        self.line_folder = QtWidgets.QLineEdit(default_folder)
-        btn_browse = QtWidgets.QPushButton("...")
-        btn_browse.setMaximumWidth(40)
-        btn_browse.clicked.connect(self.browse_folder)
-        row_folder.addWidget(self.line_folder, 1)
-        row_folder.addWidget(btn_browse)
-        form.addRow("Download to:", row_folder)
-        layout.addLayout(form)
-
-        row_run = QtWidgets.QHBoxLayout()
+        row_name = QtWidgets.QHBoxLayout()
+        self.lbl_name = QtWidgets.QLabel("Material name:")
+        self.line_name = QtWidgets.QLineEdit()
         self.btn_download = QtWidgets.QPushButton("Download")
         self.btn_download.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_download.clicked.connect(self.start_download)
         self.btn_stop = QtWidgets.QPushButton("Stop")
         self.btn_stop.setEnabled(False)
         self.btn_stop.clicked.connect(self.stop_job)
+        row_name.addWidget(self.lbl_name)
+        row_name.addWidget(self.line_name, 1)
+        row_name.addWidget(self.btn_download)
+        row_name.addWidget(self.btn_stop)
+        layout.addLayout(row_name)
+
+        row_folder = QtWidgets.QHBoxLayout()
+        self.line_folder = QtWidgets.QLineEdit(default_folder)
+        btn_browse = QtWidgets.QPushButton("...")
+        btn_browse.setMaximumWidth(40)
+        btn_browse.setToolTip("Choose the download folder.")
+        btn_browse.clicked.connect(self.browse_folder)
+        btn_open = QtWidgets.QPushButton("Open Folder")
+        btn_open.setToolTip("Show the download folder.")
+        btn_open.clicked.connect(self.open_folder)
         self.btn_site = QtWidgets.QPushButton("Open Website")
         self.btn_site.clicked.connect(self.open_site)
-        row_run.addWidget(self.btn_download, 1)
-        row_run.addWidget(self.btn_stop)
-        row_run.addWidget(self.btn_site)
-        layout.addLayout(row_run)
+        row_folder.addWidget(QtWidgets.QLabel("Download to:"))
+        row_folder.addWidget(self.line_folder, 1)
+        row_folder.addWidget(btn_browse)
+        row_folder.addWidget(btn_open)
+        row_folder.addWidget(self.btn_site)
+        layout.addLayout(row_folder)
 
+        # the two lists share what is left and a handle moves the limit between them
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        splitter.setChildrenCollapsible(False)
+
+        names = QtWidgets.QWidget()
+        lay_names = QtWidgets.QVBoxLayout(names)
+        lay_names.setContentsMargins(0, 0, 0, 0)
         row_browse = QtWidgets.QHBoxLayout()
         self.line_filter = QtWidgets.QLineEdit()
         self.line_filter.setPlaceholderText("Filter the list of names")
@@ -207,32 +218,29 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
         self.btn_list.clicked.connect(self.load_catalog)
         row_browse.addWidget(self.line_filter, 1)
         row_browse.addWidget(self.btn_list)
-        layout.addLayout(row_browse)
+        lay_names.addLayout(row_browse)
         self.list_names = QtWidgets.QListWidget()
-        self.list_names.setMinimumHeight(90)
+        self.list_names.setMinimumHeight(110)
         self.list_names.currentItemChanged.connect(self._name_picked)
-        layout.addWidget(self.list_names, 1)
+        lay_names.addWidget(self.list_names, 1)
+        splitter.addWidget(names)
 
-        self.txt_output = QtWidgets.QPlainTextEdit()
-        self.txt_output.setReadOnly(True)
-        self.txt_output.setMinimumHeight(90)
-        layout.addWidget(self.txt_output, 1)
-
+        files = QtWidgets.QWidget()
+        lay_files = QtWidgets.QVBoxLayout(files)
+        lay_files.setContentsMargins(0, 0, 0, 0)
         lbl_drag = QtWidgets.QLabel("Downloaded materials: drag one onto a prim of the Materials tab or onto the Solaris viewport.")
         lbl_drag.setWordWrap(True)
-        layout.addWidget(lbl_drag)
+        lay_files.addWidget(lbl_drag)
         self.list_files = DownloadedMaterialList()
         self.list_files.setMinimumHeight(140)
         self.list_files.itemDoubleClicked.connect(lambda *_: self.assign_selected())
         self.list_files.dragStarted.connect(self.dragStarted)
-        layout.addWidget(self.list_files, 2)
-
-        self.chk_auto_assign = QtWidgets.QCheckBox("Assign to the selected prims when a download ends")
-        self.chk_auto_assign.setToolTip("Select prims in the Materials tab (or in the Solaris viewport) first: the material you download "
-                                        "is bound to them as soon as it is unpacked.")
-        layout.addWidget(self.chk_auto_assign)
+        lay_files.addWidget(self.list_files, 1)
 
         row_use = QtWidgets.QHBoxLayout()
+        self.chk_auto_assign = QtWidgets.QCheckBox("Assign when a download ends")
+        self.chk_auto_assign.setToolTip("Select prims in the Materials tab (or in the Solaris viewport) first: the material you download "
+                                        "is bound to them as soon as it is unpacked.")
         self.btn_assign = QtWidgets.QPushButton("Assign to Selection")
         self.btn_assign.setToolTip("Bind the selected material to the prims selected in the Materials tab or in the Solaris viewport. "
                                    "A double click does the same.")
@@ -240,21 +248,29 @@ class MaterialDownloadDialog(QtWidgets.QDialog):
         self.btn_use = QtWidgets.QPushButton("Use in Catalog")
         self.btn_use.setToolTip("Show the selected file's materials in the Materials tab.")
         self.btn_use.clicked.connect(self.use_selected)
-        btn_open = QtWidgets.QPushButton("Open Folder")
-        btn_open.clicked.connect(self.open_folder)
         btn_refresh = QtWidgets.QPushButton("Refresh")
         btn_refresh.clicked.connect(self.refresh_files)
-        row_use.addWidget(self.btn_assign, 1)
+        row_use.addWidget(self.chk_auto_assign)
+        row_use.addStretch(1)
+        row_use.addWidget(self.btn_assign)
         row_use.addWidget(self.btn_use)
-        row_use.addWidget(btn_open)
         row_use.addWidget(btn_refresh)
-        layout.addLayout(row_use)
+        lay_files.addLayout(row_use)
+        splitter.addWidget(files)
+        splitter.setStretchFactor(0, 2)
+        splitter.setStretchFactor(1, 3)
+        layout.addWidget(splitter, 1)
+
+        # the messages are a few lines at the bottom, not a block in the middle
+        self.txt_output = QtWidgets.QPlainTextEdit()
+        self.txt_output.setReadOnly(True)
+        self.txt_output.setMaximumHeight(64)
+        layout.addWidget(self.txt_output)
+
         self._thumbnail_queue = []
         self._thumbnail_timer = QtCore.QTimer(self)
         self._thumbnail_timer.setSingleShot(True)
         self._thumbnail_timer.timeout.connect(self._next_thumbnails)
-        for form in self.findChildren(QtWidgets.QFormLayout):
-            form.setHorizontalSpacing(FORM_LABEL_GAP)
         space_layouts(self)
         self._update_source_ui()
 

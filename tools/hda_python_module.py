@@ -1,13 +1,11 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : PythonModule of the HDA (hou.phm() on the node): serves the modules stored in the asset as a package
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : PythonModule of the HDA: serves the modules stored in the asset as a package, through hou.phm() on the node.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
-#
-# The asset carries every module of the bsm_karma package and the presets as sections. An import hook serves
-# them as the package bsm_karma_hda, so the relative imports of the tool work as on disk and nothing clashes
-# with a bsm_karma package that is on the Python path.
+# The asset carries every module of bsm_karma and the presets as sections; an import hook serves them as bsm_karma_hda, so relative imports work as on disk.
+# Nothing clashes with a bsm_karma package on the Python path.
 
 import hashlib
 import importlib
@@ -17,7 +15,7 @@ import sys
 
 MODULE_NAME = "bsm_karma_hda"
 SOURCE_PREFIX = "bsm_karma_src_"
-
+DATAS_PREFIX = "datas_"
 
 # ------------------------------------------------------------
 # Gives the embedded sources to the import system.
@@ -35,7 +33,6 @@ class SectionLoader(importlib.abc.Loader):
         module.__file__ = "{}.py (embedded in the Karma Builder HDA)".format(key)
         exec(compile(self.sources[key], key + ".py", "exec"), module.__dict__)
 
-
 # ------------------------------------------------------------
 class SectionFinder(importlib.abc.MetaPathFinder):
 
@@ -49,13 +46,11 @@ class SectionFinder(importlib.abc.MetaPathFinder):
             return importlib.util.spec_from_loader(fullname, self.loader)
         return None
 
-
 # ------------------------------------------------------------
 def forget_package():
     for name in [n for n in sys.modules if n == MODULE_NAME or n.startswith(MODULE_NAME + ".")]:
         del sys.modules[name]
     sys.meta_path[:] = [f for f in sys.meta_path if not isinstance(f, SectionFinder)]
-
 
 # --------------------------------------------------
 # The tool module for the embedded sources. The code runs once per distinct set of sources: a second press
@@ -87,9 +82,10 @@ def load_tool(definition):
         forget_package()
         raise
     module.EMBEDDED_PRESETS = presets
+    # the pictures stay in the asset until the tool asks for them (they are big)
+    module.EMBEDDED_DATAS = {name[len(DATAS_PREFIX):]: sections[name] for name in sections if name.startswith(DATAS_PREFIX)}
     module._hda_source_digest = digest
     return module
-
 
 # ------------------------------------------------------------
 # The tool module of an asset, or None after telling the user why it could not be loaded. Without a node, the asset
@@ -109,7 +105,6 @@ def _tool_or_message(node, type_name):
                               details=traceback.format_exc(), severity=hou.severityType.Error)
         return None
 
-
 # ------------------------------------------------------------
 # Opens the Karma Builder dialog (or brings a second launch in place of the first).
 def open_builder(node=None, type_name="bsm::karma_builder::1.0"):
@@ -118,7 +113,6 @@ def open_builder(node=None, type_name="bsm::karma_builder::1.0"):
         return None
     module.main()
     return module
-
 
 # ------------------------------------------------------------
 # Creates the shelf button that opens the tool without a node (see shelf.py of the package).

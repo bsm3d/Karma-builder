@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Drop a catalog material on a prim of the Solaris viewport
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Drop of a catalog material onto a prim of the Solaris viewport, applied when the material is dropped there.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 from hutil.Qt import QtWidgets, QtCore
@@ -16,7 +16,6 @@ ARM_TIMEOUT_MS = 20000
 _DRAG_TYPES = (QtCore.QEvent.DragEnter, QtCore.QEvent.DragMove, QtCore.QEvent.Drop)
 _CLASS_HINTS = ("viewport", "viewer", "glwidget", "openglwidget")
 
-
 # ------------------------------------------------------------
 def viewer_selection(viewer):
     getter = getattr(viewer, "currentSceneGraphSelection", None)
@@ -28,7 +27,6 @@ def viewer_selection(viewer):
         _debug("viewport selection unreadable: {}".format(exc))
         return []
 
-
 # ------------------------------------------------------------
 def _viewport_size(viewer):
     try:
@@ -39,24 +37,26 @@ def _viewport_size(viewer):
         return size[-2], size[-1]
     return size if len(size) == 2 else None
 
-
 # ------------------------------------------------------------
 # locateSceneGraphPrim(x, y) returns (depth, path), or (-1, "") when nothing is under the pixel.
 def pick_prim(viewer, x, y, height=None, flip=VIEWPORT_PICK_FLIP_Y):
     locate = getattr(viewer, "locateSceneGraphPrim", None)
     if locate is None:
         return ""
-    py = (height - y) if (flip and height is not None) else y
-    try:
-        result = locate(int(x), int(py))
-    except hou.Error as exc:
-        _debug("locateSceneGraphPrim failed: {}".format(exc))
-        return ""
-    for item in (result if isinstance(result, (tuple, list)) else [result]):
-        if isinstance(item, str) and item.startswith("/"):
-            return item
+    ys = [(height - y) if (flip and height is not None) else y]
+    # HACK: not sure of the origin of Y on every build, so the other one is tried when the first finds nothing
+    if height is not None:
+        ys.append(y if (flip and height is not None) else height - y)
+    for py in ys:
+        try:
+            result = locate(int(x), int(py))
+        except hou.Error as exc:
+            _debug("locateSceneGraphPrim failed: {}".format(exc))
+            return ""
+        for item in (result if isinstance(result, (tuple, list)) else [result]):
+            if isinstance(item, str) and item.startswith("/"):
+                return item
     return ""
-
 
 # ------------------------------------------------------------
 # Qt only delivers a drag to a widget that accepts drops. Visible widgets of the main window with the size of the
@@ -75,7 +75,6 @@ def _drop_site_candidates(root, viewer, limit=4):
             if len(found) >= limit:
                 break
     return found
-
 
 # ------------------------------------------------------------
 # The widget under the cursor that is the viewport: its size equals the viewport's content size, or its class
@@ -97,7 +96,6 @@ def _find_viewport_widget(widget, viewer, log_once):
     log_once("viewport drop: no viewport widget among {} (content size {})".format(
         [(c.metaObject().className(), c.width(), c.height()) for c in chain], size))
     return None
-
 
 # ------------------------------------------------------------
 # Application-wide filter, armed only while a drag may be running (a drag has started in the catalog) so the rest of

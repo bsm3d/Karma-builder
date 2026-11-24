@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Materials tab: catalog, geometry source and assignments
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Materials tab of the Karma Builder dialog, with the material catalog, the geometry source and the assignments.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import os
@@ -13,7 +13,7 @@ from .util import _expand_plain_path
 from .catalog import _amd_library_reachable, _bound_material_name, _list_materials_in_file, _material_catalog_file, _parse_catalog_drop, _stage_target_prims
 from .config import _PRIM_PATH_RE, MATERIAL_EDIT_PATH_PARM, STAGE_TARGET_LIMIT
 from .debuglog import _debug, _guarded_slot
-from .linker import (_get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain, _insert_material_linker_in_chain,
+from .linker import (_adopt_loose_geometry, _loose_geometry, _get_or_create_material_edit, _get_or_create_material_linker, _insert_material_edit_in_chain, _insert_material_linker_in_chain,
                      _linker_add_reference, _linker_assign, _linker_unassign, _material_edit_load, _material_edit_node, _material_linker_node)
 from .matviews import MaterialBrowser
 from .basicmaterials import data_folder
@@ -62,7 +62,7 @@ class MaterialsTab:
         self.mat_gallery = self._create_material_gallery()
         self.mat_browser = None
         if self.mat_gallery is not None:
-            self.mat_gallery.setMinimumHeight(150)
+            self.mat_gallery.setMinimumHeight(235)   # one more row of thumbnails
             self.mat_browser = MaterialBrowser(self.mat_gallery)
             self.mat_browser.contextRequested.connect(self._on_catalog_context_menu)
             lay_catalog.addWidget(self.mat_browser, 1)
@@ -177,11 +177,9 @@ class MaterialsTab:
 
     # --------------------------------------------------
     def _create_material_gallery(self):
-        # HACK: hou.qt._createAssetGallery is private. It is what the Material Linker panel calls,
-        # there is no public way to get this widget. Guard rail: any failure, or an object that is not a widget,
-        # leaves the Materials tab without catalog (the reason is shown there) and "Assign File..." still works.
-        # BSM_KARMA_GALLERY=0 skips the private call altogether. When it fails, the debug log lists what hou.qt
-        # offers instead, so a replacement can be found for that Houdini version.
+        # HACK: hou.qt._createAssetGallery is private, the only way to get this widget (the Material Linker panel uses it).
+        # Any failure, or a non-widget, leaves the tab without catalog (reason shown) and « Assign File... » still works.
+        # BSM_KARMA_GALLERY=0 skips the private call; the debug log lists what hou.qt offers when it fails.
         self._gallery_problem = ""
         if os.environ.get("BSM_KARMA_GALLERY", "1") == "0":
             self._gallery_problem = "switched off by BSM_KARMA_GALLERY=0"
@@ -425,16 +423,55 @@ class MaterialsTab:
         self._assign_material_pairs([(asset, prim_paths) for asset in assets])
 
     # ------------------------------------------------------------
+    # ------------------------------------------------------------
+    # The objects made in the viewport are wired after Karma Render Settings: nothing upstream, the materials included, reaches
+    # them, and the final render does not contain them. With the user's yes, they are unplugged from it and merged (my_objects),
+    # that node becomes the Geometry source and the build puts it before the materials.
+    def _adopt_loose_objects_if_needed(self, prim_paths):
+        stage = hou.node("/stage")
+        settings = stage.node("karma_settings") if stage is not None else None
+        heads, tips = _loose_geometry(stage)
+        if settings is None or not tips:
+            return
+        try:
+            built = settings.stage()
+            loose = tips[0].stage()
+        except hou.Error:
+            return
+        outside = [p for p in prim_paths if p and not built.GetPrimAtPath(p) and loose.GetPrimAtPath(p)]
+        if not outside:
+            return
+        names = ", ".join(n.name() for n in heads[:4]) + (" ..." if len(heads) > 4 else "")
+        reply = QtWidgets.QMessageBox.question(
+            self, "Objects after Karma Render Settings",
+            "{} {} wired after Karma Render Settings ({}). The materials, and the final render, do not reach {}.\n\n"
+            "Move {} in front of the materials? Their first input is unplugged, they are merged in a node named my_objects "
+            "and it becomes the Geometry source. Ctrl+Z brings it back.".format(
+                len(heads), "object is" if len(heads) == 1 else "objects are", names, "it" if len(heads) == 1 else "them", "it" if len(heads) == 1 else "them"),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.Yes)
+        if reply != QtWidgets.QMessageBox.Yes:
+            return
+        with hou.undos.group("Karma Builder - Adopt Objects"):
+            merge = _adopt_loose_geometry(stage, heads, tips)
+        self._fill_geo_source_combo()
+        index = self.combo_geo_source.findText(merge.path())
+        if index >= 0:
+            self.combo_geo_source.setCurrentIndex(index)
+        self.log_message("[OK] {} merged in {}: it is the Geometry source now.".format(names, merge.name()))
+
+    # ------------------------------------------------------------
     def _assign_material_pairs(self, pairs):
         pairs = [(asset, [p for p in prims if p]) for asset, prims in pairs]
         pairs = [(asset, prims) for asset, prims in pairs if asset and prims]
         if not pairs:
             return
+        self._adopt_loose_objects_if_needed([p for _, prims in pairs for p in prims])
         with hou.undos.group("Karma Builder - Assign Material"):
             linker = self._ensure_material_linker()
             if linker is None:
                 return
             assigned = 0
+            self._warn_prims_outside_linker(linker, [p for _, prims in pairs for p in prims])
             for asset, prim_paths in pairs:
                 try:
                     material_path = _linker_add_reference(linker, asset["file_path"], asset["prim_path"], asset["label"])
@@ -453,6 +490,20 @@ class MaterialsTab:
             if len(pairs) > 5:
                 self.log_message("[OK] {} materials assigned, one to each of {} prims.".format(len(pairs), assigned))
         self.refresh_material_targets()
+
+    # ------------------------------------------------------------
+    # bug trouvé et fixé: a prim made after the build (wired below karma_settings) is not upstream of the Material Linker,
+    # the rule is written but nothing changes on screen. Say it instead of staying silent.
+    def _warn_prims_outside_linker(self, linker, prim_paths):
+        try:
+            stage = linker.stage()
+        except hou.Error:
+            return
+        missing = sorted(set(p for p in prim_paths if p and not stage.GetPrimAtPath(p)))
+        if missing:
+            self.log_message("[WARN] {} not in the stream of the Material Linker, the material will show nothing on {}. Choose that geometry in "
+                             "the Geometry list (Scene tab) so the build merges it before the materials.".format(
+                                 ", ".join(missing[:3]) + (" ..." if len(missing) > 3 else ""), "it" if len(missing) == 1 else "them"))
 
     # ------------------------------------------------------------------------
     @_guarded_slot
@@ -575,11 +626,17 @@ class MaterialsTab:
     # ------------------------------------------------------------
     @_guarded_slot
     def on_viewport_material_drop(self, payload, prim_path):
-        if not prim_path:
-            self.log_message("[INFO] No prim under the cursor: drop the material on an object of the viewport.")
-            return
         viewer = self._get_active_scene_viewer()
         selected = viewer_selection(viewer) if viewer is not None else []
+        if not prim_path:
+            # nothing under the cursor: the prims selected in the viewport take the material, if there are any
+            if selected:
+                self.log_message("[INFO] No prim under the cursor: the material goes to the {} prim(s) selected in the viewport.".format(len(selected)))
+                self._assign_payload(payload, self._plain_prim_paths(selected))
+                return
+            hint = " Choose the geometry in the Geometry list first." if not self._current_geo_source() else ""
+            self.log_message("[INFO] No prim under the cursor: drop the material on an object of the viewport.{}".format(hint))
+            return
         paths = selected if prim_path in selected else [prim_path]
         self.log_message("[INFO] Dropped on {} in the viewport.".format(prim_path))
         self._assign_payload(payload, self._plain_prim_paths(paths))
@@ -613,7 +670,10 @@ class MaterialsTab:
             return
         if len(assets) > 1:
             self.log_message("[INFO] {} materials selected, editing the first one.".format(len(assets)))
-        asset = assets[0]
+        self._open_material_asset(assets[0], network)
+
+    # ------------------------------------------------------------
+    def _open_material_asset(self, asset, network):
         if network and not self._confirm_replace_edited_material(asset["label"]):
             return
         problems = []
@@ -665,6 +725,8 @@ class MaterialsTab:
         return reply == QtWidgets.QMessageBox.Yes
 
     # ------------------------------------------------------------
+    # bug trouvé et fixé: Open Network stopped on the Edit Material node, whose only child is the material (a subnet): the nodal view of
+    # the MaterialX network is inside that subnet. A dive goes down to it and selects its first node.
     def _focus_node(self, node, dive=False):
         node.setSelected(True, clear_all_selected=True)
         try:
@@ -672,10 +734,23 @@ class MaterialsTab:
         except hou.Error:
             pass
         try:
-            editor = hou.ui.paneTabOfType(hou.paneTabType.NetworkEditor)
-            if editor is not None:
-                editor.setPwd(node if dive and node.children() else node.parent())
+            # bug trouvé et fixé: only the first network editor was moved, and it is not always the one that shows the network: the editors
+            # that are in /stage are all moved (the first one when none is), and the one that gets the node is brought to the front
+            editors = [pane for pane in hou.ui.paneTabs() if pane.type() == hou.paneTabType.NetworkEditor]
+            shown = [pane for pane in editors if pane.pwd().path().startswith("/stage")] or editors[:1]
+            if dive and node.children():
+                inside = [child for child in node.children() if child.children()]
+                target = inside[0] if len(inside) == 1 else node
+                first = target.children()
+                if first and target is not node:
+                    first[0].setSelected(True, clear_all_selected=True)
+            else:
+                target = node.parent()
+            for editor in shown:
+                editor.setPwd(target)
                 editor.homeToSelection()
+            if shown:
+                shown[0].setIsCurrentTab()
         except (hou.Error, AttributeError) as exc:
             _debug("network editor not moved: {}".format(exc))
 
@@ -727,11 +802,23 @@ class MaterialsTab:
     # ------------------------------------------------------------
     @_guarded_slot
     def on_open_material_linker(self):
-        linker = _material_linker_node(hou.node("/stage"))
-        if linker is None:
-            self.log_message("[INFO] No Material Linker yet: drop a material on a prim first.")
+        stage_net = hou.node("/stage")
+        # the network where the shader is: inside the Edit Material node when a material is open there, else the
+        # Material Linker, else the material library of the build
+        edit = _material_edit_node(stage_net)
+        if edit is not None and edit.children():
+            self._focus_node(edit, dive=True)
             return
-        self._focus_node(linker)
+        linker = _material_linker_node(stage_net)
+        if linker is not None:
+            self._focus_node(linker)
+            return
+        library = stage_net.node("mtlx_materials") if stage_net is not None else None
+        if library is not None:
+            self.log_message("[INFO] No Material Linker yet (drop a material on a prim first): showing the material library.")
+            self._focus_node(library)
+            return
+        self.log_message("[INFO] No Material Linker yet: drop a material on a prim first.")
 
     MATERIAL_SOURCES = ["AMD MaterialX Library", "Houdini Default Catalog", "USD / MaterialX File..."]
 

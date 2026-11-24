@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : The inputs of the MaterialX standard surface and the tool's own basic materials
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Lists the MaterialX standard surface inputs and the tool's own basic materials, and writes the .mtlx files for them.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import os
 import re
@@ -51,7 +51,6 @@ BASIC_MATERIALS = {
     "Emissive": {"base_color": (0.0, 0.0, 0.0), "emission": 3.0, "emission_color": (1.0, 0.9, 0.7)},
 }
 
-
 # ------------------------------------------------------------
 def safe_name(text):
     name = re.sub(r"[^A-Za-z0-9_]+", "_", str(text)).strip("_")
@@ -61,7 +60,6 @@ def safe_name(text):
         name = "M_" + name
     return name[:64]
 
-
 # ------------------------------------------------------------
 def format_value(kind, value):
     if kind == "color3":
@@ -70,7 +68,6 @@ def format_value(kind, value):
         return "true" if value else "false"
     return "{:.6g}".format(float(value))
 
-
 # ------------------------------------------------------------
 def _same(kind, left, right):
     if kind == "color3":
@@ -78,7 +75,6 @@ def _same(kind, left, right):
     if kind == "boolean":
         return bool(left) == bool(right)
     return abs(float(left) - float(right)) < 1e-6
-
 
 # ------------------------------------------------------------
 def build_mtlx(name, values):
@@ -92,7 +88,6 @@ def build_mtlx(name, values):
               '    <input name="surfaceshader" type="surfaceshader" nodename="SR_{}" />'.format(name), "  </surfacematerial>",
               "</materialx>", ""]
     return "\n".join(lines)
-
 
 # ------------------------------------------------------------
 # Folder of the tool's data in the Houdini preferences (a private temp folder when there is none).
@@ -115,7 +110,6 @@ def data_folder(sub):
         except OSError:
             continue
     raise OSError("no folder for the materials")
-
 
 # ------------------------------------------------------------
 def basic_material_file(name, folder=None):

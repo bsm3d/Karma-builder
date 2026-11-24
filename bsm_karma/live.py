@@ -1,23 +1,22 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Live update: rebuild when a value changes
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Live update that schedules a rebuild after a value changes, with a delay and a separate check for structure changes.
+
 # Houdini : 21 and 22 (PySide6 only, no hou calls)
-# Version : 1.0.0
 
 from hutil.Qt import QtWidgets
-from .config import LIVE_STRUCTURE_KEYS
+from .config import LIVE_AUTO_KEYS, LIVE_STRUCTURE_KEYS
 from .debuglog import _debug, _guarded_slot
 from .gauges import GaugeBar
-
 
 # ------------------------------------------------------------
 LIVE_STRUCTURE_LABELS = {
     "scene_mode": "Scene Mode", "env_type": "Environment", "sky_mode": "Sky Rendering", "enable_fog": "Fog",
     "enable_clouds": "Clouds", "cloud_type": "Cloud Type", "enable_aovs": "AOVs", "engine": "Engine", "camera_choice": "Camera",
-    "geo_source": "Geometry Source", "cloud_material_path": "Cloud Material Path",
+    "geo_source": "Geometry Source", "cloud_material_path": "Cloud Material Path", "moon_active": "Moon", "stars_active": "Stars",
+    "stars_milky": "Milky Way", "sky_plate": "Sky Composite",
 }
-
 
 # ------------------------------------------------------------
 def _structure_of(config):
@@ -121,6 +120,9 @@ class LiveUpdateMixin:
         if self._live_building or not self.chk_live_update.isChecked():
             return
         reasons = self._live_structure_changes()
+        # the moon and the stars appear and go with the sun: built here, the other changes of structure wait for the Build button
+        if reasons and all(key in LIVE_AUTO_KEYS for key in reasons):
+            reasons = []
         if reasons:
             self._live_pause(reasons)
             return

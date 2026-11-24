@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Small readers for the HDRI preview: Radiance .hdr and OpenEXR, which Qt cannot open
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Small readers for the HDRI preview: Radiance .hdr and OpenEXR files, which Qt cannot open by itself.
+
 # Houdini : 21 and 22 (plain Python, also runs without Houdini)
-# Version : 1.0.0
 
 import os
 import struct
@@ -11,24 +11,20 @@ import zlib
 
 PREVIEW_COLUMNS = 1024
 
-
 # ------------------------------------------------------------
 class UnsupportedImage(Exception):
     pass
-
 
 # ------------------------------------------------------------
 def _sample(count, wanted):
     import numpy as np
     return np.unique(np.linspace(0, count - 1, min(count, wanted)).astype(np.int64))
 
-
 # ------------------------------------------------------------
 def _kept(width, height, columns):
     kept_columns = _sample(width, columns)
     kept_rows = _sample(height, max(1, int(round(height * len(kept_columns) / float(width)))))
     return kept_rows, kept_columns
-
 
 # ------------------------------------------------------------
 # Radiance .hdr: RGBE pixels, flat or run-length coded per scanline. Rows are read one after the other (their length is
@@ -96,13 +92,11 @@ def _read_hdr(path, columns):
     scale = np.where(rgbe[..., 3] > 0, np.ldexp(1.0, rgbe[..., 3].astype(np.int32) - 136), 0.0).astype(np.float32)
     return rgbe[..., :3].astype(np.float32) * scale[..., None]
 
-
 # ------------------------------------------------------------
 # OpenEXR, scanline files with no compression, RLE, ZIPS or ZIP (the others, tiles and deep data are left alone). Only
 # the first line of some of the blocks is decoded.
 _EXR_LINES = {0: 1, 1: 1, 2: 1, 3: 16}
 _EXR_SIZES = {0: 4, 1: 2, 2: 4}
-
 
 def _exr_unpack(block, compression, limit):
     import numpy as np
@@ -136,7 +130,6 @@ def _exr_unpack(block, compression, limit):
     restored[1::2] = flat[half:]
     return restored
 
-
 def _exr_header(handle):
     if handle.read(4) != b"\x76\x2f\x31\x01":
         raise UnsupportedImage("not an OpenEXR file")
@@ -165,7 +158,6 @@ def _exr_header(handle):
         if size < 0 or size > 1 << 24:
             raise UnsupportedImage("an attribute of an odd size")
         attributes[name.decode("latin-1")] = handle.read(size)
-
 
 def _read_exr(path, columns):
     import numpy as np
@@ -231,7 +223,6 @@ def _read_exr(path, columns):
                 picture.append(np.stack(line, axis=-1))
     return np.stack(picture).astype(np.float32)
 
-
 # ------------------------------------------------------------
 def tone_map(rgb):
     import numpy as np
@@ -242,7 +233,6 @@ def tone_map(rgb):
     scaled = np.clip(rgb, 0.0, None) * (0.25 / min(max(middle, 1e-4), 1e4))
     soft = scaled / (1.0 + scaled)
     return (np.power(soft, 1.0 / 2.2) * 255.0 + 0.5).clip(0, 255).astype(np.uint8)
-
 
 # ------------------------------------------------------------
 # (8-bit RGB array with the ratio of the picture and at most `columns` columns, "") or (None, what is wrong)

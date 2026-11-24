@@ -1,5 +1,8 @@
-# Camera choice and network integrity: no orphan tool node, user nodes left alone, camera rules.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the camera choice and network integrity: no orphan tool node, user nodes left alone, and the camera rules.
+
 # Revision : 10-10-2026 | Auteur : BSM
 from _common import Checker, base_config, load_tool, scratch_dir
 
@@ -117,11 +120,13 @@ for mode, env, fog, clouds in (("Studio", "HDRI Image", False, False), ("3 Point
                                ("Environment", "Physical Sky", True, False), ("Studio", "HDRI Image", False, False)):
     build(scene_mode=mode, env_type=env, enable_fog=fog, enable_clouds=clouds, sky_mode=1)
     no_orphans("({} / {} fog={} clouds={})".format(mode, env, fog, clouds))
-stale = {"physical_sky", "sky_atmosphere_linker", "atmosphere_fog", "cloud_geo", "env_merge", "env_hdri", "window_portal", "key_light"}
+stale = {"physical_sky", "sky_sun", "sky_atmosphere", "sky_atmosphere_linker", "atmosphere_fog", "cloud_geo", "env_merge", "env_hdri", "window_portal", "key_light"}
 t.check("no stale environment node", not (stale & {n.name() for n in tool_nodes()}), sorted(n.name() for n in tool_nodes()))
 
 for n in user_nodes:
     alive = stage.node(n.name())
     t.check("user node {} alive and not moved".format(n.name()), alive is not None and tuple(alive.position()) == user_pos[n.name()])
+
+t.check("a node without a valid stage has no camera prims, nothing raised", k.environment._stage_camera_prims(None) == [])
 
 t.done()

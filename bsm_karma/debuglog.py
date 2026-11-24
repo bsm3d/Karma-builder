@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Debug log file and the guard around the button handlers
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Debug log file for Karma Builder and the guard around the button handlers that writes any error to that log.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import datetime
 import functools
@@ -17,19 +17,15 @@ from .buildinfo import build_summary
 from .config import SCRIPT_VERSION
 from .util import _private_temp_dir
 
-# Everything the tool does goes to a text file: the log messages, the build configuration, the parameters that were
-# not found, the node graph after a build and the traceback of any error. Send that file when something fails.
-# Folder: the bsm_karma package folder; for the HDA (no file on disk) or a read-only folder, the user preferences
-# folder (bsm_karma/), else the temp folder. BSM_KARMA_DEBUG=0 in the environment starts with the log off.
+# Everything the tool does goes to a text file: log messages, build configuration, missing parameters, node graph after a build, tracebacks.
+# Folder: the bsm_karma package folder; for the HDA or a read-only folder, the user preferences folder (bsm_karma/), else the temp folder.
+# BSM_KARMA_DEBUG=0 in the environment starts with the log off.
 
 DEBUG_LOG_NAME = "bsm_karma_debug.log"
 
-
 DEBUG_LOG_MAX_BYTES = 1000000
 
-
 _debug_state = {"enabled": os.environ.get("BSM_KARMA_DEBUG", "1") != "0", "path": None, "broken": False}
-
 
 # ------------------------------------------------------------
 def _debug_candidate_folders():
@@ -50,7 +46,6 @@ def _debug_candidate_folders():
         pass
     return folders
 
-
 # ------------------------------------------------------------
 def debug_log_path():
     if _debug_state["path"] and os.path.isdir(os.path.dirname(_debug_state["path"])):
@@ -67,7 +62,6 @@ def debug_log_path():
             continue
     return None
 
-
 # ------------------------------------------------------------
 def _debug_rotate(path):
     try:
@@ -75,7 +69,6 @@ def _debug_rotate(path):
             os.replace(path, path + ".1")
     except OSError:
         pass
-
 
 # ------------------------------------------------------------
 # Never raises: a log that cannot be written must not break the tool.
@@ -94,11 +87,9 @@ def _debug(message, level="DEBUG"):
     except Exception:
         _debug_state["broken"] = True
 
-
 # ------------------------------------------------------------
 def _debug_exception(where):
     _debug("exception in {}:\n{}".format(where, traceback.format_exc().rstrip()), "ERROR")
-
 
 # ------------------------------------------------------------
 def _debug_node_label(node):
@@ -106,7 +97,6 @@ def _debug_node_label(node):
         return "{} ({})".format(node.path(), node.type().nameWithCategory())
     except (hou.Error, AttributeError):
         return "<node gone>"
-
 
 # ------------------------------------------------------------
 def _debug_session_header():
@@ -129,7 +119,6 @@ def _debug_session_header():
         _debug("hip file: {}".format(hou.hipFile.path()), "SESSION")
     except (hou.Error, AttributeError):
         _debug("hip file: unknown", "SESSION")
-
 
 # ------------------------------------------------------------
 # For the buttons: an error inside a slot is written to the log (with its traceback) and shown in the Log tab,

@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Helpers to create, mark and set nodes
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Helpers to create, mark and set Houdini nodes, including the tag that identifies the tool's own nodes for removal.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import contextlib
 import hou
@@ -12,7 +12,32 @@ from .config import TOOL_NODE_TAG_KEY, TOOL_NODE_TAG_VALUE
 from .debuglog import _debug, _debug_node_label
 
 # ----------------------------------------
-def _pset(node, name, value, log_callback, quiet=False):
+# Settings the build could not apply (parameter missing or value refused, the quiet setters hide it): the build reports them in
+# one [WARN] line at the end, so a name that changed in another Houdini version is not lost without a word.
+_ignored = []
+_last_ignored_report = [""]
+
+def ignored_reset():
+    del _ignored[:]
+
+def _note_ignored(node, label):
+    entry = "{}.{}".format(node.name(), label)
+    if entry not in _ignored:
+        _ignored.append(entry)
+
+# bug trouvé et fixé: a setting the build skipped left no trace, except in the debug log. One line, and not again while it stays the same
+# (a Live Update builds at every move of a slider)
+def ignored_report(log_callback, live=False):
+    if not _ignored:
+        _last_ignored_report[0] = ""
+        return
+    text = ", ".join(_ignored[:12]) + (" ... (+{})".format(len(_ignored) - 12) if len(_ignored) > 12 else "")
+    _debug("settings not applied: " + ", ".join(_ignored), "WARN")
+    if text != _last_ignored_report[0] or not live:
+        log_callback("[WARN] {} setting(s) not applied, parameter missing or value refused in this Houdini version: {}".format(len(_ignored), text))
+    _last_ignored_report[0] = text
+
+def _pset(node, name, value, log_callback, quiet=False, note=True):
     p = node.parm(name)
     if p is not None:
         try:
@@ -30,10 +55,11 @@ def _pset(node, name, value, log_callback, quiet=False):
             # attention -> a value the parm refuses (a menu token that does not exist in this version) must not stop the build
             _debug("parm {}.{} refused {!r}: {}".format(_debug_node_label(node), name, value, exc))
             if not quiet: log_callback(f"  [WARN] '{name}' on {node.name()} refused the value: {exc}")
+            elif note: _note_ignored(node, name + " (refused)")
             return False
     _debug("no parm '{}' on {}".format(name, _debug_node_label(node)))
+    if note: _note_ignored(node, name)
     return False
-
 
 # ------------------------------------------------------------------------
 def _base_node_type_name(node):
@@ -42,7 +68,6 @@ def _base_node_type_name(node):
     except (hou.Error, AttributeError):
         return ""
 
-
 def _mark_tool_node(node):
     if node is None:
         return
@@ -50,7 +75,6 @@ def _mark_tool_node(node):
         node.setUserData(TOOL_NODE_TAG_KEY, TOOL_NODE_TAG_VALUE)
     except hou.Error:
         pass
-
 
 # ----------------------------------------------------------------------
 # Only the tag proves that the tool built a node. A node that merely has the same name or the same type is the
@@ -62,7 +86,6 @@ def _is_tool_node_candidate(node, node_name=None):
         return node.userData(TOOL_NODE_TAG_KEY) == TOOL_NODE_TAG_VALUE
     except hou.Error:
         return False
-
 
 def _get_or_create_node(parent, node_type, node_name):
     n = parent.node(node_name)
@@ -76,12 +99,10 @@ def _get_or_create_node(parent, node_type, node_name):
     _mark_tool_node(n)
     return n
 
-
 # ------------------------------------------------------------
 def _safe_connect(node, prev):
     if node is not None and prev is not None and node.input(0) != prev:
         node.setInput(0, prev)
-
 
 # ------------------------------------------------------------
 # Houdini cooks the stage after every node change, and a running Karma viewport restarts each time. While the
@@ -108,7 +129,6 @@ def _paused_cooking(log_callback=None):
                 if log_callback is not None:
                     log_callback("[WARN] Houdini's update mode could not be put back: set it to Auto Update yourself (status bar).")
 
-
 # ------------------------------------------------------------
 def _get_or_create_stage():
     stage = hou.node("/stage")
@@ -116,7 +136,6 @@ def _get_or_create_stage():
         obj = hou.node("/obj")
         stage = obj.createNode("lopnet", "karma_render")
     return stage
-
 
 def _set_light_color(node, rgb):
     color_parm = _find_usd_input_parm(node, "color")
@@ -153,14 +172,14 @@ def _set_light_color(node, rgb):
                 pass
     return False
 
-
 # ------------------------------------------------------------
-def _set_first_existing_parm(node, parm_names, value, log_callback):
+# note=False for the guessed names of an old version that H22 does not have (nothing to report when none exists)
+def _set_first_existing_parm(node, parm_names, value, log_callback, note=True):
     for parm_name in parm_names:
-        if _pset(node, parm_name, value, log_callback, quiet=True):
+        if _pset(node, parm_name, value, log_callback, quiet=True, note=False):
             return True
+    if note: _note_ignored(node, "|".join(parm_names))
     return False
-
 
 # ----------------------------------------------------------------
 def _set_first_existing_parm_tuple(node, parm_names, values, log_callback):
@@ -177,8 +196,8 @@ def _set_first_existing_parm_tuple(node, parm_names, values, log_callback):
             return True
         except (hou.Error, TypeError):
             continue
+    _note_ignored(node, "|".join(parm_names))
     return False
-
 
 # --------------------------------------------------
 # ATTENTION -> le suffixe de xn__inputs<token>_<hash> change d'une version à l'autre,
@@ -190,14 +209,12 @@ def _find_usd_input_parm(node, token):
             return parm
     return None
 
-
 # --------------------------------------------------------
 def _set_usd_input(node, token, value, log_callback, quiet=True):
     parm = _find_usd_input_parm(node, token)
     if parm is None:
         return False
     return _pset(node, parm.name(), value, log_callback, quiet=quiet)
-
 
 # ------------------------------------------------------------
 def _menu_has_value(parm, value):
@@ -206,7 +223,6 @@ def _menu_has_value(parm, value):
     except hou.OperationFailed:
         return True
     return value in items
-
 
 # ----------------------------------------------------------------------
 def _remove_tool_node(stage, node_name, log_callback, reason=""):
@@ -222,7 +238,6 @@ def _remove_tool_node(stage, node_name, log_callback, reason=""):
         log_callback("[INFO] Removed {} ({}).".format(node_name, reason))
     return True
 
-
 # --------------------------------------------------
 def _set_menu_token(node, parm_names, token, log_callback, label=None):
     for name in parm_names:
@@ -234,7 +249,6 @@ def _set_menu_token(node, parm_names, token, log_callback, label=None):
             return False
         return _pset(node, name, token, log_callback, quiet=True)
     return False
-
 
 # ----------------------------------------
 def _layout_tool_nodes(stage):

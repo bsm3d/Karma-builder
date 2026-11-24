@@ -1,14 +1,13 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Gauge fields and the sliders built on them
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Gauge fields and click-to-set sliders built on them, used across the Karma Builder interface with PySide6.
+
 # Houdini : 21 and 22 (PySide6 only, no hou calls)
-# Version : 1.0.0
 
 from hutil.Qt import QtWidgets, QtCore, QtGui
 from .util import _clamp
 from .widgets import _drop_event_pos
-
 
 # ------------------------------------------------------------
 class ClickSlider(QtWidgets.QSlider):
@@ -39,7 +38,6 @@ class ClickSlider(QtWidgets.QSlider):
 
         super().mousePressEvent(event)
 
-
 #------------------------------------------------------------
 class _SliderTickLabels(QtWidgets.QWidget):
     def __init__(self, tick_points=None, parent=None):
@@ -47,7 +45,6 @@ class _SliderTickLabels(QtWidgets.QWidget):
         self.tick_points = tick_points or []
         self.setFixedHeight(18)
         
-
     # --------------------------------------------------
     def paintEvent(self, event):
         if not self.tick_points:
@@ -55,7 +52,7 @@ class _SliderTickLabels(QtWidgets.QWidget):
         
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.setPen(QtGui.QColor(150, 150, 150))
+        painter.setPen(QtGui.QColor(176, 176, 176))
         font = QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold)
         painter.setFont(font)
         
@@ -70,18 +67,17 @@ class _SliderTickLabels(QtWidgets.QWidget):
             painter.drawText(x - 15, 0, 30, 18, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop, str(label))
         painter.end()
 
-
 # ----------------------------------------------------------------------
-# Hybrid field: a dark bar filled with an amber gauge, the value written in the middle. Drag to set the value
+# Hybrid field: a dark bar filled with a steel blue gauge (amber stays for the main actions), the value written in the middle. Drag to set the value
 # (it follows the mouse position), click without dragging to type a number, arrows for fine steps. The wheel is
 # left alone so that it keeps scrolling the tab. Snap points only act while dragging, a typed value stays exact.
 class GaugeBar(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(float)
 
     TRACK = QtGui.QColor("#1f2123")
-    FILL = QtGui.QColor(214, 140, 20, 205)
+    FILL = QtGui.QColor(66, 102, 143, 235)
     EDGE = QtGui.QColor("#3f4246")
-    EDGE_ACTIVE = QtGui.QColor("#e8a317")
+    EDGE_ACTIVE = QtGui.QColor("#7fa6d0")
     TEXT = QtGui.QColor("#f2f2f2")
 
     # ----------------------------------------------------------------------
@@ -258,7 +254,6 @@ class GaugeBar(QtWidgets.QWidget):
             painter.drawText(rect, QtCore.Qt.AlignCenter, self.format_value(self._value))
         painter.end()
 
-
 # ----------------------------------------------------------------------
 class FloatSlider(QtWidgets.QWidget):
     # real value, whether it came from dragging, typing, the arrow keys or setValue()
@@ -284,7 +279,6 @@ class FloatSlider(QtWidgets.QWidget):
 
     # ----------------------------------------------------------------------
     def setValue(self, val): self.gauge.setValue(val)
-
 
 # ----------------------------------------
 class IntSlider(QtWidgets.QWidget):

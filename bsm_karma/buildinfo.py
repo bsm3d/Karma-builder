@@ -1,24 +1,20 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Which build is running, and where it was loaded from
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Computes the build id as a short hash of the package sources and reports which build is running and where it was loaded from.
+
 # Houdini : 21 and 22 (plain Python, also runs without Houdini)
-# Version : 1.0.0
-#
-# The build id is a short hash of the source of every module of the package. It changes with any change of the code,
-# whether the tool runs from a folder, from scripts/python or from the HDA, and it is the same for the same code
-# (line endings do not count). Compare it with tools/build_id.py run on the repository.
+# Short hash of the source of every module, line endings ignored: the same code gives the same id, whatever the way it is loaded.
+# Compare with tools/build_id.py run on the repository.
 
 import hashlib
 import os
 
 CONFIG_MODULE = "config"
 
-
 # ------------------------------------------------------------
 def _normalized(text):
     return text.replace("\r\n", "\n")
-
 
 # ------------------------------------------------------------
 def package_sources(folder=None):
@@ -36,7 +32,6 @@ def package_sources(folder=None):
         return {name: _normalized(text) for name, text in loader_sources.items()}
     return {}
 
-
 # ------------------------------------------------------------
 def _id_of(sources):
     digest = hashlib.sha1(usedforsecurity=False)
@@ -44,14 +39,11 @@ def _id_of(sources):
         digest.update("{}\0{}\0".format(name, sources[name]).encode("utf-8"))
     return digest.hexdigest()[:8] if sources else "unknown"
 
-
 # ------------------------------------------------------------
 def folder_build_id(folder=None):
     return _id_of(package_sources(folder))
 
-
 BUILD_ID = folder_build_id()
-
 
 # ------------------------------------------------------------
 def build_origin():
@@ -64,13 +56,11 @@ def build_origin():
         return "an installed copy (scripts/python)"
     return "a folder"
 
-
 # ------------------------------------------------------------
 def build_tag():
     origin = build_origin()
     word = "HDA" if origin.startswith("the HDA") else ("installed" if origin.startswith("an installed") else "folder")
     return "build {}, {}".format(BUILD_ID, word)
-
 
 # ------------------------------------------------------------
 def build_location():
@@ -78,7 +68,6 @@ def build_location():
     if os.path.isfile(path):
         return os.path.dirname(os.path.abspath(path)).replace("\\", "/")
     return "embedded in the HDA"
-
 
 # ------------------------------------------------------------
 def build_summary(version):

@@ -1,25 +1,24 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Export tab: output, render buttons and viewport tools
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Export tab of the Karma Builder dialog, with the output settings, the render buttons and the viewport tools.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import os
 from hutil.Qt import QtWidgets, QtCore
 from .debuglog import _guarded_slot
 from .gauges import ClickSlider
+from .skycomp import compose_sky_after_render, wants_plate
 from .styles import _C, _btn_style, _slider_stylesheet
 from .util import _expand_plain_path, _normalize_output_path_extension
-from .widgets import SnapshotPreview, fit_spin, wrap_tab
-
+from .widgets import SnapshotPreview, fit_button, fit_spin, wrap_tab
 
 # ------------------------------------------------------------
 # the slot buttons show 'Slot A [Target]' under their picture: wide enough for it in the font in use
 def _slot_size(button):
     return max(96, button.fontMetrics().horizontalAdvance("Slot A [Target]") + 16), 70
-
 
 # --------------------------------------------------
 class ExportTab:
@@ -84,7 +83,6 @@ class ExportTab:
         self.form_out.addRow("Output:", layout_out)
 
         self.btn_render_mplay = QtWidgets.QPushButton("Render to MPlay")
-        self.btn_render_mplay.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_render_mplay.clicked.connect(self.on_render_mplay)
 
         self.btn_render_disk = QtWidgets.QPushButton("Render to Disk")
@@ -92,20 +90,26 @@ class ExportTab:
         self.btn_render_disk.clicked.connect(self.on_render_disk)
 
         self.btn_open_karma_settings = QtWidgets.QPushButton("Karma Settings")
-        self.btn_open_karma_settings.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_open_karma_settings.clicked.connect(self.on_open_karma_settings)
 
         self.btn_open_viewport = QtWidgets.QPushButton("Karma Viewport")
-        self.btn_open_viewport.setStyleSheet(_btn_style(_C["amber"]))
         self.btn_open_viewport.clicked.connect(self.on_open_viewport)
 
-        grid_render = QtWidgets.QGridLayout()
-        grid_render.setContentsMargins(0, 4, 0, 4)
-        grid_render.addWidget(self.btn_render_mplay, 0, 0)
-        grid_render.addWidget(self.btn_render_disk, 0, 1)
-        grid_render.addWidget(self.btn_open_karma_settings, 1, 0)
-        grid_render.addWidget(self.btn_open_viewport, 1, 1)
-        self.form_out.addRow(grid_render)
+        row_render = QtWidgets.QHBoxLayout()
+        row_render.setContentsMargins(0, 4, 0, 4)
+        row_render.setSpacing(8)
+        # the four buttons share one line and the width equally, the window is narrow so no minimum beyond the text
+        for button in (self.btn_render_mplay, self.btn_render_disk, self.btn_open_karma_settings, self.btn_open_viewport):
+            fit_button(button)
+            row_render.addWidget(button, 1)
+        self.form_out.addRow(row_render)
+        # Render to Disk also makes the sky composite when it is on (Night Sky tab): say so next to the button
+        self.lbl_disk_sky = QtWidgets.QLabel("Render to Disk also composes the sky layers (Night Sky tab).")
+        self.lbl_disk_sky.setWordWrap(True)
+        self.lbl_disk_sky.setStyleSheet("color: {};".format(_C["text_muted"]))
+        self.form_out.addRow(self.lbl_disk_sky)
+        self._update_disk_sky_note()
+        self.chk_sky_plate.toggled.connect(self._update_disk_sky_note)
 
         grp_viewport_tools = QtWidgets.QGroupBox("Viewport Tools")
         lay_viewport_tools = QtWidgets.QVBoxLayout(grp_viewport_tools)
@@ -188,7 +192,8 @@ class ExportTab:
         lay_viewport_tools.addLayout(row_compare)
 
         self.w_snapshot_preview = QtWidgets.QWidget()
-        self.w_snapshot_preview.setMinimumHeight(SnapshotPreview.EMPTY_HEIGHT)
+        # bug trouvé et fixé: a fixed minimum of the picture alone (without the caption under it) let a short window squeeze the
+        # container, the caption then overlapped the picture. The layout gives the real minimum.
         self.w_snapshot_preview.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         lay_snapshot_stack = QtWidgets.QVBoxLayout(self.w_snapshot_preview)
         lay_snapshot_stack.setContentsMargins(0, 0, 0, 0)
@@ -270,6 +275,41 @@ class ExportTab:
                 return
             self.log_message("Launching Render to Disk...")
             execute.pressButton()
+            self._compose_sky_after_render(rp)
+
+    # ------------------------------------------------------------
+    # bug trouvé et fixé: the note showed with the box ticked even in Studio or with an HDRI, where Render to Disk composes nothing
+    def _update_disk_sky_note(self, *_):
+        physical = self.combo_scene_mode.currentText() == "Environment" and self.combo_env_type.currentText() == "Physical Sky"
+        active = physical and self.chk_sky_plate.isChecked()
+        self.lbl_disk_sky.setVisible(active)
+        # bug trouvé et fixé: the sky composite always renders an EXR (the depth is in it) while the Export tab kept saying PNG. The format is
+        # put on EXR and locked while the composite is on, and comes back as it was.
+        combo = self.combo_output_format
+        if active and combo.isEnabled():
+            self._format_before_sky = combo.currentText()
+            combo.setCurrentText("EXR")
+            combo.setEnabled(False)
+            combo.setToolTip("EXR while the sky composite is on (Night Sky tab): the depth of the render is in it.")
+        elif not active and not combo.isEnabled():
+            combo.setEnabled(True)
+            combo.setToolTip("")
+            combo.setCurrentText(getattr(self, "_format_before_sky", "EXR"))
+
+    # ------------------------------------------------------------
+    # The sky of the composite (stars, moon, Milky Way, 2D clouds): drawn for the camera and composed under the picture that was just
+    # rendered, in the Copernicus network /obj/karma_sky_comp.
+    def _compose_sky_after_render(self, rop):
+        config = self._collect_config()
+        try:
+            if not wants_plate(config):
+                return
+            image = rop.parm("outputimage").unexpandedString()
+            first, last = (int(hou.frame()), int(hou.frame())) if config.get("trange", 0) == 0 else (int(config["f_start"]), int(config["f_end"]))
+            self.log_message("Composing the sky...")
+            compose_sky_after_render(config, image, first, last, self.log_message)
+        except (hou.Error, OSError, ValueError, KeyError, ImportError) as exc:
+            self.log_message("[WARN] The sky was not composed: {}".format(exc))
 
     # ------------------------------------------------------------
     @_guarded_slot

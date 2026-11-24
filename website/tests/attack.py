@@ -1,12 +1,10 @@
-# Karma Builder website
-# Benoît Saint-Moulin | www.bsm3d.com
-# Function : attack tests of the site: injection, XSS, header injection, odd bodies, bad methods, file leaks, bursts, robots, spam
-# PHP : 8.1 and later (php on the path)
-# Version : 1.0.0
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Attack tests of the website: injection, XSS, header injection, bad methods, file leaks, bursts and spam.
+
+# PHP 8.1 or later on the path. Runs against a copy served by the PHP built-in server (several workers, needed for real bursts). Never the live site.
 # usage: python website/tests/attack.py
-# A copy of the site runs on the PHP built-in server with several workers (a real burst needs them). Never aim this at the live site.
-# On a real Apache copy: BSM_PORT=8890 BSM_DIR=/path/of/the/copy BSM_USER=www-data python website/tests/attack.py (the copy needs the config of smoke.prepare)
 
 import concurrent.futures
 import http.client
@@ -22,7 +20,6 @@ import urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import smoke
 from smoke import KEY, PORT, SITE, check, execute, prepare, query, results
-
 
 # ------------------------------------------------------------
 def call(method, path, body=None, headers=None, cookie=""):
@@ -42,7 +39,6 @@ def call(method, path, body=None, headers=None, cookie=""):
     connection.close()
     return response.status, reply, cookies, data.decode("utf-8", "replace")
 
-
 # ------------------------------------------------------------
 # the last Set-Cookie of a name is the one that a browser keeps
 def jar(cookies):
@@ -52,14 +48,12 @@ def jar(cookies):
         kept[name] = rest.split(";")[0]
     return "; ".join("%s=%s" % item for item in kept.items())
 
-
 # ------------------------------------------------------------
 def fresh_token(wait=True):
     value = json.loads(call("GET", "/token.php")[3])["token"]
     if wait:
         time.sleep(3.2)
     return value
-
 
 # ------------------------------------------------------------
 def send(fields, headers=None, wait=True):
@@ -70,7 +64,6 @@ def send(fields, headers=None, wait=True):
         return status, json.loads(text)
     except ValueError:
         return status, {"raw": text}
-
 
 # ------------------------------------------------------------
 def main():
@@ -97,7 +90,6 @@ def main():
         shutil.rmtree(work, ignore_errors=True)
     print("\nRESULT:", "all %d checks passed" % len(results) if all(results) else "%d FAILED of %d" % (results.count(False), len(results)))
     sys.exit(0 if all(results) else 1)
-
 
 # ------------------------------------------------------------
 def run(target):
@@ -305,7 +297,6 @@ def run(target):
     missing = [n for n in names if n not in ("*", "Google-Extended", "Applebot-Extended") and n.lower() not in htaccess.lower()]
     check("every robot of robots.txt is also in the .htaccess (the two that are not an agent string excepted)", not missing, missing)
     check("the site never says that it was made with AI", not re.search(r"\bAI\b|artificial intelligence|ChatGPT|Claude|Copilot|LLM", "".join(call("GET", p)[3] for p in ("/", "/guide/", "/faq/", "/contact/")).replace("noai", "")), "")
-
 
 if __name__ == "__main__":
     main()

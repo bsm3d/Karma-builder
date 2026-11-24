@@ -1,11 +1,11 @@
-# Runs the Karma Builder tests against an installed Houdini.
-#
-#   .\tests\run_tests.ps1               headless tests (hython), about 30 s
-#   .\tests\run_tests.ps1 -Gui          also the dialog lifecycle test in Houdini, windows hidden
-#   .\tests\run_tests.ps1 -Gui -Visible same, with the windows shown (a Karma viewport race only shows when visible)
-#   .\tests\run_tests.ps1 -Screenshots  regenerates docs\screenshots (hidden windows); no test is run
-#
-# Exit code: 0 when every check passed, 1 otherwise.
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Script that runs the Karma Builder test suite against an installed Houdini.
+
+# Runs the Karma Builder tests against an installed Houdini. Exit code 0 when every check passed, 1 otherwise.
+# -Gui adds the dialog lifecycle test (windows hidden), -Gui -Visible shows the windows; -Screenshots regenerates docs\screenshots.
+# .\tests\run_tests.ps1
 param(
     [switch]$Gui,
     [switch]$Visible,
@@ -23,7 +23,7 @@ $failed = 0
 $env:QT_QPA_PLATFORM = "offscreen"
 
 if ($Screenshots) { $Gui = $true }
-$tests = if ($Screenshots) { @() } else { @("test_build_modes", "test_material_linker", "test_cameras_nodes", "test_clouds2d", "test_hdrireader", "test_mxdownload", "test_materialeditor", "test_pbrmaterial", "test_shelf", "test_hda", "test_security") }
+$tests = if ($Screenshots) { @() } else { @("test_build_modes", "test_material_linker", "test_cameras_nodes", "test_clouds2d", "test_ephemeris", "test_skycomp", "test_hdrireader", "test_mxdownload", "test_materialeditor", "test_pbrmaterial", "test_shelf", "test_hda", "test_security") }
 foreach ($test in $tests) {
     $out = & $hython (Join-Path $PSScriptRoot "$test.py") 2>&1 | Out-String
     $pass = ([regex]::Matches($out, "(?m)^PASS")).Count

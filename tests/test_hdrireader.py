@@ -1,5 +1,8 @@
-# HDRI preview readers: Radiance .hdr (flat and run-length) and OpenEXR written by the tool, ratio, tone mapping, damaged files.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the HDRI preview readers: Radiance .hdr and OpenEXR files, tone mapping and damaged files.
+
 # Revision : 16-10-2026 | Auteur : BSM
 from _common import Checker, load_tool, scratch_dir
 

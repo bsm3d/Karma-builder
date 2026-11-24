@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Log and About tabs, debug file controls
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Log and About tabs of the Karma Builder dialog, with the controls of the debug log file.
+
 # Houdini : 21 and 22 (PySide6 only, no hou calls)
-# Version : 1.0.0
 
 import datetime
 import os
@@ -12,6 +12,7 @@ from .config import SCRIPT_VERSION
 from .logo import logo_pixmap
 from .debuglog import _debug, _debug_session_header, _debug_state, debug_log_path
 from .styles import _C
+from .util import _tool_data_folder
 from .widgets import wrap_tab
 
 # ------------------------------------------------------------
@@ -31,7 +32,7 @@ class LogTab:
             lbl_logo.setAlignment(QtCore.Qt.AlignCenter)
             layout_about.addWidget(lbl_logo)
 
-        lbl_title = QtWidgets.QLabel(f"Karma Builder {SCRIPT_VERSION}")
+        lbl_title = QtWidgets.QLabel("Karma Builder")
         title_font = lbl_title.font()
         title_font.setPointSize(16)
         title_font.setBold(True)
@@ -39,6 +40,10 @@ class LogTab:
         lbl_title.setAlignment(QtCore.Qt.AlignCenter)
         lbl_title.setWordWrap(True)
         layout_about.addWidget(lbl_title)
+
+        lbl_version = QtWidgets.QLabel("Version : {}".format(SCRIPT_VERSION))
+        lbl_version.setAlignment(QtCore.Qt.AlignCenter)
+        layout_about.addWidget(lbl_version)
 
         lbl_sub = QtWidgets.QLabel("Procedural Environment & Render Setup\nfor SideFX Houdini")
         lbl_sub.setAlignment(QtCore.Qt.AlignCenter)
@@ -54,12 +59,23 @@ class LogTab:
         lbl_cred = QtWidgets.QLabel(
             "<b>Programming & Design</b><br>"
             "Beno\u00eet Saint-Moulin<br>"
-            '<a href="https://www.bsm3d.com">www.bsm3d.com</a>'
+            '<a href="https://www.bsm3d.com" style="color: {};">www.bsm3d.com</a>'.format(_C["link"])
         )
         lbl_cred.setAlignment(QtCore.Qt.AlignCenter)
         lbl_cred.setOpenExternalLinks(True)
         lbl_cred.setStyleSheet("line-height: 1.6;")
         layout_about.addWidget(lbl_cred)
+
+        lbl_help = QtWidgets.QLabel('<a href="help" style="color: {};">Help (user guide)</a>'.format(_C["link"]))
+        lbl_help.setAlignment(QtCore.Qt.AlignCenter)
+        lbl_help.setToolTip("Open the user guide (docs/index.html next to the tool, the website when there is none).")
+        lbl_help.linkActivated.connect(self.on_open_help)
+        layout_about.addWidget(lbl_help)
+
+        btn_folder = QtWidgets.QPushButton("Open Karma Folder")
+        btn_folder.setToolTip("Show the folder where Karma Builder keeps its files (datas, materials, cloud pictures, debug log).")
+        btn_folder.clicked.connect(self.on_open_karma_folder)
+        layout_about.addWidget(btn_folder)
 
         sep2 = QtWidgets.QFrame()
         sep2.setFrameShape(QtWidgets.QFrame.HLine)
@@ -75,6 +91,30 @@ class LogTab:
         layout_about.addStretch(1)
 
         tabs.addTab(wrap_tab(tab_about), "About")
+
+    # ------------------------------------------------------------
+    # The HDA does not carry the guide (screenshots): it is read from the folder of the tool when it is there, else the site.
+    def on_open_help(self, *_):
+        here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        guide = os.path.join(here, "docs", "index.html")
+        url = QtCore.QUrl.fromLocalFile(guide) if os.path.isfile(guide) else QtCore.QUrl("https://www.bsm3d.com")
+        try:
+            if not QtGui.QDesktopServices.openUrl(url):
+                self.log_message("[WARN] The help could not be opened: {}".format(url.toString()))
+        except Exception as exc:   # a link click must never raise into Qt
+            self.log_message("[WARN] The help could not be opened: {}".format(exc))
+
+    # ------------------------------------------------------------
+    def on_open_karma_folder(self, *_):
+        folder = _tool_data_folder()
+        if not folder:
+            self.log_message("[WARN] No Houdini preferences folder found, there is no Karma folder to open.")
+            return
+        try:
+            if not QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(folder)):
+                self.log_message("[WARN] The folder could not be opened: {}".format(folder))
+        except Exception as exc:   # a click must never raise into Qt
+            self.log_message("[WARN] The folder could not be opened: {}".format(exc))
 
     def _build_log_tab(self, tabs):
         tab_logs = QtWidgets.QWidget()

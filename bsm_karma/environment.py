@@ -1,17 +1,19 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Camera, lights, sky, fog and clouds
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Creates the camera, lights, sky, fog, clouds and moon in the Solaris stage for the Karma build.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import math
 import os
-from .clouds2d import CLOUD_TEXTURE_SIZE, cloud_texture_path
-from .config import ATMOSPHERE_FAR_CLIP, CAMERA_CREATE_LABEL, CLOUD2D_BRIGHTNESS, CLOUD_LAYER_NAME, DEFAULT_CLOUD_MATERIAL_PATH, GENERATED_CAMERA_NAME, QUICK_CLOUD_NAME, USD_CAMERA_PREFIX
+from .clouds2d import CLOUD_CARD_NAME, CLOUD_TEXTURE_SIZE, CLOUD_UV_VEX, cloud_card_file, cloud_texture_path
+from .config import ATMOSPHERE_FAR_CLIP, CAMERA_CREATE_LABEL, CLOUD2D_BRIGHTNESS, CLOUD2D_RADIUS, CLOUD_LAYER_MATERIAL, CLOUD_LAYER_NAME, CLOUD_LAYER_PRIM, MOON_DISTANCE, MOON_MATERIALS, MOON_PRIM, DEFAULT_CLOUD_MATERIAL_PATH, GENERATED_CAMERA_NAME, QUICK_CLOUD_NAME, USD_CAMERA_PREFIX
+from .moon import HALO_SCALE, HALO_VEX, MOON_COLOR, MOON_LIGHT_BASE, MOON_VEX, moon_file, moon_state
+from .nightsky import NIGHT_MATS, NIGHT_PRIM, NIGHT_RADIUS, NIGHT_STARS_PRIM, NIGHT_UV_VEX, milky_way_texture_path, night_card_file, night_rotation, star_points_file
 from .nodeutil import _get_or_create_node, _is_tool_node_candidate, _mark_tool_node, _pset, _remove_tool_node, _safe_connect, _set_first_existing_parm, _set_first_existing_parm_tuple, _set_light_color, _set_usd_input
-from .util import _apply_saturation, _apply_tint, _kelvin_to_rgb
+from .util import _sky_data_file, _apply_saturation, _apply_tint, _kelvin_to_rgb
 
 # ------------------------------------------------------------
 def _is_lop_camera(node):
@@ -21,7 +23,6 @@ def _is_lop_camera(node):
         return "camera" in node.type().name().lower()
     except hou.Error:
         return False
-
 
 # ------------------------------------------------------------
 # Fix erreur = Render Settings veut le chemin de prim USD, pas le chemin du node
@@ -35,7 +36,6 @@ def _camera_prim_path(cam):
                 return value
     return "/cameras/{}".format(cam.name())
 
-
 # ------------------------------------------------------------
 def _lop_camera_nodes(stage):
     if stage is None:
@@ -45,12 +45,13 @@ def _lop_camera_nodes(stage):
         if _is_lop_camera(node) and node.name() != GENERATED_CAMERA_NAME
     ]
 
-
 # ------------------------------------------------------------
 def _stage_camera_prims(usd_stage):
     from pxr import UsdGeom
+    # bug trouvé et fixé: node.stage() renvoie None quand le nœud n'a pas (encore) de stage valide
+    if usd_stage is None:
+        return []
     return [str(prim.GetPath()) for prim in usd_stage.Traverse() if prim.IsA(UsdGeom.Camera)]
-
 
 # ------------------------------------------------------------
 def _apply_matrix_to_camera(cam, matrix_values, log_callback):
@@ -67,7 +68,6 @@ def _apply_matrix_to_camera(cam, matrix_values, log_callback):
         _pset(cam, name, value, log_callback, quiet=True)
     return True
 
-
 # --------------------------------------------------
 # bug trouvé et fixé: la position était remise à zéro à chaque build, une caméra bougée à la main
 # revenait à sa place. Maintenant seulement à la création ou pour un match du viewport :)
@@ -82,7 +82,6 @@ def _create_camera(stage, focal, res_x, res_y, pos, log_callback, view_matrix=No
         _pset(cam, "tx", pos[0], log_callback); _pset(cam, "ty", pos[1], log_callback); _pset(cam, "tz", pos[2], log_callback)
     return cam
 
-
 # --------------------------------------------------
 def _clip_range_parms(cam):
     for name in ("clippingRange", "clippingrange"):
@@ -93,7 +92,6 @@ def _clip_range_parms(cam):
         if len(parm_tuple) == 2 and "clip" in parm_tuple.name().lower():
             return parm_tuple
     return None
-
 
 # ------------------------------------------------------------
 # The Karma Sky Atmosphere is a shell about a hundred kilometres thick: a camera whose far clipping range stops short of it
@@ -122,7 +120,6 @@ def _ensure_atmosphere_clip(cam, cam_path, log_callback, wanted=ATMOSPHERE_FAR_C
     else:
         log_callback("[WARN] Volumetric Atmosphere: the far clipping range of {} is {:,.0f}. It must reach about {:,.0f} units or the "
                      "sky renders black; the tool does not change a camera it did not make.".format(cam.path(), far, wanted))
-
 
 # --------------------------------------------------
 # (camera node or None, USD prim path). camera_choice is the create label, a camera LOP path, or
@@ -155,7 +152,6 @@ def _resolve_render_camera(stage, cfg, log_callback):
     )
     return cam, _camera_prim_path(cam)
 
-
 # ------------------------------------------------------------
 def _create_dome_light(stage, prev, intensity, texture_path, log_callback, name="dome_light", hdri_opts=None):
     dome = _get_or_create_node(stage, "domelight", name)
@@ -180,14 +176,12 @@ def _create_dome_light(stage, prev, intensity, texture_path, log_callback, name=
     _safe_connect(dome, prev)
     return dome
 
-
 # ------------------------------------------------------------
 # Color of a lamp from its temperature and tint sliders (lamp = "key", "fill" or "rim"; the window light of the Interior
 # mode is the key). 6500 K and no tint is the neutral white the lamps had before.
 def _lamp_color(cfg, lamp):
     rgb = _kelvin_to_rgb(float(cfg.get("lamp_{}_temp".format(lamp), 6500.0)))
     return _apply_tint(rgb, float(cfg.get("lamp_{}_tint".format(lamp), 0.0)))
-
 
 # ------------------------------------------------------------
 def _create_area_light(stage, prev, intensity, log_callback, name="area_light", pos=(3.0, 4.0, 3.0), rot=(-45.0, 30.0, 0.0), color=None):
@@ -205,14 +199,74 @@ def _create_area_light(stage, prev, intensity, log_callback, name="area_light", 
     _safe_connect(area, prev)
     return area
 
+# ------------------------------------------------------------
+# A light looks down -Z: its +Z axis points at the sky position (azimuth 0 is -Z, 90 is +X, as for the wind of the clouds).
+# Returns the unit vector towards that position.
+def _aim_light(light, elevation_deg, azimuth_deg, log_callback):
+    elevation = math.radians(elevation_deg)
+    azimuth = math.radians(azimuth_deg)
+    toward = hou.Vector3(math.sin(azimuth) * math.cos(elevation), math.sin(elevation), -math.cos(azimuth) * math.cos(elevation))
+    side = hou.Vector3(0.0, 1.0, 0.0).cross(toward)
+    if side.length() < 1e-6:
+        side = hou.Vector3(1.0, 0.0, 0.0)
+    side = side.normalized()
+    up = toward.cross(side)
+    rotation = hou.Matrix4(hou.Matrix3((side[0], side[1], side[2], up[0], up[1], up[2], toward[0], toward[1], toward[2])))
+    for name, value in zip(("rx", "ry", "rz"), rotation.extractRotates()):
+        _pset(light, name, value, log_callback, quiet=True)
+    return toward
+
+# ------------------------------------------------------------
+# Volumetric Atmosphere: a Karma Sky Atmosphere and a distant light as the sun, instead of the Karma Physical Sky node.
+# The sun is normalized (an irradiance whatever its angular size), without it a sun of intensity 1 is about 200 times too
+# weak and everything renders black: found by comparing with the sun that Karma Physical Sky makes (same picture then).
+ATMOSPHERE_SUN_DIVIDER = 3.0
+
+def _create_atmosphere_sky(stage, prev, cfg, log_callback):
+    try:
+        atmosphere = _get_or_create_node(stage, "karmaskyatmosphere", "sky_atmosphere")
+        rayleigh = float(cfg.get("sky_atm_rayleigh", 1.0))
+        mie = float(cfg.get("sky_atm_mie", 1.0))
+        _pset(atmosphere, "rayleighscale", 3e-05 * rayleigh, log_callback, quiet=True)
+        _pset(atmosphere, "miescatterscale", 5e-06 * mie, log_callback, quiet=True)
+        _safe_connect(atmosphere, prev)
+
+        sun = _get_or_create_node(stage, "light", "sky_sun")
+        _pset(sun, "lighttype", "UsdLuxDistantLight", log_callback, quiet=True)
+        # the slider is the one of the basic sky (the Midday preset is 3). A physical sun of 3 burns the atmosphere to
+        # white in a render, Karma's own default sun is 1: the slider is divided by 3 so that Midday looks like it
+        _set_usd_input(sun, "intensity", float(cfg["sky_sun_int"]) / ATMOSPHERE_SUN_DIVIDER, log_callback)
+        _set_usd_input(sun, "angle", float(cfg["sky_sun_size"]), log_callback)
+        _set_usd_input(sun, "normalize", 1, log_callback)
+        _set_light_color(sun, _kelvin_to_rgb(float(cfg.get("sky_sun_temp", 5500.0))))
+        toward = _aim_light(sun, float(cfg["sky_elev"]), float(cfg["sky_azim"]), log_callback)
+        _safe_connect(sun, atmosphere)
+
+        # the atmosphere is lit by the sun alone: below the horizon there is no daylight to scatter
+        if float(cfg["sky_elev"]) < 0.0:
+            log_callback("[WARN] Volumetric Atmosphere with the sun at {:.1f} deg (below the horizon) is dark, that is night. "
+                         "Raise Solar Altitude above 0, or pick a daytime preset. It only renders in Karma.".format(float(cfg["sky_elev"])))
+        log_callback("[INFO] Volumetric Atmosphere renders in Karma CPU and XPU. If it stays black: the sun above the horizon, the far "
+                     "clipping range of the camera (raised for the camera the tool makes), then a render in CPU to tell the engines apart.")
+        return sun
+    except hou.OperationFailed as exc:
+        _remove_tool_node(stage, "sky_sun", log_callback)
+        _remove_tool_node(stage, "sky_atmosphere", log_callback)
+        log_callback("[WARN] Volumetric atmosphere could not be built: {}".format(exc))
+        return prev
 
 def _create_physical_sky(stage, prev, cfg, log_callback):
+    # one sky or the other: the nodes of the mode that is not wanted go
+    if cfg.get("sky_mode", 0) == 1:
+        _remove_tool_node(stage, "physical_sky", log_callback)
+        return _create_atmosphere_sky(stage, prev, cfg, log_callback)
+    _remove_tool_node(stage, "sky_sun", log_callback)
+    _remove_tool_node(stage, "sky_atmosphere", log_callback)
     try:
         sky = _get_or_create_node(stage, "karmaphysicalsky", "physical_sky")
         
-        if "sky_mode" in cfg:
-            _pset(sky, "skymode", int(cfg["sky_mode"]), log_callback, quiet=True)
-            
+        _pset(sky, "skymode", 0, log_callback, quiet=True)
+
         # one name per Houdini generation: a parm that none of them matches is reported, not skipped silently
         missing = []
         for label, names, value in (
@@ -258,35 +312,12 @@ def _create_physical_sky(stage, prev, cfg, log_callback):
 
         _safe_connect(sky, prev)
 
-        if cfg.get("sky_mode", 0) == 1:
-            # the atmosphere is lit by the sun alone: below the horizon there is no daylight to scatter
-            if float(cfg["sky_elev"]) < 0.0:
-                log_callback("[WARN] Volumetric Atmosphere with the sun at {:.1f} deg (below the horizon) is dark, that is night. "
-                             "Raise Solar Altitude above 0, or pick a daytime preset. It only renders in Karma.".format(
-                                 float(cfg["sky_elev"])))
-            log_callback("[INFO] Volumetric Atmosphere renders in Karma CPU and XPU. If it stays black: the sun above the horizon, the far "
-                         "clipping range of the camera (raised for the camera the tool makes), then a render in CPU to tell the engines apart.")
-            linker = _get_or_create_node(stage, "lightlinker", "sky_atmosphere_linker")
-            _pset(linker, "num_links", 1, log_callback, quiet=True)
-
-            # Fix erreur = lightlinker recevait des chemins de node, il veut des chemins de prim USD: <primpath du sky>/<nom du sun>
-            sky_root = sky.parm("primpath").evalAsString().rstrip("/") if sky.parm("primpath") else "/lights/physical_sky"
-            sun_name = sky.parm("sunprim").evalAsString() if sky.parm("sunprim") else "sun"
-            atmo_name = sky.parm("atmoprim").evalAsString() if sky.parm("atmoprim") else "atmosphere"
-
-            _pset(linker, "link_type_1", "light", log_callback, quiet=True)
-            _pset(linker, "link_prim_1", "{}/{}".format(sky_root, sun_name), log_callback, quiet=True)
-            _pset(linker, "link_includes_1", "{}/{}".format(sky_root, atmo_name), log_callback, quiet=True)
-            _safe_connect(linker, sky)
-            return linker
-            
         return sky
     except hou.OperationFailed as exc:
         _remove_tool_node(stage, "sky_atmosphere_linker", log_callback)
         _remove_tool_node(stage, "physical_sky", log_callback)
         log_callback("[WARN] Physical sky could not be built: {}".format(exc))
         return prev
-
 
 # ------------------------------------------------------------
 def _create_fog_branch(stage, prev, cfg, log_callback):
@@ -319,11 +350,12 @@ def _create_fog_branch(stage, prev, cfg, log_callback):
     
     _pset(fog_geo, "addnoise", 1, log_callback, quiet=True)
     _pset(fog_geo, "amplitude", float(cfg.get("fog_noise_amp", 0.5)), log_callback, quiet=True)
-    _pset(fog_geo, "noisescale", float(cfg.get("fog_noise_scale", 0.1)), log_callback, quiet=True)
+    # bug trouvé et fixé: Karma steps the fog with the size of the noise features: 0.1 m noise in a 2.4 km box took 105 s (80 x 50, 2 samples).
+    # Slider read as hundreds of metres per unit, floor 10 m: same picture, 12 times faster than 1 m and 60 times than 0.1 m.
+    _pset(fog_geo, "noisescale", max(10.0, 100.0 * float(cfg.get("fog_noise_scale", 0.1))), log_callback, quiet=True)
 
     _safe_connect(fog_geo, prev)
     return fog_geo
-
 
 # ------------------------------------------------------------
 def _create_quick_cloud_material(stage, prev, cfg, log_callback):
@@ -352,7 +384,6 @@ def _create_quick_cloud_material(stage, prev, cfg, log_callback):
     _safe_connect(node, prev)
     return node
 
-
 # ------------------------------------------------------------
 # An animation the tool made on a parameter: an expression of the time in seconds ($T) with plain numbers in it, so it
 # plays at any frame rate. The parameter is cleared first at every build: a value set over an animation would not stay.
@@ -364,11 +395,10 @@ def _animate_parm(parm, per_second, log_callback):
     except (hou.Error, AttributeError) as exc:
         log_callback("[WARN] Clouds: the animation of {} was not set: {}".format(parm.name(), exc))
 
-
 # ------------------------------------------------------------
-# 2D clouds: a procedural cloud picture on a second dome light, added to the sky. No geometry, no volume: it renders
-# like any dome. A live update uses a smaller picture, the next Build writes the full one. The brightness slider is
-# relative to the sky (1 = as bright as the sky), so the clouds stay visible whatever the sky intensity is.
+# 2D clouds: a procedural picture on a big sphere around the scene (emissive, opaque only where there is a cloud). No volume.
+# A live update uses a smaller picture, the next Build writes the full one.
+# The brightness slider is relative to the sky (1 = as bright as the sky).
 def _create_cloud_layer_2d(stage, prev, cfg, log_callback):
     size = (CLOUD_TEXTURE_SIZE[0] // 2, CLOUD_TEXTURE_SIZE[1] // 2) if cfg.get("live") else CLOUD_TEXTURE_SIZE
     path = cloud_texture_path(
@@ -379,19 +409,63 @@ def _create_cloud_layer_2d(stage, prev, cfg, log_callback):
     else:
         reference = float(cfg.get("hdri_int", 1.0)) * (2.0 ** float(cfg.get("hdri_ev", 0.0)))
     intensity = float(cfg.get("cloud2d_brightness", CLOUD2D_BRIGHTNESS)) * reference
-    dome = _create_dome_light(stage, prev, intensity, path, log_callback, name=CLOUD_LAYER_NAME)
+    card_file = cloud_card_file(path, intensity)
+
+    card = _get_or_create_node(stage, "sopcreate", CLOUD_LAYER_NAME)
+    if card.isLockedHDA():
+        card.allowEditingOfContents()
+    _set_first_existing_parm(card, ("primpath", "destpath"), CLOUD_LAYER_PRIM, log_callback)
+    _pset(card, "pathprefix", CLOUD_LAYER_PRIM, log_callback, quiet=True)
+    sopnet = card.node("sopnet")
+    if sopnet is not None and sopnet.node("cloud_sphere") is None:
+        for n in sopnet.children():
+            if n.name() not in ("OUT", "output"):
+                n.destroy()
+        sphere = sopnet.createNode("sphere", "cloud_sphere")
+        _mark_tool_node(sphere)
+        _pset(sphere, "type", 2, log_callback, quiet=True)        # polygon mesh
+        _pset(sphere, "orient", 1, log_callback, quiet=True)      # Y axis
+        _pset(sphere, "rows", 60, log_callback, quiet=True)
+        _pset(sphere, "cols", 120, log_callback, quiet=True)
+        for axis in ("radx", "rady", "radz"):
+            _pset(sphere, axis, CLOUD2D_RADIUS, log_callback, quiet=True)
+        # the sphere SOP has no lat-long UVs (the polar ones are a top view): written per vertex, the seam fixed per face
+        uv = sopnet.createNode("attribwrangle", "cloud_uv")
+        _mark_tool_node(uv)
+        uv.setInput(0, sphere)
+        _pset(uv, "class", "vertex", log_callback, quiet=True)
+        _pset(uv, "snippet", CLOUD_UV_VEX, log_callback, quiet=True)
+        out = sopnet.node("OUT") or sopnet.node("output")
+        if out is None:
+            out = sopnet.createNode("output", "OUT")
+        out.setInput(0, uv)
+        out.setDisplayFlag(True)
+        out.setRenderFlag(True)
+    _safe_connect(card, prev)
+
+    ref = _get_or_create_node(stage, "reference", CLOUD_LAYER_NAME + "_ref")
+    _pset(ref, "filepath1", card_file, log_callback, quiet=True)
+    _pset(ref, "primpath1", CLOUD_LAYER_MATERIAL, log_callback, quiet=True)
+    _pset(ref, "filerefprim1", "", log_callback, quiet=True)    # "" is the prim path typed below
+    _pset(ref, "filerefprimpath1", "/MaterialX/Materials/{}".format(CLOUD_CARD_NAME), log_callback, quiet=True)
+    _safe_connect(ref, card)
+
+    assign = _get_or_create_node(stage, "assignmaterial", CLOUD_LAYER_NAME + "_mat")
+    _pset(assign, "nummaterials", 1, log_callback, quiet=True)
+    _pset(assign, "primpattern1", CLOUD_LAYER_PRIM, log_callback, quiet=True)
+    _pset(assign, "matspecpath1", CLOUD_LAYER_MATERIAL, log_callback, quiet=True)
+    _safe_connect(assign, ref)
+
     drift = float(cfg.get("cloud2d_drift", 0.0))
-    if dome.parm("ry") is not None:
-        _animate_parm(dome.parm("ry"), drift / 60.0, log_callback)
+    if card.parm("ry") is not None:
+        _animate_parm(card.parm("ry"), drift / 60.0, log_callback)
     elif drift > 0.0:
-        log_callback("[WARN] 2D clouds: the dome light has no rotation parameter, the drift was not set.")
-    log_callback("[INFO] 2D clouds: dome light {} at intensity {:.2f} ({} x the {} {:.2f}), picture {}".format(
-        dome.name(), intensity, "{:.2f}".format(float(cfg.get("cloud2d_brightness", CLOUD2D_BRIGHTNESS))),
+        log_callback("[WARN] 2D clouds: the cloud sphere has no rotation parameter, the drift was not set.")
+    log_callback("[INFO] 2D clouds: sphere {} at emission {:.2f} ({} x the {} {:.2f}), picture {}".format(
+        card.name(), intensity, "{:.2f}".format(float(cfg.get("cloud2d_brightness", CLOUD2D_BRIGHTNESS))),
         "sky intensity" if cfg.get("env_type", "Physical Sky") == "Physical Sky" else "HDRI intensity", reference, os.path.basename(path)))
-    return dome
+    return assign
 
-
-# ------------------------------------------------------------
 def _create_cloud_branch(stage, prev, cfg, log_callback):
     cloud_geo = _get_or_create_node(stage, "sopcreate", "cloud_geo")
     if cloud_geo.isLockedHDA():
@@ -501,13 +575,182 @@ def _create_cloud_branch(stage, prev, cfg, log_callback):
     _safe_connect(assign, upstream)
     return assign
 
+# ------------------------------------------------------------
+# The moon: placed from the sun and the phase slider, a lit sphere (phase from the sun's direction, a map if datas/Sky has one) and a halo, with a distant light.
+# Built only while above the horizon: nothing is added to the scene or the render the rest of the time.
+def _create_moon(stage, prev, cfg, log_callback):
+    state = moon_state(cfg)
+    fade, altitude, azimuth = state["fade"], state["altitude"], state["azimuth"]
+    strength = float(cfg.get("moon_intensity", 1.0))
+    size = max(0.1, float(cfg.get("moon_size", 2.0)))
+    halo = float(cfg.get("moon_halo", 1.0))
+    # by day the moon is a pale disc and its light is nothing
+    emission = 0.9 * strength * (1.0 - 0.55 * state["daylight"])
+
+    light = _get_or_create_node(stage, "light", "sky_moon")
+    _pset(light, "lighttype", "UsdLuxDistantLight", log_callback, quiet=True)
+    _set_usd_input(light, "intensity", MOON_LIGHT_BASE * strength * state["lit"] * fade * (1.0 - state["daylight"]), log_callback)
+    _set_usd_input(light, "angle", size, log_callback)
+    _set_usd_input(light, "normalize", 1, log_callback)
+    _set_light_color(light, MOON_COLOR)
+    toward = _aim_light(light, altitude, azimuth, log_callback)
+    _safe_connect(light, prev)
+
+    radius = MOON_DISTANCE * math.tan(math.radians(size) / 2.0)
+
+    def sphere_node(name, wrangle, sphere_radius, distance, log=log_callback):
+        node = _get_or_create_node(stage, "sopcreate", name)
+        if node.isLockedHDA():
+            node.allowEditingOfContents()
+        _set_first_existing_parm(node, ("primpath", "destpath"), MOON_PRIM + "_" + name, log)
+        _pset(node, "pathprefix", MOON_PRIM + "_" + name, log, quiet=True)
+        sopnet = node.node("sopnet")
+        if sopnet is not None and sopnet.node("moon_sphere") is None:
+            for n in sopnet.children():
+                if n.name() not in ("OUT", "output"):
+                    n.destroy()
+            sphere = sopnet.createNode("sphere", "moon_sphere")
+            _mark_tool_node(sphere)
+            _pset(sphere, "type", 2, log, quiet=True)
+            _pset(sphere, "orient", 1, log, quiet=True)
+            _pset(sphere, "rows", 48, log, quiet=True)
+            _pset(sphere, "cols", 96, log, quiet=True)
+            wr = sopnet.createNode("attribwrangle", "moon_attribs")
+            _mark_tool_node(wr)
+            wr.setInput(0, sphere)
+            _pset(wr, "class", "vertex", log, quiet=True)
+            _pset(wr, "snippet", wrangle, log, quiet=True)
+            out = sopnet.node("OUT") or sopnet.node("output")
+            if out is None:
+                out = sopnet.createNode("output", "OUT")
+            out.setInput(0, wr)
+            out.setDisplayFlag(True)
+            out.setRenderFlag(True)
+        sphere = sopnet.node("moon_sphere") if sopnet is not None else None
+        if sphere is not None:
+            for axis in ("radx", "rady", "radz"):
+                _pset(sphere, axis, sphere_radius, log, quiet=True)
+        for pname, value in zip(("tx", "ty", "tz"), toward * distance):
+            _pset(node, pname, value, log, quiet=True)
+        # the near side of the map (longitude 0, in the middle of it) faces the observer, north up
+        _aim_light(node, -altitude, (azimuth + 180.0) % 360.0, log)
+        return node
+
+    disc = sphere_node("sky_moon_disc", MOON_VEX, radius, MOON_DISTANCE)
+    _safe_connect(disc, light)
+    # the halo sphere sits behind the disc (its near pole at the moon's distance): in front it would veil the moon
+    halo_node = sphere_node("sky_moon_halo", HALO_VEX, radius * HALO_SCALE, MOON_DISTANCE + radius * HALO_SCALE)
+    _safe_connect(halo_node, disc)
+
+    ref = _get_or_create_node(stage, "reference", "sky_moon_ref")
+    sun_dir = [float(c) for c in state["sun"]]
+    _pset(ref, "filepath1", moon_file(emission, fade, _sky_data_file("moon.jpg"), sun_dir, halo), log_callback, quiet=True)
+    _pset(ref, "primpath1", MOON_MATERIALS, log_callback, quiet=True)
+    _pset(ref, "filerefprim1", "", log_callback, quiet=True)
+    _pset(ref, "filerefprimpath1", "/MaterialX/Materials", log_callback, quiet=True)
+    _safe_connect(ref, halo_node)
+
+    assign = _get_or_create_node(stage, "assignmaterial", "sky_moon_mat")
+    _pset(assign, "nummaterials", 2, log_callback, quiet=True)
+    _pset(assign, "primpattern1", MOON_PRIM + "_sky_moon_disc", log_callback, quiet=True)
+    _pset(assign, "matspecpath1", MOON_MATERIALS + "/Moon", log_callback, quiet=True)
+    _pset(assign, "primpattern2", MOON_PRIM + "_sky_moon_halo", log_callback, quiet=True)
+    _pset(assign, "matspecpath2", MOON_MATERIALS + "/MoonHalo", log_callback, quiet=True)
+    _safe_connect(assign, ref)
+    log_callback("[INFO] Moon: altitude {:.1f}, azimuth {:.0f}, {:.0f}% lit, {:.0f}% shown.".format(altitude, azimuth, state["lit"] * 100.0, fade * 100.0))
+    return assign
 
 # ------------------------------------------------------------
-def _create_environment_merge(stage, env_base, fog=None, cloud=None):
+# Stars: the catalogue as points (nightsky.py), coloured, sized by magnitude, halo for the bright ones, own twinkle; the Milky Way, a soft picture, on a sphere behind.
+# Turned for latitude and hour. Shown from sun below -3 degrees, all there at -12; the nodes are built only from then on.
+def _night_fade(cfg):
+    from .ephemeris import apply_exact_sky
+    cfg = apply_exact_sky(cfg)
+    t = min(max((-3.0 - float(cfg.get("sky_elev", 30.0))) / 9.0, 0.0), 1.0)
+    return round(t * t * (3.0 - 2.0 * t) * 20.0) / 20.0
+
+# ------------------------------------------------------------
+def _create_night_sky(stage, prev, cfg, log_callback):
+    from .ephemeris import apply_exact_sky
+    cfg = apply_exact_sky(cfg)
+    snapshot = cfg.get("_snapshot")
+    fade = _night_fade(cfg)
+    strength = float(cfg.get("stars_intensity", 1.0))
+    latitude, hours = float(cfg.get("stars_latitude", 45.0)), float(cfg.get("stars_time", 0.0))
+    milky_texture = milky_way_texture_path() if cfg.get("stars_milky", True) else ""
+    points_file = star_points_file(latitude, hours, float(cfg.get("stars_size", 1.0)), 3.0, snapshot)
+    chain = prev
+
+    if milky_texture:
+        milky = _get_or_create_node(stage, "sopcreate", "sky_milky")
+        if milky.isLockedHDA():
+            milky.allowEditingOfContents()
+        _set_first_existing_parm(milky, ("primpath", "destpath"), NIGHT_PRIM, log_callback)
+        _pset(milky, "pathprefix", NIGHT_PRIM, log_callback, quiet=True)
+        sopnet = milky.node("sopnet")
+        if sopnet is not None and sopnet.node("night_sphere") is None:
+            for n in sopnet.children():
+                if n.name() not in ("OUT", "output"):
+                    n.destroy()
+            sphere = sopnet.createNode("sphere", "night_sphere")
+            _mark_tool_node(sphere)
+            _pset(sphere, "type", 2, log_callback, quiet=True)
+            _pset(sphere, "orient", 1, log_callback, quiet=True)
+            _pset(sphere, "rows", 60, log_callback, quiet=True)
+            _pset(sphere, "cols", 120, log_callback, quiet=True)
+            for axis in ("radx", "rady", "radz"):
+                _pset(sphere, axis, NIGHT_RADIUS, log_callback, quiet=True)
+            uv = sopnet.createNode("attribwrangle", "night_uv")
+            _mark_tool_node(uv)
+            uv.setInput(0, sphere)
+            _pset(uv, "class", "vertex", log_callback, quiet=True)
+            _pset(uv, "snippet", NIGHT_UV_VEX, log_callback, quiet=True)
+            out = sopnet.node("OUT") or sopnet.node("output")
+            if out is None:
+                out = sopnet.createNode("output", "OUT")
+            out.setInput(0, uv)
+            out.setDisplayFlag(True)
+            out.setRenderFlag(True)
+        for name, value in zip(("rx", "ry", "rz"), night_rotation(latitude, hours)):
+            _pset(milky, name, value, log_callback, quiet=True)
+        _safe_connect(milky, chain)
+        chain = milky
+
+    points = _get_or_create_node(stage, "reference", "sky_stars_ref")
+    _pset(points, "filepath1", points_file, log_callback, quiet=True)
+    _pset(points, "primpath1", NIGHT_STARS_PRIM, log_callback, quiet=True)
+    _pset(points, "filerefprim1", "defaultPrim", log_callback, quiet=True)
+    _safe_connect(points, chain)
+
+    mats = _get_or_create_node(stage, "reference", "sky_stars_mtl")
+    _pset(mats, "filepath1", night_card_file(milky_texture, fade, strength, float(cfg.get("stars_twinkle", 1.0)), float(cfg.get("stars_glow", 1.0))),
+          log_callback, quiet=True)
+    _pset(mats, "primpath1", NIGHT_MATS, log_callback, quiet=True)
+    _pset(mats, "filerefprim1", "", log_callback, quiet=True)
+    _pset(mats, "filerefprimpath1", "/MaterialX/Materials", log_callback, quiet=True)
+    _safe_connect(mats, points)
+
+    rows = [(NIGHT_STARS_PRIM + "/Stars", "StarMat"), (NIGHT_STARS_PRIM + "/StarGlow", "GlowMat")]
+    if milky_texture:
+        rows.append((NIGHT_PRIM, "MilkyMat"))
+    assign = _get_or_create_node(stage, "assignmaterial", "sky_stars_mat")
+    _pset(assign, "nummaterials", len(rows), log_callback, quiet=True)
+    for index, (pattern, material) in enumerate(rows, 1):
+        _pset(assign, "primpattern{}".format(index), pattern, log_callback, quiet=True)
+        _pset(assign, "matspecpath{}".format(index), "{}/{}".format(NIGHT_MATS, material), log_callback, quiet=True)
+    _safe_connect(assign, mats)
+    log_callback("[INFO] Night sky: {:.0f}% shown (latitude {:.0f}, {:.1f} h){}.".format(
+        fade * 100.0, latitude, hours, ", Milky Way" if milky_texture else ""))
+    return assign
+
+# ------------------------------------------------------------
+def _create_environment_merge(stage, env_base, fog=None, cloud=None, moon=None, stars=None):
     merge = _get_or_create_node(stage, "merge", "env_merge")
     inputs = [env_base]
     if fog: inputs.append(fog)
     if cloud: inputs.append(cloud)
+    if moon: inputs.append(moon)
+    if stars: inputs.append(stars)
     for i in range(len(merge.inputs())): merge.setInput(i, None)
     for i, node in enumerate(inputs): merge.setInput(i, node)
     return merge

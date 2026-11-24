@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Atmosphere tab: fog and clouds
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Atmosphere tab of the Karma Builder dialog, with the fog and cloud controls.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 from hutil.Qt import QtWidgets
@@ -14,7 +14,6 @@ from .previews import AtmosphereVisualWidget
 from .widgets import wrap_tab
 
 CLOUD_LABEL_WIDTH = 146
-
 
 # ------------------------------------------------------------
 class AtmosphereTab:
@@ -48,6 +47,8 @@ class AtmosphereTab:
         self.sld_fog_phase = FloatSlider(-1.0, 1.0, 0.4)
         form_fog.addRow("Fog Phase:", self.sld_fog_phase)
         self.sld_fog_noise_scale = FloatSlider(0.01, 2.0, 0.1)
+        self.sld_fog_noise_scale.setToolTip("Size of the noise in the fog, in hundreds of metres (never under 10 m). The finer it is, the slower the render: "
+                                            "10 m renders about 12 times faster than 1 m.")
         form_fog.addRow("Fog Noise Freq:", self.sld_fog_noise_scale)
         self.sld_fog_noise_amp = FloatSlider(0.0, 2.0, 0.5)
         form_fog.addRow("Fog Noise Amp:", self.sld_fog_noise_amp)
@@ -63,7 +64,7 @@ class AtmosphereTab:
         self.combo_cloud_type.addItems(CLOUD_TYPES)
         self.combo_cloud_type.setToolTip(
             "3D Volume: real clouds, lit by the sun, with parallax. Heavy to render.\n"
-            "2D Layer: a cloud picture on a second dome light, added to the sky. Fast, for a distant background.")
+            "2D Layer: a cloud picture on a far sphere, or a layer of the composite (Night Sky tab). Fast, for a distant background.")
         self.combo_cloud_type.currentIndexChanged.connect(self.update_cloud_type_ui)
         form_cloud.addRow("Cloud Type:", self.combo_cloud_type)
 
@@ -87,12 +88,13 @@ class AtmosphereTab:
         self.sld_cloud_scale = FloatSlider(10.0, 1000.0, 180.0)
         form_cloud3d.addRow("Cloud Scale:", self.sld_cloud_scale)
         self.sld_cloud_precision = IntSlider(2, 20, 5)
-        form_cloud3d.addRow("Cloud Voxel Size (Prec):", self.sld_cloud_precision)
+        self.sld_cloud_precision.setToolTip("Voxel size of the cloud volume, in precision steps: a larger value is faster and coarser.")
+        form_cloud3d.addRow("Voxel Size:", self.sld_cloud_precision)
         self.sld_cloud_clip = FloatSlider(0.0, 1.0, 0.35)
         form_cloud3d.addRow("Cloud Edge Clip:", self.sld_cloud_clip)
         self.sld_cloud_wind = FloatSlider(0.0, 300.0, 0.0)
         self.sld_cloud_wind.setToolTip("Clouds drift with this speed, in meters per second, as the time goes (press Play). 0 keeps them still.")
-        form_cloud3d.addRow("Wind Speed (m/s):", self.sld_cloud_wind)
+        form_cloud3d.addRow("Wind Speed:", self.sld_cloud_wind)
         self.sld_cloud_wind_dir = FloatSlider(0.0, 360.0, 90.0)
         self.sld_cloud_wind_dir.setToolTip("Where the wind blows to, in degrees: 0 is away from the default camera (-Z), 90 to the right (+X).")
         form_cloud3d.addRow("Wind Direction:", self.sld_cloud_wind_dir)
@@ -132,7 +134,7 @@ class AtmosphereTab:
         form_cloud2d.addRow("Seed:", self.sld_cloud2d_seed)
         self.sld_cloud2d_drift = FloatSlider(0.0, 120.0, 0.0)
         self.sld_cloud2d_drift.setToolTip("The clouds turn around the sky by this many degrees per minute of animation (press Play). 0 keeps them still.")
-        form_cloud2d.addRow("Drift (deg/min):", self.sld_cloud2d_drift)
+        form_cloud2d.addRow("Cloud Drift:", self.sld_cloud2d_drift)
         form_cloud.addRow(self.w_cloud_2d)
         for form in (form_cloud, form_cloud3d, form_cloud2d):
             for row in range(form.rowCount()):

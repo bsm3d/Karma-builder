@@ -1,14 +1,11 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Download MaterialX materials from ambientCG and Poly Haven (no extra install)
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Downloads MaterialX materials from ambientCG and Poly Haven with no extra install, checking the server replies and unzipping them.
+
 # Houdini : 21 and 22 (plain Python, also runs without Houdini)
-# Version : 1.0.0
-#
-# The requests made here follow what the open source materialxmaterials tool (Bernard Kwok, Apache 2.0,
-# https://pypi.org/project/materialxmaterials/) does, minus its MaterialX dependency: ambientCG gives a list of
-# download links and a zip per material, Poly Haven gives a JSON list of files per asset. Everything that comes back
-# from a server is untrusted: hosts are limited, sizes are capped and paths are checked before a file is written.
+# Requests follow the open source materialxmaterials tool (Bernard Kwok, Apache 2.0, https://pypi.org/project/materialxmaterials/), minus its MaterialX dependency.
+# Server replies are untrusted: hosts limited, sizes capped, paths checked before any file is written.
 
 import csv
 import io
@@ -36,14 +33,11 @@ NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 AMBIENTCG_RESOLUTIONS = ("1", "2", "4", "8")
 POLYHAVEN_RESOLUTIONS = ("1k", "2k", "4k", "8k")
 
-
 class DownloadError(Exception):
     pass
 
-
 class DownloadCancelled(Exception):
     pass
-
 
 # ------------------------------------------------------------
 def _check_url(url):
@@ -51,7 +45,6 @@ def _check_url(url):
     host = (parts.hostname or "").lower()
     if parts.scheme != "https" or not any(host == s or host.endswith("." + s) for s in ALLOWED_HOST_SUFFIXES):
         raise DownloadError("refusing an address that is not https on ambientCG or Poly Haven: {}".format(str(url)[:120]))
-
 
 # ------------------------------------------------------------
 def _fetch(session, url, cancel, limit, params=None):
@@ -76,14 +69,12 @@ def _fetch(session, url, cancel, limit, params=None):
         chunks.append(chunk)
     return b"".join(chunks)
 
-
 # ------------------------------------------------------------
 def check_name(name):
     name = str(name).strip()
     if not NAME_RE.match(name):
         raise ValueError("the name must be letters, digits, _ . - and cannot start with a dash or a dot (for example WoodFloor038)")
     return name
-
 
 # ------------------------------------------------------------
 def relative_path(path):
@@ -93,7 +84,6 @@ def relative_path(path):
             or any(part in ("", ".", "..") for part in parts)):
         raise DownloadError("a file path from the server is not safe: {!r}".format(text[:100]))
     return "/".join(parts)
-
 
 # ------------------------------------------------------------
 def _write(folder, rel, data):
@@ -105,7 +95,6 @@ def _write(folder, rel, data):
     with open(path, "wb") as handle:
         handle.write(data)
     return path
-
 
 # ------------------------------------------------------------
 def safe_extract(zip_path, base_folder):
@@ -126,7 +115,6 @@ def safe_extract(zip_path, base_folder):
         archive.extractall(root)
     return target
 
-
 # ------------------------------------------------------------
 def list_files(folder, suffix):
     found = []
@@ -136,7 +124,6 @@ def list_files(folder, suffix):
                 found.append(os.path.join(current, name))
     return found
 
-
 # ------------------------------------------------------------
 # ambientCG: one CSV row per material, resolution and format (assetId, downloadAttribute such as 2K-PNG, downloadLink).
 def ambientcg_catalog(session, cancel=None):
@@ -145,11 +132,9 @@ def ambientcg_catalog(session, cancel=None):
     rows = list(csv.DictReader(io.StringIO(data.decode("utf-8", errors="replace"))))
     return [row for row in rows if row.get("assetId") and row.get("downloadAttribute") and row.get("downloadLink")]
 
-
 # ------------------------------------------------------------
 def ambientcg_names(rows):
     return sorted({row["assetId"] for row in rows if NAME_RE.match(row["assetId"])}, key=str.lower)
-
 
 # ------------------------------------------------------------
 def download_ambientcg(session, rows, asset_id, resolution, fmt, folder, log, cancel=None):
@@ -177,7 +162,6 @@ def download_ambientcg(session, rows, asset_id, resolution, fmt, folder, log, ca
     log("Saved {} ({:.1f} MB).".format(name, len(data) / 1024 ** 2))
     return path
 
-
 # ------------------------------------------------------------
 def polyhaven_catalog(session, cancel=None):
     import json
@@ -187,11 +171,9 @@ def polyhaven_catalog(session, cancel=None):
         raise DownloadError("Poly Haven sent an answer that is not a list of assets")
     return assets
 
-
 # ------------------------------------------------------------
 def polyhaven_names(assets):
     return sorted((name for name in assets if NAME_RE.match(str(name))), key=str.lower)
-
 
 # ------------------------------------------------------------
 # The .mtlx of an asset and its textures, in <folder>/<id>_materialx/. EXR textures are taken as PNG when the server has

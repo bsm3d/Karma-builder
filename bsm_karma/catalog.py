@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Material catalog drops, trust checks and stage prims
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Material catalog checks: reachability of the AMD library, trust of catalog drops, and the stage prims that receive a material.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hashlib
 import hou
@@ -27,7 +27,6 @@ def _amd_library_reachable(timeout=6.0):
     except requests.RequestException as exc:
         return False, str(exc).splitlines()[0][:140]
 
-
 # ------------------------------------------------------------
 # Reason a payload's source must not be built, or "". An AMD source with a payload-supplied folder would
 # extract a package wherever the payload says, so it must be the folder connected in the Materials tab.
@@ -45,10 +44,8 @@ def _catalog_source_problem(identifier, args, amd_folder):
         return ""
     return "unsupported material source"
 
-
 # wrapper layer -> the .mtlx it stands for, so a drop references the real file
 _CATALOG_WRAPPERS = {}
-
 
 # --------------------------------------------------------------------------------
 # The gallery only takes USD stages: wrap a .mtlx in a layer that sublayers it.
@@ -63,7 +60,6 @@ def _material_catalog_file(path):
         handle.write("#usda 1.0\n(\n    subLayers = [@{}@]\n)\n".format(path.replace("\\", "/")))
     _CATALOG_WRAPPERS[_normalized_path(wrapper)] = path
     return wrapper
-
 
 # ------------------------------------------------------------------------------------------
 # Drag payload to material descriptors (label, file_path, prim_path, id). The payload is untrusted, any
@@ -116,7 +112,6 @@ def _parse_catalog_drop(json_text, amd_folder=None, source_factory=None):
         })
     return assets, failures
 
-
 # ------------------------------------
 def _list_materials_in_file(file_path):
     from pxr import Usd, UsdShade
@@ -124,7 +119,6 @@ def _list_materials_in_file(file_path):
     if stage is None:
         return []
     return [(prim.GetName(), str(prim.GetPath())) for prim in stage.Traverse() if prim.IsA(UsdShade.Material)]
-
 
 # --------------------------------------------------
 def _stage_target_prims(stage, limit=STAGE_TARGET_LIMIT):
@@ -145,7 +139,6 @@ def _stage_target_prims(stage, limit=STAGE_TARGET_LIMIT):
         if len(result) >= limit:
             break
     return result
-
 
 # ------------------------------------------------------------
 def _bound_material_name(stage, prim_path):

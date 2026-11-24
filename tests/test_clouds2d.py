@@ -1,5 +1,8 @@
-# 2D cloud picture: shape, coverage, seamless, deterministic, cached, a valid OpenEXR.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the 2D cloud picture: shape, coverage, seamless tiling, determinism, caching and a valid OpenEXR file.
+
 # Revision : 15-10-2026 | Auteur : BSM
 import os
 import struct
@@ -75,5 +78,25 @@ for seed in range(100, 110):
     clouds.cloud_texture_path(0.5, 0.4, 3.0, seed)
 count = len([n for n in os.listdir(folder) if n.startswith(clouds.CLOUD_FILE_PREFIX)])
 t.check("old pictures are cleaned up", count == clouds.CLOUD_FILES_KEPT, count)
+
+# a colour picture (the night sky): the three channels come out in the right places
+rgb = np.zeros((6, 10, 3), dtype=np.float32)
+rgb[..., 0] = 0.25; rgb[..., 1] = 0.5; rgb[..., 2] = 1.0
+rgb[2, 3] = (1.0, 0.0, 0.0)
+rgb_path = folder + "/rgb_check.exr"
+clouds.write_exr_grey(rgb_path, rgb)
+import OpenImageIO as oiio
+reader = oiio.ImageInput.open(rgb_path)
+pixels = np.array(reader.read_image("float")).reshape(6, 10, 3) if reader else None
+t.check("an RGB picture is a valid EXR, the channels are in order", pixels is not None and np.abs(pixels - rgb).max() < 1e-3, None if pixels is None else float(np.abs(pixels - rgb).max()))
+
+# the small files of the moon have their own prefix and limit: they never push a picture out of the cache
+import bsm_karma.moon as moon
+moon._cache_folder = lambda: folder
+for value in range(60):
+    moon.moon_file(1.0 + value * 0.01, 1.0, "", (0.0, 0.0, 1.0), 1.0)
+pictures = len([n for n in os.listdir(folder) if n.startswith(clouds.CLOUD_FILE_PREFIX)])
+moons = len([n for n in os.listdir(folder) if n.startswith(moon.MOON_PREFIX)])
+t.check("sixty moon files leave the pictures alone and are cleaned to their own limit", pictures == clouds.CLOUD_FILES_KEPT and moons == moon.MOON_FILES_KEPT, (pictures, moons))
 
 t.done()

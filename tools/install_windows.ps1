@@ -1,14 +1,10 @@
-# install_windows.ps1 - installs Karma Builder as a Houdini package, or removes it (-Uninstall).
-#
-# Run it through Install.bat / Uninstall.bat at the root of the repository. It writes one small file,
-# packages/bsm_karma.json, in the preferences folder of every Houdini 21 or later found in your Documents folder. That
-# file points Houdini at this folder: the tool, the BSM menu and the shelf are then loaded at start. Nothing is copied.
-#
-#   -Uninstall    remove that file again
-#   -PrefsDir     use this preferences folder only (when Houdini keeps them somewhere else)
-#   -Documents    look for houdiniNN.N folders here instead of in the Documents folder (for tests)
-#   -NoPause      do not wait for a key at the end
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : PowerShell script that installs Karma Builder as a Houdini package, or removes it with the Uninstall switch.
+
+# Installs Karma Builder as a Houdini package, or removes it with -Uninstall. Run it through Install.bat / Uninstall.bat at the root.
+# Writes one small file, packages/bsm_karma.json, in the preferences folder of each Houdini 21+ found in Documents. Nothing is copied.
 # Revision : 16-10-2026 | Auteur : BSM
 param(
     [switch]$Uninstall,

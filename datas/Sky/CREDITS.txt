@@ -1,0 +1,12 @@
+Flora sky data (Datas/Sky)
+
+stars.npz: Yale Bright Star Catalogue, 5th revised edition (Hoffleit & Warren 1991),
+  via CDS VizieR catalogue V/50. Positions J2000, V magnitudes, B-V colours, proper motions.
+milky_way_1k.exr:
+  NASA/Goddard Space Flight Center Scientific Visualization Studio, Deep Star Maps 2020
+  (svs.gsfc.nasa.gov/4851). Gaia DR2: ESA/Gaia/DPAC.
+  milkyway_2020 reduced to 1024 x 512 by tools/make_milky_way.py (linear, gain applied).
+  Layout: plate carree, J2000 equatorial, RA 0h at the centre, RA increasing to the left,
+  north celestial pole on the top row.
+moon.jpg: Moon map (equirectangular, selenographic longitude 0 at the centre, east to the right,
+  north up), from BSM's DEV/Textures/Planets/MoonMap_2500x1250.jpg, provenance to be recorded.

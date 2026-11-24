@@ -1,13 +1,13 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Material library, AOVs, Karma settings and the render ROP
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Material library, AOVs, Karma settings and the render ROP node creation used by the build.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 import re
-from .nodeutil import _get_or_create_node, _mark_tool_node, _menu_has_value, _pset, _safe_connect, _set_first_existing_parm, _set_menu_token
+from .nodeutil import _get_or_create_node, _mark_tool_node, _menu_has_value, _note_ignored, _pset, _safe_connect, _set_first_existing_parm, _set_menu_token
 from .util import _normalize_output_path_extension
 
 # --------------------------------------------------------
@@ -76,6 +76,7 @@ def _create_material_library(stage, prev, cfg, log_callback):
                         ("connectorkind", "kind", "parmtype", "signature"),
                         kind_val,
                         log_callback,
+                        note=False,
                     ):
                         break
             except (hou.Error, TypeError):
@@ -117,7 +118,6 @@ def _create_material_library(stage, prev, cfg, log_callback):
 
     return mat_lib
 
-
 # ------------------------------------------------------------
 def _apply_aov_precision(aovs, beauty_half, other_half, log_callback):
     pattern = re.compile(r"^(color[34])([hf])$")
@@ -135,7 +135,6 @@ def _apply_aov_precision(aovs, beauty_half, other_half, log_callback):
             if _pset(aovs, name, wanted, log_callback, quiet=True):
                 changed += 1
     return changed
-
 
 # ------------------------------------------------------------
 # Fix erreur = aucun des anciens noms de toggles n'existait sur H22, les AOV étaient ignorés en silence
@@ -179,10 +178,10 @@ def _create_aov_chain(stage, prev, cfg, log_callback):
             ("halfprecision", "half", "half_float", "halfFloat"),
             1 if other_half else 0,
             log_callback,
+            note=False,
         )
 
     return aovs
-
 
 # ------------------------------------------------------------
 def _create_render_settings(stage, cam_path, prev, cfg, log_callback):
@@ -190,6 +189,10 @@ def _create_render_settings(stage, cam_path, prev, cfg, log_callback):
     engine = cfg["engine"]
     _pset(ks, "engine", engine, log_callback, quiet=True)
     _pset(ks, "camera", cam_path, log_callback)
+    # bug trouvé et fixé: with the Standard Render Vars node (AOVs on) upstream, the settings node added its own beauty on top of the
+    # one of that node: husk stopped with "Multiple output image planes named C" and a render to disk with AOVs came out as a plain RGBA.
+    # The beauty is the one of the AOV node (it carries the precision of the Export tab); the settings node makes it only without AOVs.
+    _pset(ks, "beauty", 0 if cfg.get("enable_aovs") else 1, log_callback, quiet=True)
 
     # CPU uses path traced samples too (see convergence_mode below)
     if ks.parm("pathtracedsamples") is not None:
@@ -262,7 +265,6 @@ def _create_render_settings(stage, cam_path, prev, cfg, log_callback):
     _safe_connect(ks, prev)
     return ks
 
-
 # ------------------------------------------------------------------------
 def _create_render_rop(stage, lop_input, cfg, log_callback):
     rp = _get_or_create_node(stage, "usdrender_rop", "render_to_disk")
@@ -278,19 +280,23 @@ def _create_render_rop(stage, lop_input, cfg, log_callback):
     renderer = rp.parm("renderer")
     if renderer is not None and _menu_has_value(renderer, delegate):
         _pset(rp, "renderer", delegate, log_callback, quiet=True)
+    elif renderer is not None:
+        # the disk render would start with another engine than the one chosen
+        _note_ignored(rp, "renderer ({} not in the menu)".format(delegate))
     ks_node = stage.node("karma_settings")
     if ks_node is not None and ks_node.parm("primpath") is not None:
         _pset(rp, "rendersettings", ks_node.parm("primpath").evalAsString(), log_callback, quiet=True)
 
-    _set_first_existing_parm(rp, ("pictureformat", "outputformat", "imageformat"), str(cfg["output_format"]).lower(), log_callback)
+    _set_first_existing_parm(rp, ("pictureformat", "outputformat", "imageformat"), str(cfg["output_format"]).lower(), log_callback, note=False)
     if str(cfg["output_format"]).upper() == "EXR":
         exr_is_half = (cfg.get("exr_precision", "16-bit float") == "16-bit float")
-        _set_first_existing_parm(rp, ("halfprecision", "half", "exrhalf"), 1 if exr_is_half else 0, log_callback)
+        _set_first_existing_parm(rp, ("halfprecision", "half", "exrhalf"), 1 if exr_is_half else 0, log_callback, note=False)
         _set_first_existing_parm(
             rp,
             ("exrdatatype", "exr_pixeltype", "exrprecision", "datatype"),
             "half" if exr_is_half else "float",
             log_callback,
+            note=False,
         )
 
     _safe_connect(rp, lop_input)

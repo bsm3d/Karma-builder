@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Read and change a MaterialX .mtlx file for the material editor
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Reads and changes MaterialX .mtlx files for the material editor, writing settings variants and reading embedded settings.
+
 # Houdini : 21 and 22 (plain Python, also runs without Houdini)
-# Version : 1.0.0
 
 import base64
 import hashlib
@@ -26,11 +26,9 @@ DEFAULT_MODS = {"tint": (1.0, 1.0, 1.0), "brightness": 1.0, "rough_scale": 1.0, 
 
 ElementTree.register_namespace("xi", "http://www.w3.org/2001/XInclude")
 
-
 # ------------------------------------------------------------
 class MtlxError(Exception):
     pass
-
 
 # ------------------------------------------------------------
 # The file as a tree, comments kept. A DOCTYPE or entities are refused (entity expansion), and so is a big file.
@@ -51,7 +49,6 @@ def parse(text):
         raise MtlxError("not a MaterialX file")
     return root
 
-
 # ------------------------------------------------------------
 def read_text(path):
     if os.path.getsize(path) > MAX_FILE_BYTES:
@@ -59,11 +56,9 @@ def read_text(path):
     with open(path, encoding="utf-8") as handle:
         return handle.read()
 
-
 # ------------------------------------------------------------
 def _parents(root):
     return {child: parent for parent in root.iter() for child in parent}
-
 
 # ------------------------------------------------------------
 def _named(root, tag, name):
@@ -71,7 +66,6 @@ def _named(root, tag, name):
         if element.get("name") == name:
             return element
     return None
-
 
 # ------------------------------------------------------------
 def find_surface(root):
@@ -83,7 +77,6 @@ def find_surface(root):
                     return found
     return next(root.iter("standard_surface"), None)
 
-
 # ------------------------------------------------------------
 def _input(element, name):
     for entry in element.findall("input"):
@@ -91,11 +84,9 @@ def _input(element, name):
             return entry
     return None
 
-
 # ------------------------------------------------------------
 def _is_connected(entry):
     return entry is not None and any(entry.get(a) for a in ("nodename", "nodegraph", "interfacename"))
-
 
 # ------------------------------------------------------------
 def parse_value(kind, text):
@@ -109,7 +100,6 @@ def parse_value(kind, text):
         return number if math.isfinite(number) else None
     except ValueError:
         return None
-
 
 # ------------------------------------------------------------
 def describe(text):
@@ -140,12 +130,10 @@ def describe(text):
         "has_files": any(e.get("type") == "filename" for e in root.iter("input")),
     }
 
-
 # ------------------------------------------------------------
 def _clear_connection(entry):
     for attribute in CONNECTION_ATTRIBUTES:
         entry.attrib.pop(attribute, None)
-
 
 # ------------------------------------------------------------
 def _insert_multiply(container, surface, key, kind, factor):
@@ -164,7 +152,6 @@ def _insert_multiply(container, surface, key, kind, factor):
     entry.set("nodename", name)
     return True
 
-
 # ------------------------------------------------------------
 def _scale_input_value(element, name, kind, factor, default):
     entry = _input(element, name)
@@ -178,18 +165,15 @@ def _scale_input_value(element, name, kind, factor, default):
     else:
         entry.set("value", "{:.6g}".format(float(current) * factor))
 
-
 # ------------------------------------------------------------
 def _number_of(value):
     return float(value) if isinstance(value, (int, float)) and math.isfinite(value) else None
-
 
 # ------------------------------------------------------------
 def _color_of(value):
     if isinstance(value, (list, tuple)) and len(value) == 3 and all(_number_of(v) is not None for v in value):
         return tuple(float(v) for v in value)
     return None
-
 
 # ------------------------------------------------------------
 # The settings that the editor writes, out of whatever a file says it holds (a comment of any file can say anything): known
@@ -215,7 +199,6 @@ def clean_settings(settings):
             if value is not None:
                 mods[key] = value
     return {"values": values, "mods": mods}
-
 
 # ------------------------------------------------------------
 # settings = {"values": {input: value}, "mods": {tint, brightness, rough_scale, normal, disp, tiling}}. A value replaces
@@ -258,11 +241,9 @@ def apply_settings(text, settings):
     ElementTree.indent(root, space="  ")
     return '<?xml version="1.0"?>\n' + ElementTree.tostring(root, encoding="unicode") + "\n"
 
-
 # ------------------------------------------------------------
 def _encode(original, settings):
     return base64.b64encode(json.dumps({"original": original, "settings": settings}, sort_keys=True).encode("utf-8")).decode("ascii")
-
 
 # ------------------------------------------------------------
 def read_embedded(text):
@@ -275,11 +256,9 @@ def read_embedded(text):
     except (ValueError, KeyError, TypeError):
         return None
 
-
 # ------------------------------------------------------------
 def _settings_key(settings):
     return json.dumps(settings, sort_keys=True, default=list)
-
 
 # ------------------------------------------------------------
 def original_and_settings(path):
@@ -296,7 +275,6 @@ def original_and_settings(path):
         return path, {}
     return original, embedded[1]
 
-
 # ------------------------------------------------------------
 def write_variant(original, settings):
     text = read_text(original)
@@ -311,7 +289,6 @@ def write_variant(original, settings):
             handle.write("{}\n<!-- bsm_karma {} -->\n{}".format(head, _encode(name, settings), rest))
         _prune(folder, stem, keep=path)
     return path
-
 
 # ------------------------------------------------------------
 def _prune(folder, stem, keep):
@@ -329,7 +306,6 @@ def _prune(folder, stem, keep):
                 os.remove(old)
     except OSError:
         pass
-
 
 # ------------------------------------------------------------
 def write_named(original, settings, name, folder):

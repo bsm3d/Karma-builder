@@ -1,8 +1,10 @@
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Shared setup for the headless Karma Builder tests, run with hython through tests/run_tests.ps1.
+
 # Shared setup for the headless tests, run with hython (tests/run_tests.ps1).
-#
-# hython has no hou.qt, which the tool reads: a stub stands in, so only the network and linker logic runs here.
-# The dialog itself is covered by tests/gui.
-#
+# hython has no hou.qt, so a stub stands in: only the network and linker logic runs here. The dialog is covered by tests/gui.
 # Revision : 10-10-2026 | Auteur : BSM
 import os
 import sys

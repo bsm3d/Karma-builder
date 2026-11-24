@@ -1,6 +1,9 @@
-# The Karma Builder HDA: built from the sources, installable, passes its input through, and its
-# embedded loader runs the tool. Also fails when the committed bsm_karma_builder.hda is out of date.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Checks the Karma Builder HDA: built from the sources, installable, and passing its input through.
+
+# Also fails when the committed bsm_karma_builder.hda is out of date.
 # Revision : 10-10-2026 | Auteur : BSM
 import json
 import os
@@ -27,6 +30,15 @@ def source(*parts):
 # one section per module of the package
 MODULES = sorted(name[:-3] for name in os.listdir(os.path.join(ROOT, "bsm_karma")) if name.endswith(".py"))
 
+
+# bug trouvé et fixé: a tool that writes LF turned config.py and __init__.py into one big diff (the project keeps CRLF)
+def bare_lf(name):
+    with open(os.path.join(ROOT, "bsm_karma", name + ".py"), "rb") as handle:
+        data = handle.read()
+    return data.count(b"\n") != data.count(b"\r\n")
+
+
+t.check("every module of the package keeps CRLF line endings", not [name for name in MODULES if bare_lf(name)], [name for name in MODULES if bare_lf(name)])
 
 built, version = build_hda.build(hda_path)
 t.check("the HDA file is built", os.path.isfile(built) and os.path.getsize(built) > 50000, os.path.getsize(built))
@@ -79,6 +91,16 @@ tool.KarmaBuilderUI._load_presets(stub)  # plain function call: no dialog needed
 expected = json.loads(source("bsm_karma", "presets.json"))
 t.check("presets come from the embedded text", stub.sky_presets == expected["sky_presets"] and stub.presets == expected["render_qualities"]
         and not stub._pending_logs, stub._pending_logs)
+
+# the HDRI pictures of datas/ travel in the asset and come out in the preferences folder
+want = [n for n in os.listdir(os.path.join(ROOT, "datas")) if os.path.isfile(os.path.join(ROOT, "datas", n))] if os.path.isdir(os.path.join(ROOT, "datas")) else []
+t.check("the HDRI of datas/ are sections of the asset", sorted(want) == sorted(k.config.DATAS_HDRIS) and all("datas_" + n in sections for n in want), want)
+pref = os.path.join(out_dir, "pref")
+hou.putenv("HOUDINI_USER_PREF_DIR", pref)
+folder = tool._datas_folder() if hasattr(tool, "_datas_folder") else tool.util._datas_folder()
+t.check("the sky pictures (moon, stars, lines, Milky Way) are sections of the asset", all("datas_Sky_" + n in sections for n in k.config.SKY_DATAS_EMBEDDED) and not os.path.isfile(os.path.join(tool._datas_folder() if hasattr(tool, "_datas_folder") else tool.util._datas_folder(), "Sky_moon.jpg")))
+t.check("the embedded HDRI are written once, complete", all(os.path.getsize(os.path.join(folder, n)) == os.path.getsize(os.path.join(ROOT, "datas", n)) for n in want) and not [n for n in os.listdir(folder) if n.endswith(".part")], folder)
+t.check("the default HDRI is the first of them", tool.util._default_hdri_path() == folder + "/" + k.config.DATAS_HDRIS[0], tool.util._default_hdri_path())
 
 # a different source replaces the module and closes the old dialog; a failing source leaves nothing loaded
 closed = []

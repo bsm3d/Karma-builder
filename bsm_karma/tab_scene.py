@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Scene tab: mode, quality, camera and the tool's own nodes
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Scene tab of the Karma Builder dialog, with the scene mode, quality, camera and the tool's own nodes.
+
 # Houdini : 21 and 22
-# Version : 1.0.0
 
 import hou
 from hutil.Qt import QtWidgets, QtCore
@@ -107,7 +107,7 @@ class SceneTab:
         form_main.addRow("New Camera:", self.w_new_camera)
 
         self.btn_clear_all_main = QtWidgets.QPushButton("Clear All Tool Nodes")
-        self.btn_clear_all_main.setStyleSheet(_btn_style(_C["amber"]))
+        self.btn_clear_all_main.setStyleSheet(_btn_style(_C["danger"]))
         self.btn_clear_all_main.clicked.connect(self.on_clear_all)
         form_main.addRow("", self.btn_clear_all_main)
 
@@ -115,7 +115,7 @@ class SceneTab:
         self.chk_live_update.setToolTip(
             "On: a change of a value updates the nodes after a short pause, no need to press Build.\n"
             "A change that adds or removes nodes (scene mode, sky rendering, fog, clouds, AOVs, engine, camera,\n"
-            "geometry source) waits for Build: it can freeze a running Karma viewport.\n"
+            "geometry source, sky composite) waits for Build: it can freeze a running Karma viewport.\n"
             "Off: the network only changes when you press Build (better on a slower machine).")
         form_main.addRow("Live Update:", self.chk_live_update)
 

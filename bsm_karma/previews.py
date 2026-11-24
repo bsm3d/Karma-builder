@@ -1,9 +1,9 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Sun compass, sun altitude and atmosphere drawings
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Sun compass, sun altitude and atmosphere drawings for the Lighting tab, drawn as Qt widgets.
+
 # Houdini : 21 and 22 (PySide6 only, no hou calls)
-# Version : 1.0.0
 
 import math
 from hutil.Qt import QtWidgets, QtCore, QtGui
@@ -17,20 +17,16 @@ class SunCompassWidget(QtWidgets.QWidget):
         self.setFixedSize(140, 140)
         self.setStyleSheet("background-color: #2b2b2b; border: 1px solid #1a1a1a; border-radius: 4px;")
         
-
-
     # ------------------------------------------------------------------------
     def set_azimuth(self, degrees):
         self.azimuth = float(degrees) % 360.0
         self.update()
         
-
     # ----------------------------------------------------------------
     def set_elevation(self, degrees):
         self.elevation = float(degrees)
         self.update()
         
-
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -70,7 +66,6 @@ class SunCompassWidget(QtWidgets.QWidget):
         painter.drawEllipse(int(sun_x - 5), int(sun_y - 5), 10, 10)
         painter.end()
 
-
 class SunAltitudeWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -78,13 +73,11 @@ class SunAltitudeWidget(QtWidgets.QWidget):
         self.setFixedSize(140, 140)
         self.setStyleSheet("background-color: #2b2b2b; border: 1px solid #1a1a1a; border-radius: 4px;")
         
-
     # ----------------------------------------
     def set_elevation(self, degrees):
         self.elevation = float(degrees)
         self.update()
         
-
     # ----------------------------------------------------------------------
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
@@ -126,7 +119,6 @@ class SunAltitudeWidget(QtWidgets.QWidget):
         painter.drawText(center_x + 10, center_y + 10, 100, 16, QtCore.Qt.AlignLeft, f"Alt: {self.elevation:.1f}°")
         painter.end()
 
-
 # ------------------------------------------------------------
 class AtmosphereVisualWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -139,13 +131,11 @@ class AtmosphereVisualWidget(QtWidgets.QWidget):
         self.setMinimumHeight(150)
         self.setStyleSheet("background-color: #2b2b2b; border: 1px solid #1a1a1a; border-radius: 4px;")
         
-
     def update_fog(self, height, density):
         self.fog_height = height
         self.fog_density = density
         self.update()
         
-
     # ------------------------------------------------------------
     def update_cloud(self, alt, density):
         self.cloud_alt = alt

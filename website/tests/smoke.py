@@ -1,11 +1,11 @@
-# Karma Builder website
-# Benoît Saint-Moulin | www.bsm3d.com
-# Function : functional tests of the site: a copy of it runs on the PHP built-in server and every check is a real request
-# PHP : 8.1 and later (php on the path)
-# Version : 1.0.0
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Functional tests of the website: a copy runs on the PHP built-in server and each check is a real request.
+
+# Functional tests, each one a real request to a copy on the PHP built-in server (PHP 8.1 or later on the path).
+# The built-in server ignores .htaccess, so headers and deny rules are not tested here.
 # usage: python website/tests/smoke.py
-# The built-in server ignores .htaccess: the headers and deny rules of the static files are only read, not tested.
 
 import html.parser
 import glob
@@ -30,12 +30,10 @@ OUTSIDE = os.environ.get("BSM_DIR", "")
 OUTSIDE_USER = os.environ.get("BSM_USER", "")
 results = []
 
-
 # ------------------------------------------------------------
 def check(label, ok, detail=""):
     results.append(bool(ok))
     print(("PASS " if ok else "FAIL ") + label + ((" | " + str(detail)[:200]) if detail != "" else ""))
-
 
 # ------------------------------------------------------------
 def prepare():
@@ -49,7 +47,6 @@ def prepare():
     with open(os.path.join(target, "inc", "config.php"), "w", encoding="utf-8") as handle:
         handle.write(config)
     return work, target
-
 
 # ------------------------------------------------------------
 class Client:
@@ -76,19 +73,16 @@ class Client:
         connection.close()
         return response.status, dict((k.lower(), v) for k, v in response.getheaders()), text
 
-
 # ------------------------------------------------------------
 def database(target):
     found = glob.glob(os.path.join(target, "data", "site-*.sqlite"))
     return found[0] if found else os.path.join(target, "data", "missing.sqlite")
-
 
 # ------------------------------------------------------------
 def as_user(target, sql, args):
     script = "import sqlite3, sys, json\nc = sqlite3.connect(sys.argv[1])\nr = c.execute(sys.argv[2], json.loads(sys.argv[3])).fetchall()\nc.commit()\nprint(json.dumps(r))"
     out = subprocess.run(["runuser", "-u", OUTSIDE_USER, "--", sys.executable, "-c", script, database(target), sql, json.dumps(list(args))], capture_output=True, text=True, check=True).stdout
     return [tuple(row) for row in json.loads(out)]
-
 
 # ------------------------------------------------------------
 def query(target, sql, args=()):
@@ -100,7 +94,6 @@ def query(target, sql, args=()):
     finally:
         connection.close()
 
-
 # ------------------------------------------------------------
 def execute(target, sql, args=()):
     if OUTSIDE_USER:
@@ -111,16 +104,13 @@ def execute(target, sql, args=()):
     connection.commit()
     connection.close()
 
-
 # ------------------------------------------------------------
 def token_of(html):
     found = re.search(r'name="csrf" value="([0-9a-f]+)"', html)
     return found.group(1) if found else ""
 
-
 # ------------------------------------------------------------
 VOID = {"meta", "link", "img", "input", "br", "hr", "source", "area", "base", "col", "wbr", "embed", "param", "track"}
-
 
 class Audit(html.parser.HTMLParser):
     def __init__(self):
@@ -152,7 +142,6 @@ class Audit(html.parser.HTMLParser):
                     pass
             return
         self.stack.pop()
-
 
 # ------------------------------------------------------------
 def audit_pages(client):
@@ -190,7 +179,6 @@ def audit_pages(client):
             problems.append("a placeholder is left")
         check("HTML of %s: balanced, unique ids, links and files resolve, images have alt" % name, not problems, problems[:4])
 
-
 # ------------------------------------------------------------
 def main():
     work, target = prepare()
@@ -212,7 +200,6 @@ def main():
         shutil.rmtree(work, ignore_errors=True)
     print("\nRESULT:", "all %d checks passed" % len(results) if all(results) else "%d FAILED of %d" % (results.count(False), len(results)))
     sys.exit(0 if all(results) else 1)
-
 
 # ------------------------------------------------------------
 def run(target):
@@ -390,7 +377,6 @@ def run(target):
     check("no real config is committed", not os.path.exists(os.path.join(SITE, "inc", "config.php")))
     check("the pages in the folder are the ones that the sources build", build_matches())
 
-
 # ------------------------------------------------------------
 def build_matches():
     before = {}
@@ -403,7 +389,6 @@ def build_matches():
         with open(os.path.join(SITE, path), encoding="utf-8") as handle:
             same = same and handle.read() == text
     return same
-
 
 if __name__ == "__main__":
     main()

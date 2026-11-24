@@ -1,15 +1,16 @@
-# Karma Builder
-# Benoît Saint-Moulin
-# www.bsm3d.com
-# Function : Builds the Karma Builder HDA from the project files (hython build_hda.py [output.hda])
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Builds the Karma Builder HDA from the project files when run with hython, with an optional output path.
+
 # Houdini : 21 and 22 (run with hython)
-# Version : 1.0.0
-#
-# The asset is a LOP node that passes its input through and carries the tool as sections (one per module of the
-# bsm_karma package, presets, loader, license, icon). It is rebuilt from the sources each time, the package stays
-# the single source of truth.
+# The asset is a LOP node passing its input through, carrying the tool as sections (one per module, presets, loader, license, icon). Rebuilt from the sources each time.
+# The package stays the single source of truth.
 
 import os
+import shutil
+import tempfile
+import time
 import re
 import sys
 
@@ -28,19 +29,16 @@ def read_text(*parts):
     with open(os.path.join(ROOT, *parts), encoding="utf-8", newline="") as handle:
         return handle.read().replace("\r\n", "\n")
 
-
 # ----------------------------------------
 def read_bytes(*parts):
     with open(os.path.join(ROOT, *parts), "rb") as handle:
         return handle.read()
-
 
 # ------------------------------------------------------------
 # One section per module of the package: bsm_karma_src_<name>, the package file itself being "__init__".
 def package_sources():
     folder = os.path.join(ROOT, PACKAGE)
     return {name[:-3]: read_text(PACKAGE, name) for name in sorted(os.listdir(folder)) if name.endswith(".py")}
-
 
 # ------------------------------------------------------------
 # The id of the code that goes into the asset, with the same function the tool uses to show its own id.
@@ -51,14 +49,12 @@ def build_id():
     spec.loader.exec_module(module)
     return module.folder_build_id(os.path.join(ROOT, PACKAGE))
 
-
 #------------------------------------------------------------
 def script_version():
     match = re.search(r'^SCRIPT_VERSION = "([^"]+)"', read_text(PACKAGE, "config.py"), re.MULTILINE)
     if not match:
         raise RuntimeError("SCRIPT_VERSION not found in {}/config.py".format(PACKAGE))
     return match.group(1)
-
 
 HELP = '''= Karma Builder =
 
@@ -109,7 +105,6 @@ loptoolutils.genericTool(kwargs, '$HDA_NAME')]]></script>
 </shelfDocument>
 """
 
-
 # --------------------------------------------------
 def build(output):
     output = os.path.abspath(output).replace("\\", "/")
@@ -157,6 +152,16 @@ def build(output):
     for name, code in package_sources().items():
         definition.addSection(SOURCE_PREFIX + name, code)
     definition.addSection("bsm_karma_presets_json", read_text(PACKAGE, "presets.json"))
+    # the HDRI pictures of datas/ travel with the asset (about 60 MB)
+    datas_folder = os.path.join(ROOT, "datas")
+    for name in sorted(os.listdir(datas_folder)) if os.path.isdir(datas_folder) else []:
+        if name.lower().endswith((".exr", ".hdr")):
+            definition.addSection("datas_" + name, read_bytes("datas", name))
+    # the pictures of datas/Sky (a few MB): same list as SKY_DATAS_EMBEDDED
+    for name in ("moon.jpg", "stars.npz", "milky_way_1k.exr"):
+        sky_file = os.path.join(datas_folder, "Sky", name)
+        if os.path.isfile(sky_file):
+            definition.addSection("datas_Sky_" + name, read_bytes("datas", "Sky", name))
     definition.addSection("PythonModule", read_text("tools", "hda_python_module.py"))
     definition.addSection("LICENSE.txt", read_text("LICENSE"))
     definition.addSection("Help", HELP)
@@ -170,11 +175,24 @@ def build(output):
     definition.setVersion(version)
     definition.setComment("Karma Builder {} (build {}). Licensed under PolyForm Noncommercial 1.0.0 (see the LICENSE.txt section).".format(version, code_id))
 
-    definition.save(output, template_node=asset)
+    # bug trouvé et fixé: now and then Houdini answered "Failed to save updated definition" (a file the antivirus or the Explorer holds for a
+    # moment) and left a half written asset, or a copy renamed with the version. It is saved in a temporary folder, tried again, and moved.
+    staging = os.path.join(tempfile.mkdtemp(prefix="bsm_hda_"), os.path.basename(output)).replace("\\", "/")
+    for attempt in range(4):
+        try:
+            definition.save(staging, template_node=asset)
+            break
+        except hou.OperationFailed:
+            if attempt == 3:
+                raise
+            time.sleep(1.5)
     hou.hipFile.clear(suppress_save_prompt=True)
+    if os.path.exists(output):
+        os.remove(output)
+    shutil.move(staging, output)
+    shutil.rmtree(os.path.dirname(staging), ignore_errors=True)
     remove_houdini_backups(output)
     return output, version
-
 
 # ------------------------------------------------------------
 # Houdini keeps a backup copy of every overwritten library next to it, drop this asset's copies.
@@ -188,7 +206,6 @@ def remove_houdini_backups(output):
             os.remove(os.path.join(backup_dir, name))
     if not os.listdir(backup_dir):
         os.rmdir(backup_dir)
-
 
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_OUTPUT

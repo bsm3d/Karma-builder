@@ -1,8 +1,11 @@
-# Manual render check, not part of run_tests.ps1: hython tests/render_check.py [cpu|xpu] [output.png]
-#
-# Renders a small sky and clouds scene with the tool and prints the time and the image path.
-#
+# BSM Karma Builder
+# © Benoit Saint-Moulin - 2026
+# Version du fichier : 1.6.0
+# Fonction du fichier : Manual render check run with hython outside the test script, rendering a scene on CPU or XPU.
+
+# Manual check, not part of run_tests.ps1: renders a small sky and clouds scene on CPU or XPU, prints the time and the image path.
 # Revision : 10-10-2026 | Auteur : BSM
+# hython tests/render_check.py [cpu|xpu] [output.png]
 import os
 import sys
 import time
